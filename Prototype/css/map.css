@@ -1,0 +1,280 @@
+/* ==========================================================================
+   map.css — 노선도 화면(#view-map) 내부 요소 + SVG 내부 스타일 전용
+   (style.css의 토큰 --primary/--ok/--warn/--bad/--surface/--border/--text/--muted 사용)
+   ========================================================================== */
+
+/* .view 가 이미 position:absolute 이면 그것을 존중 (특이도 0) */
+:where(#view-map) { position: relative; overflow: hidden; }
+
+/* ---------------- 컨테이너 ---------------- */
+.map-container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #F8FAFC;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------------- 노선 필터 칩 (상단 오버레이) ---------------- */
+.line-filter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  background: linear-gradient(to bottom, rgba(248, 250, 252, .96) 0%, rgba(248, 250, 252, .88) 60%, rgba(248, 250, 252, 0) 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
+          mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
+}
+.line-filter::-webkit-scrollbar { display: none; }
+.line-filter > * { flex: 0 0 auto; white-space: nowrap; }
+.line-filter:empty { display: none; }
+
+/* ---------------- 줌 컨트롤 (우측 세로 스택) ---------------- */
+.map-controls {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #E5E7EB);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, .06), 0 4px 14px rgba(17, 24, 39, .1);
+}
+.map-controls .icon-btn {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 18px;
+  color: var(--text, #111827);
+  cursor: pointer;
+}
+.map-controls .icon-btn + .icon-btn { border-top: 1px solid var(--border, #E5E7EB); }
+.map-controls .icon-btn:hover { background: rgba(37, 99, 235, .06); box-shadow: none; }
+.map-controls .icon-btn:active { transform: none; background: rgba(37, 99, 235, .12); }
+.map-controls .icon-btn:focus-visible { outline: 2px solid var(--primary, #2563EB); outline-offset: -2px; }
+
+/* ---------------- 범례 (좌하단 알약) ---------------- */
+.map-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--muted, #6B7280);
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid var(--border, #E5E7EB);
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(17, 24, 39, .08);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.map-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(17, 24, 39, .06);
+}
+.map-legend .dot.ok   { background: var(--ok, #16A34A); }
+.map-legend .dot.warn { background: var(--warn, #F59E0B); }
+.map-legend .dot.bad  { background: var(--bad, #DC2626); }
+
+/* ==========================================================================
+   SVG 내부
+   ========================================================================== */
+.metro-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  -webkit-user-select: none;
+          user-select: none;
+  cursor: grab;
+  font-family: inherit;
+}
+.metro-svg.dragging { cursor: grabbing; }
+
+.metro-svg .map-bg { fill: #F8FAFC; }
+
+/* 한강 (장식) */
+.metro-svg .river { pointer-events: none; }
+.metro-svg .river-band {
+  fill: none;
+  stroke: #DBEAFE;
+  stroke-width: 46;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .75;
+}
+.metro-svg .river-label {
+  fill: #93C5FD;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  opacity: .8;
+}
+
+/* 노선 */
+.metro-svg .metro-line { transition: opacity .25s ease; }
+.metro-svg .metro-line.dimmed { opacity: .12; }
+.metro-svg .line-halo,
+.metro-svg .line-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.metro-svg .line-halo { stroke: #fff; }
+
+/* 역 */
+.metro-svg .station-node { cursor: pointer; transition: opacity .25s ease; }
+.metro-svg .station-node.dimmed { opacity: .15; }
+.metro-svg .station-node.dimmed .status-pulse { animation: none; }
+.metro-svg .hit { fill: transparent; stroke: none; }
+.metro-svg .st-circle {
+  fill: #fff;
+  stroke-width: 2.2;
+  transition: stroke-width .15s ease;
+}
+.metro-svg .station-node.transfer .st-circle { stroke: #1F2937; stroke-width: 2.5; }
+.metro-svg .station-node:hover .st-circle { stroke-width: 3; }
+.metro-svg .station-node.st-bad .st-circle { fill: #FEF2F2; }
+
+.metro-svg .station-label {
+  fill: #1F2937;
+  font-weight: 600;
+  paint-order: stroke fill;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.metro-svg .station-node.transfer .station-label { font-weight: 800; fill: #111827; }
+.metro-svg.zoom-low .station-node:not(.transfer):not(.selected):not(.emph) .station-label { display: none; }
+.metro-svg .station-node.selected .station-label { fill: var(--primary, #2563EB); font-weight: 800; }
+
+/* 엘리베이터 상태 점 */
+.metro-svg .status-dot { display: none; stroke: #fff; stroke-width: 1.6; pointer-events: none; }
+.metro-svg .status-dot.ok   { display: inline; fill: var(--ok, #16A34A); }
+.metro-svg .status-dot.warn { display: inline; fill: var(--warn, #F59E0B); }
+.metro-svg .status-dot.bad  { display: inline; fill: var(--bad, #DC2626); }
+.metro-svg .status-pulse {
+  display: none;
+  fill: var(--bad, #DC2626);
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.metro-svg .status-pulse.on { display: inline; animation: mm-pulse 1.4s ease-out infinite; }
+
+/* 선택 */
+.metro-svg .select-ring {
+  display: none;
+  fill: rgba(37, 99, 235, .14);
+  stroke: var(--primary, #2563EB);
+  stroke-width: 3;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.metro-svg .station-node.selected .select-ring { display: inline; animation: mm-pop .3s ease-out; }
+.metro-svg .station-node.selected .st-circle { stroke-width: 3; }
+
+/* 우회 경로 */
+.metro-svg .layer-route,
+.metro-svg .layer-markers { pointer-events: none; }
+.metro-svg .alt-route-halo {
+  fill: none;
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .95;
+}
+.metro-svg .alt-route {
+  fill: none;
+  stroke: var(--primary, #2563EB);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: mm-dash .8s linear infinite;
+}
+
+.metro-svg .bt-ring {
+  fill: rgba(220, 38, 38, .12);
+  stroke: var(--bad, #DC2626);
+  stroke-width: 3;
+}
+.metro-svg .bt-x circle { fill: var(--bad, #DC2626); stroke: #fff; stroke-width: 1.5; }
+.metro-svg .bt-x path { fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; }
+
+.metro-svg .at-ring {
+  fill: rgba(22, 163, 74, .14);
+  stroke: var(--ok, #16A34A);
+  stroke-width: 3;
+}
+.metro-svg .at-pulse {
+  fill: var(--ok, #16A34A);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mm-pulse-lg 1.6s ease-out infinite;
+}
+
+.metro-svg .map-tag rect { stroke: #fff; stroke-width: 1.5; }
+.metro-svg .map-tag text { fill: #fff; font-weight: 800; }
+.metro-svg .map-tag.bad rect { fill: var(--bad, #DC2626); }
+.metro-svg .map-tag.ok rect  { fill: var(--ok, #16A34A); }
+.metro-svg .broken-target .map-tag,
+.metro-svg .alt-target .map-tag { animation: mm-tag-in .35s ease-out both; }
+
+/* ---------------- 애니메이션 ---------------- */
+@keyframes mm-pulse {
+  0%   { transform: scale(1);   opacity: .55; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+@keyframes mm-pulse-lg {
+  0%   { transform: scale(.9);  opacity: .45; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+@keyframes mm-pop {
+  0%   { transform: scale(.4); opacity: 0; }
+  100% { transform: scale(1);  opacity: 1; }
+}
+@keyframes mm-dash {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: calc(var(--dash-period, 18) * -1px); }
+}
+@keyframes mm-tag-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metro-svg .status-pulse.on,
+  .metro-svg .at-pulse,
+  .metro-svg .alt-route { animation: none; }
+  .metro-svg .status-pulse.on { opacity: .35; transform: scale(1.8); }
+}

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <title>엘리베이터 지하철</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/map.css" />
+</head>
+<body>
+  <div class="desktop-stage">
+    <!-- 데스크톱 전용 시연 제어판 -->
+    <aside id="demoPanel" class="demo-panel">
+      <div class="demo-brand">
+        <div class="demo-logo">🛗</div>
+        <div>
+          <div class="demo-title">엘리베이터 지하철</div>
+          <div class="demo-sub">우왕톤 7팀 · 프로토타입 v0.1</div>
+        </div>
+      </div>
+      <div class="demo-section">
+        <div class="section-label">시연 시나리오</div>
+        <div id="demoScenarioList" class="demo-list"></div>
+      </div>
+      <div class="demo-section">
+        <button id="demoReset" class="btn btn-ghost btn-block" type="button">↺ 전체 상태 초기화</button>
+        <button id="fullscreenToggle" class="btn btn-ghost btn-block" type="button">⛶ 전체화면 모드</button>
+      </div>
+      <p class="demo-hint muted">노선도에서 역을 누르거나, AI 챗봇에 "강남역 엘리베이터 돼?"라고 물어보세요.</p>
+    </aside>
+
+    <!-- 모바일 폰 프레임 -->
+    <div id="phone" class="phone">
+      <div class="status-bar">
+        <span id="statusTime">9:41</span>
+        <span class="status-icons">▂▄▆ 📶 🔋</span>
+      </div>
+
+      <header class="app-header">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input id="searchInput" type="search" placeholder="역 이름 검색 (예: 강남)" autocomplete="off" />
+          <button id="demoBtn" class="icon-btn" type="button" aria-label="시연 제어판">⚙️</button>
+        </div>
+        <div id="searchResults" class="search-results"></div>
+      </header>
+
+      <main class="views">
+        <!-- 노선도 -->
+        <section id="view-map" class="view active" data-view="map">
+          <div id="lineFilter" class="line-filter"></div>
+          <div id="mapContainer" class="map-container"></div>
+          <div class="map-controls">
+            <button id="zoomIn" class="icon-btn" type="button" aria-label="확대">＋</button>
+            <button id="zoomOut" class="icon-btn" type="button" aria-label="축소">－</button>
+            <button id="zoomReset" class="icon-btn" type="button" aria-label="전체 보기">⤢</button>
+          </div>
+          <div class="map-legend">
+            <span><i class="dot ok"></i>정상</span>
+            <span><i class="dot warn"></i>일부 불가</span>
+            <span><i class="dot bad"></i>이용 불가</span>
+          </div>
+        </section>
+
+        <!-- 엘리베이터 -->
+        <section id="view-elevator" class="view" data-view="elevator">
+          <div class="view-scroll">
+            <h2 class="view-title">엘리베이터 현황</h2>
+            <div id="elevatorSummary" class="summary-grid"></div>
+            <div id="elevatorFilter" class="chip-row"></div>
+            <div id="elevatorList" class="station-list"></div>
+          </div>
+        </section>
+
+        <!-- 출발 시각 계산 -->
+        <section id="view-time" class="view" data-view="time">
+          <div class="view-scroll">
+            <h2 class="view-title">출발 시각 계산</h2>
+            <form id="timeForm" class="card time-form">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="form-label" for="originSelect">출발역</label>
+                  <select id="originSelect"></select>
+                </div>
+                <button id="swapBtn" class="icon-btn swap-btn" type="button" aria-label="출발/도착 바꾸기">⇅</button>
+                <div class="form-field">
+                  <label class="form-label" for="destSelect">도착역</label>
+                  <select id="destSelect"></select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="form-label" for="arriveBy">도착 희망 시각</label>
+                  <input id="arriveBy" type="time" value="15:00" />
+                </div>
+                <label class="switch">
+                  <input id="modeNow" type="checkbox" />
+                  <span>지금 바로 출발</span>
+                </label>
+              </div>
+              <button class="btn btn-primary btn-block" type="submit">출발 시각 계산하기</button>
+            </form>
+            <div id="timeResult"></div>
+          </div>
+        </section>
+
+        <!-- AI 챗봇 -->
+        <section id="view-chat" class="view" data-view="chat">
+          <div id="chatMessages" class="chat-messages"></div>
+          <div class="chat-composer">
+            <div id="chatSuggestions" class="chip-row chat-suggestions"></div>
+            <form id="chatForm" class="chat-form">
+              <input id="chatInput" type="text" placeholder="예) 강남역 엘리베이터 돼?" autocomplete="off" />
+              <button class="btn btn-primary" type="submit" aria-label="보내기">↑</button>
+            </form>
+          </div>
+        </section>
+      </main>
+
+      <!-- 바텀 시트 -->
+      <div id="sheetBackdrop" class="sheet-backdrop"></div>
+      <div id="bottomSheet" class="bottom-sheet" role="dialog" aria-modal="true">
+        <div class="sheet-handle"></div>
+        <div id="sheetContent" class="sheet-content"></div>
+      </div>
+
+      <!-- 하단 탭 -->
+      <nav class="tab-bar">
+        <button class="tab active" data-tab="map" type="button"><span class="tab-icon">🗺️</span><span>노선도</span></button>
+        <button class="tab" data-tab="elevator" type="button"><span class="tab-icon">🛗</span><span>엘리베이터</span></button>
+        <button class="tab" data-tab="time" type="button"><span class="tab-icon">⏱️</span><span>출발계산</span></button>
+        <button class="tab" data-tab="chat" type="button"><span class="tab-icon">🤖</span><span>AI 챗봇</span></button>
+      </nav>
+
+      <div id="toast" class="toast"></div>
+    </div>
+  </div>
+
+  <script src="js/mock-data.js"></script>
+  <script src="js/elevator-service.js"></script>
+  <script src="js/time-calculator.js"></script>
+  <script src="js/metro-map.js"></script>
+  <script src="js/ai-agent.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
