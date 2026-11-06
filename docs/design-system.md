@@ -21,6 +21,7 @@
 | 주의 | `--warn` / `--warn-text` / `--warn-tint` | `#F59E0B` / `#B45309` / `#FEF3C7` |
 | 오류 (고장) | `--bad` / `--bad-text` / `--bad-tint` | `#DC2626` / `#B91C1C` / `#FEE2E2` |
 | 정보 없음 | `--unknown-tint` | `#F3F4F6` |
+| 한강 (노선도, v2) | `--river` / `--river-edge` / `--river-label` | `#DBEAFE` / `#BFDBFE` / `#93C5FD` |
 
 ## 타이포그래피
 

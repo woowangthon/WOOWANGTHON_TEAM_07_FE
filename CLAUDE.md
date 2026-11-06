@@ -4,6 +4,7 @@
 
 우왕톤 7팀 프론트엔드. "엘리베이터 지하철" 모바일 웹 프로토타입.
 - `Prototype/`: 정적 HTML/CSS/JS 프로토타입 (빌드 없음, `Prototype/index.html`을 브라우저로 열어 확인)
+- `Prototype-v2/`: v2 프로토타입. 노선도를 공식 노선도 배치로 바꾸고 1~8호선만 남김 (REQ-MAP-001, 002). `Prototype-v2/index.html`로 확인
 - `docs/`: 디자인 요구사항 문서
 
 ## 디자인 요구사항 문서 (docs/)
