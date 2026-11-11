@@ -67,7 +67,15 @@
       return typeof s.getStationStatus === 'function' ? (s.getStationStatus(id) || 'UNKNOWN') : 'UNKNOWN';
     } catch (e) { return 'UNKNOWN'; }
   }
-  var STATUS_CLASS = { AVAILABLE: 'ok', PARTIAL: 'warn', UNAVAILABLE: 'bad' };
+  // 역 노드 모양으로 상태를 보여 준다 (REQ-MAP-003)
+  // 일부 운행·이용 불가는 커진 원 + 흰 아이콘. 반지름 14.5 × 최소 배율 0.7 × 2 = 지름 20px 이상
+  var R_ALERT = 14.5;
+  var ICON_PX = 26;
+  function statusIcon(status) {
+    var s = svc();
+    try { if (s && typeof s.getStatusIcon === 'function') return s.getStatusIcon(status); } catch (e) { /* ignore */ }
+    return { PARTIAL: 'error', UNAVAILABLE: 'cancel' }[status] || '';
+  }
 
   // 줌에 따른 심볼 크기 배율 (화면 px 기준). 줌 1 → .75, 2.4 → ~1.03, 상한 1.25
   function sizeFactor(zoom) { return clamp(0.55 + 0.2 * zoom, 0.7, 1.25); }
@@ -451,20 +459,21 @@
       var r = transfer ? 7.5 : 5;
       var g = el('g', { 'class': 'station-node' + (transfer ? ' transfer' : ''), 'data-id': st.id }, parent);
       el('title', null, g).textContent = st.name + '역';
-      el('circle', { 'class': 'select-ring', r: r + 6 }, g);
+      var sel = el('circle', { 'class': 'select-ring', r: r + 6 }, g);
       el('circle', { 'class': 'hit', r: 15 }, g);
       var ln = null;
       for (var j = 0; j < lines.length && !ln; j++) ln = getLine(lines[j]);
-      el('circle', { 'class': 'st-circle', r: r, stroke: transfer ? null : (ln && ln.color) || '#64748B' }, g);
+      // 상태가 바뀐 순간에만 퍼지는 고리 (REQ-MAP-003)
+      var ring = el('circle', { 'class': 'status-ring', r: r }, g);
+      var circle = el('circle', { 'class': 'st-circle', r: r, stroke: transfer ? null : (ln && ln.color) || '#64748B' }, g);
+      var icon = el('text', { 'class': 'st-icon', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': ICON_PX }, g);
       var cands = labelCandidates(vecs[st.id], r);
       var lp = cands[0];
       var label = el('text', { 'class': 'station-label', x: lp.x, y: lp.y, 'text-anchor': lp.a }, g);
       label.textContent = st.name;
-      var dx = r * 0.78 + 1.6, dy = -(r * 0.78 + 1.6);
-      var pulse = el('circle', { 'class': 'status-pulse', cx: r2(dx), cy: r2(dy), r: 3.6 }, g);
-      var dot = el('circle', { 'class': 'status-dot', cx: r2(dx), cy: r2(dy), r: transfer ? 3.8 : 3.4 }, g);
       S.nodes[st.id] = {
-        g: g, st: st, dot: dot, pulse: pulse, label: label, cands: cands, cd: lp,
+        g: g, st: st, circle: circle, ring: ring, sel: sel, icon: icon, vec: vecs[st.id],
+        label: label, cands: cands, cd: lp, baseR: r,
         r: r, transfer: transfer, hidden: false, w: textWidth(st.name, LABEL_PX)
       };
       S.scaled.push({ g: g, x: st.x, y: st.y });
@@ -622,19 +631,43 @@
   }
 
   /* ---------------- public API ---------------- */
+  // 고리를 2~3번 퍼뜨리고 멈춘다. 같은 역이 또 바뀌면 처음부터 다시
+  function ping(n) {
+    n.ring.classList.remove('ping');
+    n.ring.getBoundingClientRect();
+    n.ring.classList.add('ping');
+  }
+
+  // 역 노드의 채움·크기·아이콘으로 상태를 보여 준다 (REQ-MAP-003)
+  //   정보 없음: 빈 흰 원 / 정상: 초록으로 찬 원 / 일부 운행·이용 불가: 커진 원 + 흰 아이콘
   function refreshStatuses() {
     if (!S) return;
+    var relayout = false;
     for (var id in S.nodes) {
       if (!Object.prototype.hasOwnProperty.call(S.nodes, id)) continue;
       var n = S.nodes[id];
       var status = stationStatus(id);
-      var cls = STATUS_CLASS[status] || '';
-      n.dot.setAttribute('class', 'status-dot' + (cls ? ' ' + cls : ''));
-      n.pulse.setAttribute('class', 'status-pulse' + (status === 'UNAVAILABLE' ? ' on' : ''));
+      var alert = status === 'PARTIAL' || status === 'UNAVAILABLE';
+      var r = alert ? R_ALERT : n.baseR;
+      if (n.r !== r) {
+        n.r = r;
+        n.circle.setAttribute('r', r);
+        n.ring.setAttribute('r', r);
+        n.sel.setAttribute('r', r + 6);
+        n.cands = labelCandidates(n.vec, r);
+        n.cd = null;
+        relayout = true;
+      }
+      n.icon.textContent = alert ? statusIcon(status) : '';
       n.g.classList.toggle('st-ok', status === 'AVAILABLE');
       n.g.classList.toggle('st-warn', status === 'PARTIAL');
       n.g.classList.toggle('st-bad', status === 'UNAVAILABLE');
+      // 처음 그릴 때는 퍼지지 않는다
+      if (S.statusReady && n.status !== status) ping(n);
+      n.status = status;
     }
+    S.statusReady = true;
+    if (relayout) { S.labelK = 0; layoutLabels(); }
   }
 
   function selectStation(id) {
@@ -808,6 +841,12 @@
     var s = svc();
     if (s && typeof s.subscribe === 'function') {
       try { S.unsub = s.subscribe(function () { refreshStatuses(); }); } catch (e) { /* ignore */ }
+    }
+    if (S.svg) {
+      S.svg.addEventListener('animationend', function (e) {
+        var t = e.target;
+        if (t && t.classList && t.classList.contains('status-ring')) t.classList.remove('ping');
+      });
     }
   }
 

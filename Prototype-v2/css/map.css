@@ -92,16 +92,23 @@
   white-space: nowrap;
 }
 .map-legend span { display: inline-flex; align-items: center; gap: var(--sp-1); }
-.map-legend .dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
+/* 범례 모양 = 지도 노드 모양 (REQ-MAP-003) */
+.map-legend .lg-node {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--muted-2);
   border-radius: 50%;
-  box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(17, 24, 39, .06);
+  background: #fff;
 }
-.map-legend .dot.ok   { background: var(--ok, #16A34A); }
-.map-legend .dot.warn { background: var(--warn); }
-.map-legend .dot.bad  { background: var(--bad, #DC2626); }
+.map-legend .lg-node.ok { background: var(--ok); }
+.map-legend .lg-node.warn,
+.map-legend .lg-node.bad { width: var(--icon-md); height: var(--icon-md); border: 0; color: #fff; }
+.map-legend .lg-node.warn { background: var(--warn); }
+.map-legend .lg-node.bad { background: var(--bad); }
 
 /* ==========================================================================
    SVG 내부
@@ -152,7 +159,7 @@
 /* 역 */
 .metro-svg .station-node { cursor: pointer; transition: opacity .25s ease; }
 .metro-svg .station-node.dimmed { opacity: .15; }
-.metro-svg .station-node.dimmed .status-pulse { animation: none; }
+.metro-svg .station-node.dimmed .status-ring { animation: none; }
 .metro-svg .hit { fill: transparent; stroke: none; }
 .metro-svg .st-circle {
   fill: #fff;
@@ -161,7 +168,18 @@
 }
 .metro-svg .station-node.transfer .st-circle { stroke: #1F2937; stroke-width: 2.5; }
 .metro-svg .station-node:hover .st-circle { stroke-width: 3; }
-.metro-svg .station-node.st-bad .st-circle { fill: #FEF2F2; }
+/* 엘리베이터 상태 = 역 노드 모양 (REQ-MAP-003). 노선 색 테두리는 모든 상태에서 남긴다 */
+.metro-svg .station-node.st-ok .st-circle { fill: var(--ok); }
+.metro-svg .station-node.st-warn .st-circle { fill: var(--warn); stroke-width: 3; }
+.metro-svg .station-node.st-bad .st-circle { fill: var(--bad); stroke-width: 3; }
+.metro-svg .st-icon {
+  fill: #fff;
+  font-family: 'Material Symbols Rounded';
+  font-feature-settings: 'liga';
+  font-variation-settings: 'FILL' 0, 'wght' var(--icon-wght), 'GRAD' 0, 'opsz' 24;
+  pointer-events: none;
+}
+html:not(.ms-ready) .metro-svg .st-icon { fill: transparent; }
 
 .metro-svg .station-label {
   fill: #1F2937;
@@ -177,19 +195,20 @@
 .metro-svg .station-label.label-hidden { display: none; }
 .metro-svg .station-node.selected .station-label { fill: var(--text); font-weight: var(--fw-bold); }
 
-/* 엘리베이터 상태 점 */
-.metro-svg .status-dot { display: none; stroke: #fff; stroke-width: 1.6; pointer-events: none; }
-.metro-svg .status-dot.ok   { display: inline; fill: var(--ok, #16A34A); }
-.metro-svg .status-dot.warn { display: inline; fill: var(--warn); }
-.metro-svg .status-dot.bad  { display: inline; fill: var(--bad, #DC2626); }
-.metro-svg .status-pulse {
+/* 상태가 바뀐 순간에만 3번 퍼지고 멈추는 고리 (REQ-MAP-003) */
+.metro-svg .status-ring {
   display: none;
-  fill: var(--bad, #DC2626);
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 3;
   pointer-events: none;
   transform-box: fill-box;
   transform-origin: center;
 }
-.metro-svg .status-pulse.on { display: inline; animation: mm-pulse 1.4s ease-out infinite; }
+.metro-svg .st-ok .status-ring { stroke: var(--ok); }
+.metro-svg .st-warn .status-ring { stroke: var(--warn); }
+.metro-svg .st-bad .status-ring { stroke: var(--bad); }
+.metro-svg .status-ring.ping { display: inline; animation: mm-ping .9s ease-out 3; }
 
 /* 선택 */
 .metro-svg .select-ring {
@@ -250,9 +269,9 @@
 .metro-svg .alt-target .map-tag { animation: mm-tag-in .35s ease-out both; }
 
 /* ---------------- 애니메이션 ---------------- */
-@keyframes mm-pulse {
-  0%   { transform: scale(1);   opacity: .55; }
-  100% { transform: scale(3.2); opacity: 0; }
+@keyframes mm-ping {
+  0%   { transform: scale(1);   opacity: .8; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 @keyframes mm-pulse-lg {
   0%   { transform: scale(.9);  opacity: .45; }
@@ -272,8 +291,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .metro-svg .status-pulse.on,
   .metro-svg .at-pulse,
   .metro-svg .alt-route { animation: none; }
-  .metro-svg .status-pulse.on { opacity: .35; transform: scale(1.8); }
+  /* 움직임 줄이기: 퍼지는 고리를 보이지 않는다 */
+  .metro-svg .status-ring.ping { display: none; animation: none; }
 }
