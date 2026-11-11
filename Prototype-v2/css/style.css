@@ -54,6 +54,18 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --tabbar-total: calc(var(--tabbar-h) + var(--safe-bottom));
 
+  /* 글자 크기, 굵기 (REQ-DS-004에서 정한 값. 화면 전체 적용은 REQ-DS-004에서) */
+  --fs-caption: 0.8125rem;  /* 13px */
+  --fs-label: 0.9375rem;    /* 15px */
+  --fs-body: 1.0625rem;     /* 17px */
+  --fs-title: 1.25rem;      /* 20px */
+  --fs-heading: 1.5rem;     /* 24px */
+  --fs-display: 2rem;       /* 32px */
+  --fs-hero: 2.75rem;       /* 44px */
+  --fw-regular: 400;
+  --fw-strong: 600;
+  --fw-bold: 800;
+
   --font: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
           system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
@@ -270,6 +282,19 @@ body.fullscreen .demo-panel.show { display: block; }
   color: var(--bad-text);
 }
 .demo-hint { margin-top: 18px; font-size: 12px; line-height: 1.6; }
+
+/* 시연 제어판: 선택한 역 (REQ-COM-003) */
+.demo-station-name {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  font-size: 15px; font-weight: 700; color: var(--text);
+}
+.demo-station-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.demo-elev-list { margin-top: 10px; border-top: 1px solid var(--border); }
+.demo-elev-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.demo-elev-loc { flex: 1; min-width: 0; font-size: 13px; color: var(--text-2); }
 
 /* --------------------------------------------------------------------------
    5. App header & search
@@ -898,28 +923,29 @@ body.fullscreen .demo-panel.show { display: block; }
   gap: 8px;
 }
 .summary-card {
+  min-width: 0;
   padding: 12px 12px 10px;
   background: var(--surface);
   border-radius: 14px;
   box-shadow: var(--shadow);
   border: 1px solid rgba(17, 24, 39, .04);
   text-align: left;
-  transition: transform .15s var(--ease);
 }
-button.summary-card:active { transform: scale(.97); }
 .summary-num {
-  font-size: 26px;
-  font-weight: 800;
+  font-size: var(--fs-display);
+  font-weight: var(--fw-bold);
   line-height: 1.15;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
   color: var(--text);
+  overflow-wrap: anywhere;
 }
+.summary-unit { margin-left: 2px; font-size: var(--fs-label); font-weight: var(--fw-strong); letter-spacing: 0; }
 .summary-card.ok .summary-num { color: var(--ok); }
 .summary-card.warn .summary-num { color: var(--warn); }
 .summary-card.bad .summary-num { color: var(--bad); }
 .summary-card.unknown .summary-num { color: var(--muted); }
-.summary-label { margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.summary-label { margin-top: 2px; font-size: var(--fs-label); font-weight: var(--fw-strong); color: var(--muted); }
 
 #elevatorFilter { margin: 16px -16px 12px; padding: 2px 16px; }
 
