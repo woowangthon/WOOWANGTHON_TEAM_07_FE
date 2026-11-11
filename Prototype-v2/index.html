@@ -93,8 +93,14 @@
               </div>
               <div class="form-row time-row">
                 <div class="form-field">
-                  <label class="form-label" for="arriveBy">도착 희망 시각</label>
-                  <input id="arriveBy" type="time" value="15:00" />
+                  <span id="arriveByLabel" class="form-label">도착 희망 시각</span>
+                  <div class="time-picker" role="group" aria-labelledby="arriveByLabel">
+                    <select id="arriveAmpm" aria-label="오전 오후"><option value="오전">오전</option><option value="오후">오후</option></select>
+                    <select id="arriveHour" aria-label="시"></select>
+                    <span class="time-picker-sep" aria-hidden="true">:</span>
+                    <select id="arriveMin" aria-label="분"></select>
+                  </div>
+                  <input id="arriveBy" type="hidden" value="15:00" />
                 </div>
                 <label class="switch">
                   <input id="modeNow" type="checkbox" />

@@ -87,6 +87,7 @@
   --tap-min: 44px;   /* 누를 수 있는 모든 요소의 최소 크기 */
   --tap-main: 48px;  /* 화면의 핵심 동작 */
   --tap-chip: 36px;  /* 칩 줄의 보이는 높이. 누르는 영역은 투명하게 덧대 --tap-min */
+  --timeline-time-w: 4.75rem; /* 타임라인 시각 칸. "오후 12:00"이 한 줄에 들어가는 폭 (REQ-DS-009) */
 
   --font: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
           system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
@@ -883,6 +884,8 @@ body.fullscreen .demo-panel.show { display: block; }
   color: var(--text);
 }
 .big-time.late, .big-time.bad { color: var(--bad); }
+/* 큰 출발 시각의 오전/오후는 숫자보다 작게 (REQ-DS-009) */
+.big-time-ampm { font-size: var(--fs-title); letter-spacing: 0; }
 .big-time-sub { margin-top: var(--sp-1); font-size: var(--fs-label); color: var(--muted); }
 .big-time-sub strong, .big-time-sub b { color: var(--text); }
 
@@ -900,7 +903,7 @@ body.fullscreen .demo-panel.show { display: block; }
   position: absolute;
   top: 14px;
   bottom: 14px;
-  left: calc(48px + var(--sp-3) + 14px - 1px); /* 시각 칸 + 칸 사이 간격 + 아이콘 반지름 − 선 두께 반 */
+  left: calc(var(--timeline-time-w) + var(--sp-3) + 14px - 1px); /* 시각 칸 + 칸 사이 간격 + 아이콘 반지름 − 선 두께 반 */
   width: 2px;
   border-radius: 1px;
   background: var(--border-strong);
@@ -908,7 +911,7 @@ body.fullscreen .demo-panel.show { display: block; }
 .timeline-item {
   position: relative;
   display: grid;
-  grid-template-columns: 48px 28px 1fr;
+  grid-template-columns: var(--timeline-time-w) 28px 1fr;
   align-items: center;
   gap: var(--sp-3);
   min-height: 28px;
@@ -1028,9 +1031,13 @@ body.fullscreen .demo-panel.show { display: block; }
   margin-bottom: var(--sp-4);
 }
 .form-field { flex: 1; min-width: 0; }
-/* 도착 시각 + 지금 출발: 글자가 커져 시각이 잘릴 폭이면 스위치를 아랫줄로 내린다 */
+/* 도착 시각은 한 줄을 다 쓰고, 지금 출발 스위치는 아랫줄로 */
 .time-row { flex-wrap: wrap; }
-.time-row .form-field { flex: 1 1 8.5em; }
+.time-row .form-field { flex: 1 1 100%; }
+/* 오전/오후 · 시 · 분 고르기 (REQ-DS-009) */
+.time-picker { display: flex; align-items: center; gap: var(--sp-2); }
+.time-picker select { flex: 1 1 0; min-width: 0; }
+.time-picker-sep { flex: none; font-size: var(--fs-body); font-weight: var(--fw-bold); color: var(--muted); }
 .form-label {
   display: block;
   margin: 0 0 var(--sp-2) 2px;
@@ -1042,7 +1049,6 @@ body.fullscreen .demo-panel.show { display: block; }
 .form-field select,
 .form-field input,
 .time-form select,
-.time-form input[type="time"],
 .time-form input[type="text"] {
   display: block;
   width: 100%;
@@ -1214,6 +1220,7 @@ body.fullscreen .demo-panel.show { display: block; }
 .msg .card { padding: var(--sp-4); box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
 .msg .card + .card { margin-top: 0; }
 .msg .big-time { font-size: var(--fs-display); }
+.msg .big-time-ampm { font-size: var(--fs-body); }
 .msg .elev-item { padding: var(--sp-3); gap: var(--sp-3); }
 .msg .elev-icon { width: 34px; height: 34px; font-size: 16px; }
 .msg .station-row { min-height: 50px; padding: var(--sp-3) var(--sp-3); }

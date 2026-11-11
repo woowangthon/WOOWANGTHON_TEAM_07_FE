@@ -149,6 +149,22 @@
     return escapeHtml(yeok(alt.station)) + (parts.length ? ' (' + parts.join(' · ') + ')' : '');
   }
 
+  // 화면의 시각은 TimeCalculator의 표기 함수로만 바꾼다. (REQ-DS-009)
+  function showTime(hhmm) {
+    var tc = TC();
+    return tc && tc.displayTime ? tc.displayTime(hhmm) : (hhmm == null ? '' : String(hhmm));
+  }
+  function showTimesIn(text) {
+    var tc = TC();
+    return tc && tc.displayTimesInText ? tc.displayTimesInText(text) : (text == null ? '' : String(text));
+  }
+  // 큰 출발 시각: 작은 "오후" + 큰 "8:53"
+  function bigTimeHtml(hhmm) {
+    var tc = TC();
+    var p = tc && tc.displayParts ? tc.displayParts(hhmm) : null;
+    return p ? '<span class="big-time-ampm">' + p.ampm + ' </span>' + escapeHtml(p.time) : escapeHtml(hhmm);
+  }
+
   function nowHHMM(d) {
     d = d || new Date();
     return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
@@ -411,7 +427,7 @@
             '<div class="elev-loc">' + escapeHtml(e.location) +
               ' <span class="muted">· ' + escapeHtml(ELEV_STATUS_TEXT[e.status] || e.status) + '</span></div>' +
             '<div class="elev-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' +
-            (down && e.reason ? '<div class="elev-reason">' + escapeHtml(e.reason) + '</div>' : '') +
+            (down && e.reason ? '<div class="elev-reason">' + escapeHtml(showTimesIn(e.reason)) + '</div>' : '') +
           '</div>' +
           '</div>';
       }).join('') + '</div>';
@@ -763,9 +779,51 @@
     return false;
   }
 
+  // 도착 희망 시각: 오전/오후 · 시 · 분을 따로 고른다. 고른 값은 숨은 #arriveBy에 HH:MM으로 둔다. (REQ-DS-009)
+  var ARRIVE_PICKER = ['arriveAmpm', 'arriveHour', 'arriveMin'];
+  function initArrivePicker() {
+    var h = byId('arriveHour'), m = byId('arriveMin'), i, html;
+    if (h) { html = ''; for (i = 1; i <= 12; i++) html += '<option value="' + i + '">' + i + '</option>'; h.innerHTML = html; }
+    if (m) { html = ''; for (i = 0; i < 60; i += 5) html += '<option value="' + pad2(i) + '">' + pad2(i) + '</option>'; m.innerHTML = html; }
+    ARRIVE_PICKER.forEach(function (id) {
+      var el = byId(id);
+      if (el) el.addEventListener('change', readArrivePicker);
+    });
+  }
+  function readArrivePicker() {
+    var a = byId('arriveAmpm'), h = byId('arriveHour'), m = byId('arriveMin'), out = byId('arriveBy');
+    if (!a || !h || !m || !out) return;
+    var hour = (parseInt(h.value, 10) % 12) + (a.value === '오후' ? 12 : 0);
+    out.value = pad2(hour) + ':' + m.value;
+  }
+  function setArriveBy(hhmm) {
+    var tc = TC();
+    var p = tc && tc.displayParts ? tc.displayParts(hhmm) : null;
+    if (!p) return;
+    var hm = p.time.split(':');
+    var a = byId('arriveAmpm'), h = byId('arriveHour'), m = byId('arriveMin');
+    if (a) a.value = p.ampm;
+    if (h) h.value = hm[0];
+    if (m) {
+      // 5분 단위가 아닌 시각(예: 챗봇이 넘긴 3:07)은 그 분을 목록에 끼워 넣는다
+      if (!hasOption(m, hm[1])) {
+        var opt = document.createElement('option'), before = null;
+        opt.value = hm[1]; opt.textContent = hm[1];
+        for (var k = 0; k < m.options.length; k++) if (m.options[k].value > hm[1]) { before = m.options[k]; break; }
+        m.insertBefore(opt, before);
+      }
+      m.value = hm[1];
+    }
+    readArrivePicker();
+  }
+
   function syncTimeMode() {
-    var modeNow = byId('modeNow'), arrive = byId('arriveBy');
-    if (modeNow && arrive) arrive.disabled = !!modeNow.checked;
+    var modeNow = byId('modeNow');
+    var off = !!(modeNow && modeNow.checked);
+    ARRIVE_PICKER.forEach(function (id) {
+      var el = byId(id);
+      if (el) el.disabled = off;
+    });
   }
 
   function initTimeTab() {
@@ -779,8 +837,8 @@
     if (o) { o.innerHTML = opts; if (hasOption(o, 'sindorim')) o.value = 'sindorim'; }
     if (d) { d.innerHTML = opts; if (hasOption(d, 'gangnam')) d.value = 'gangnam'; }
 
-    var arrive = byId('arriveBy');
-    if (arrive) arrive.value = defaultArriveBy();
+    initArrivePicker();
+    setArriveBy(defaultArriveBy());
 
     var swap = byId('swapBtn');
     if (swap && o && d) swap.addEventListener('click', function () {
@@ -827,7 +885,7 @@
     var html = '';
     var sub;
     if (r.late) {
-      sub = '<div class="big-time-sub warn-text">희망 시각까지 도착이 어려워요 — 가장 빠른 도착 ' + escapeHtml(r.arriveAt) + '</div>';
+      sub = '<div class="big-time-sub warn-text">희망 시각까지 도착이 어려워요 — 가장 빠른 도착 ' + escapeHtml(showTime(r.arriveAt)) + '</div>';
     } else if (typeof r.minutesFromNow === 'number' && r.minutesFromNow < 0) {
       sub = '<div class="big-time-sub warn-text">출발 시각이 ' + Math.abs(r.minutesFromNow) + '분 지났어요 — 지금 바로 출발하세요</div>';
     } else if (!r.minutesFromNow) {
@@ -837,14 +895,14 @@
     }
     var route = r.route || {};
     var info = [];
-    if (r.boardAt) info.push('탑승 ' + escapeHtml(r.boardAt));
-    if (r.arriveAt) info.push('도착 ' + escapeHtml(r.arriveAt));
+    if (r.boardAt) info.push('탑승 ' + escapeHtml(showTime(r.boardAt)));
+    if (r.arriveAt) info.push('도착 ' + escapeHtml(showTime(r.arriveAt)));
     if (typeof route.transfers === 'number') info.push('환승 ' + route.transfers + '회');
-    if (arriveBy) info.push('희망 ' + escapeHtml(arriveBy));
+    if (arriveBy) info.push('희망 ' + escapeHtml(showTime(arriveBy)));
 
     html += '<div class="card">' +
       '<div class="card-sub">' + escapeHtml(yeok(originId)) + ' → ' + escapeHtml(yeok(destId)) + ' · 집에서 출발 시각</div>' +
-      '<div class="big-time">' + escapeHtml(r.leaveAt) + '</div>' + sub +
+      '<div class="big-time">' + bigTimeHtml(r.leaveAt) + '</div>' + sub +
       (info.length ? '<div class="card-row muted">' + info.join(' · ') + '</div>' : '') +
       '</div>';
 
@@ -876,7 +934,7 @@
       html += '<div class="card"><div class="card-title">타임라인</div><div class="timeline">' +
         tl.map(function (t) {
           return '<div class="timeline-item">' +
-            '<span class="timeline-time">' + escapeHtml(t.time) + '</span>' +
+            '<span class="timeline-time">' + escapeHtml(showTime(t.time)) + '</span>' +
             '<span class="timeline-icon">' + escapeHtml(t.icon || '•') + '</span>' +
             '<span class="timeline-label">' + escapeHtml(t.label) + '</span></div>';
         }).join('') + '</div></div>';
@@ -894,7 +952,7 @@
     if (Object.prototype.hasOwnProperty.call(opts, 'arriveBy')) {
       if (opts.arriveBy) {
         if (modeNow) modeNow.checked = false;
-        if (arrive) arrive.value = opts.arriveBy;
+        setArriveBy(opts.arriveBy);
       } else if (modeNow) {
         modeNow.checked = true;
       }

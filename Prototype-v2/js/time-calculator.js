@@ -66,6 +66,27 @@
     return fmt(b + (Number(n) || 0));
   }
 
+  // ---------- 화면 표기 (REQ-DS-009) ----------
+  // 계산과 데이터 안의 시각은 HH:MM. 화면에 보여 줄 때만 "오후 8:53"으로 바꾼다.
+  // 시각을 화면 표기로 바꾸는 함수는 여기에만 둔다.
+  function displayParts(hhmm) {
+    var m = toMin(hhmm);
+    if (m == null) return null;
+    m = ((Math.round(m) % DAY) + DAY) % DAY;
+    var h = Math.floor(m / 60);
+    return { ampm: h < 12 ? '오전' : '오후', time: ((h % 12) || 12) + ':' + pad(m % 60) };
+  }
+  function displayTime(hhmm) {
+    var p = displayParts(hhmm);
+    return p ? p.ampm + ' ' + p.time : (hhmm == null ? '' : String(hhmm));
+  }
+  // 글 속의 HH:MM을 모두 바꾼다. 예: "정기 점검 (10:00~15:00)" → "정기 점검 (오전 10:00~오후 3:00)"
+  function displayTimesInText(text) {
+    return String(text == null ? '' : text).replace(/(^|[^\d:])(\d{1,2}:\d{2})(?![\d:])/g, function (all, pre, t) {
+      return pre + displayTime(t);
+    });
+  }
+
   // ---------- 그래프 ----------
   function ensureGraph() {
     if (graph) return;
@@ -402,6 +423,9 @@
     calculateDeparture: calculateDeparture,
     parseKoreanTime: parseKoreanTime,
     formatTime: formatTime,
-    addMinutes: addMinutes
+    addMinutes: addMinutes,
+    displayParts: displayParts,
+    displayTime: displayTime,
+    displayTimesInText: displayTimesInText
   };
 })();

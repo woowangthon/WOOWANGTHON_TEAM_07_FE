@@ -25,6 +25,18 @@
   function ES() { return window.ElevatorService || null; }
   function TC() { return window.TimeCalculator || null; }
 
+  // 화면의 시각은 TimeCalculator의 표기 함수로만 바꾼다. (REQ-DS-009)
+  function showTime(hhmm) {
+    return safe(function () { return TC().displayTime(hhmm); }, hhmm == null ? '' : String(hhmm));
+  }
+  function showTimesIn(text) {
+    return safe(function () { return TC().displayTimesInText(text); }, text == null ? '' : String(text));
+  }
+  function bigTimeHtml(hhmm) {
+    var p = safe(function () { return TC().displayParts(hhmm); }, null);
+    return p ? '<span class="big-time-ampm">' + p.ampm + ' </span>' + esc(p.time) : esc(hhmm);
+  }
+
   function safe(fn, fallback) {
     try {
       var r = fn();
@@ -136,7 +148,7 @@
         '<div>' +
         '<div class="elev-loc">' + esc(e.location || '엘리베이터') + '</div>' +
         '<div class="elev-meta">' + esc(e.floors || '') + (e.floors ? ' · ' : '') + esc(elevStatusWord(e)) + '</div>' +
-        (down && e.reason ? '<div class="elev-reason">' + esc(e.reason) + '</div>' : '') +
+        (down && e.reason ? '<div class="elev-reason">' + esc(showTimesIn(e.reason)) + '</div>' : '') +
         '</div>' +
         '</div>';
     }).join('') + '</div>';
@@ -175,7 +187,7 @@
     if (!Array.isArray(timeline) || !timeline.length) return '';
     return '<div class="timeline">' + timeline.map(function (t) {
       return '<div class="timeline-item">' +
-        '<span class="timeline-time">' + esc(t.time) + '</span>' +
+        '<span class="timeline-time">' + esc(showTime(t.time)) + '</span>' +
         '<span class="timeline-icon">' + esc(t.icon || '•') + '</span>' +
         '<span class="timeline-label">' + esc(t.label) + '</span>' +
         '</div>';
@@ -398,7 +410,7 @@
     var mins = typeof r.minutesFromNow === 'number' ? Math.round(r.minutesFromNow) : null;
     var sub;
     if (r.late) {
-      sub = '<div class="big-time-sub warn-text">이미 늦었어요 · 지금 출발해도 ' + esc(r.arriveAt) + ' 도착 예정</div>';
+      sub = '<div class="big-time-sub warn-text">이미 늦었어요 · 지금 출발해도 ' + esc(showTime(r.arriveAt)) + ' 도착 예정</div>';
     } else if (mins !== null && mins < 0) {
       sub = '<div class="big-time-sub warn-text">이미 늦었어요 · 지금 바로 출발하세요</div>';
     } else if (mins === 0) {
@@ -412,12 +424,12 @@
     var route = r.route || null;
     var html = '<div class="card">' +
       '<div class="card-row"><div class="card-title">' + esc(stName(origin)) + ' → ' + esc(stName(dest)) + '</div>' +
-      '<span class="muted">' + (arriveBy ? esc(arriveBy) + ' 도착 목표' : '지금 바로 출발') + '</span></div>' +
+      '<span class="muted">' + (arriveBy ? esc(showTime(arriveBy)) + ' 도착 목표' : '지금 바로 출발') + '</span></div>' +
       '<div class="card-sub muted">집에서 출발할 시각</div>' +
-      '<div class="big-time">' + esc(r.leaveAt) + '</div>' + sub;
+      '<div class="big-time">' + bigTimeHtml(r.leaveAt) + '</div>' + sub;
 
     if (route) {
-      html += '<div class="card-sub">' + esc(route.stops) + '개역 · 환승 ' + esc(route.transfers) + '회 · 탑승 약 ' + esc(route.rideMinutes) + '분 · ' + esc(r.arriveAt) + ' 도착</div>';
+      html += '<div class="card-sub">' + esc(route.stops) + '개역 · 환승 ' + esc(route.transfers) + '회 · 탑승 약 ' + esc(route.rideMinutes) + '분 · ' + esc(showTime(r.arriveAt)) + ' 도착</div>';
       html += routeLegsHtml(route);
     }
     html += timelineHtml(r.timeline);
@@ -468,6 +480,7 @@
       text = arriveBy + '까지 ' + stName(dest) + '에 도착하려면 ' + r.leaveAt + '에 출발하세요' +
         (mins !== null ? ' (지금부터 ' + mins + '분 후).' : '.') + ' ' + r.boardAt + ' 열차를 타면 ' + r.arriveAt + '에 도착해요.';
     }
+    text = showTimesIn(text);
     if (warnIds.length) text += '\n⚠️ ' + warnIds.map(stName).join(', ') + ' 엘리베이터에 이용 불가 구간이 있어요.';
     text = noteText + text;
 
@@ -516,7 +529,7 @@
       var reasons = uniq(broken.map(function (e) { return e && e.reason; })).slice(0, 1);
       html += '<div class="card-row">' +
         '<span class="card-title">' + esc(stName(st)) + '</span> ' + lineBadges(st) + ' ' + pill(o.status) +
-        ' <span class="muted">' + broken.length + '대 이용 불가' + (reasons.length ? ' · ' + esc(reasons[0]) : '') + '</span>' +
+        ' <span class="muted">' + broken.length + '대 이용 불가' + (reasons.length ? ' · ' + esc(showTimesIn(reasons[0])) : '') + '</span>' +
         '</div>';
     });
     html += '</div>';
