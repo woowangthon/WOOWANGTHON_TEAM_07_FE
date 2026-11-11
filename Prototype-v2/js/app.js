@@ -234,7 +234,7 @@
     Object.keys(lines).forEach(function (id) {
       var l = lines[id];
       html += '<button type="button" class="chip" data-line="' + escapeHtml(id) + '" style="--line-color:' +
-        escapeHtml(l.color) + '"><span class="chip-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;background:' +
+        escapeHtml(l.color) + '"><span class="chip-dot" style="background:' +
         escapeHtml(l.color) + '"></span>' + escapeHtml(l.name) + '</button>';
     });
     wrap.innerHTML = html;
@@ -435,7 +435,7 @@
         html += '<div class="sheet-section"><div class="alt-box">' +
           '<div class="alt-title">' + (status === 'UNKNOWN' ? 'ℹ️ ' : '⚠️ ') + title + '</div>' +
           (alt.tip ? '<div class="alt-tip">' + escapeHtml(alt.tip) + '</div>' : '') +
-          '<div class="msg-actions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
+          '<div class="msg-actions">' +
             '<button type="button" class="btn btn-sm btn-primary" data-act="detour">지도에서 우회 경로 보기</button>' +
             '<button type="button" class="btn btn-sm btn-ghost" data-act="open-station" data-id="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' +
           '</div></div></div>';
@@ -448,7 +448,7 @@
     html += elevSection;
 
     // 액션
-    html += '<div class="sheet-section" style="display:grid;gap:8px">' +
+    html += '<div class="sheet-section btn-stack">' +
       '<button type="button" class="btn btn-primary btn-block" data-act="calc-time">⏱️ 이 역까지 출발 시각 계산</button>' +
       '<button type="button" class="btn btn-ghost btn-block" data-act="ask-ai">🤖 AI에게 물어보기</button>' +
       '</div>';
@@ -528,14 +528,14 @@
     var fs = document.body.classList.contains('fullscreen');
     var html = '<div class="sheet-header"><div class="sheet-title">⚙️ 시연 제어판</div>' +
       '<div class="muted">엘리베이터 고장 상황을 만들어 대체역 안내를 확인해 보세요.</div></div>' +
-      '<div class="sheet-section"><div class="section-label">시연 시나리오</div><div style="display:grid;gap:8px">' +
+      '<div class="sheet-section"><div class="section-label">시연 시나리오</div><div class="btn-stack">' +
       scenarios.map(function (s) {
         return '<button type="button" class="btn btn-ghost btn-block" data-act="demo-scenario" data-id="' +
           escapeHtml(s.stationId || s.id) + '">' + escapeHtml(s.label) + '</button>';
       }).join('') +
       '</div></div>' +
       '<div class="sheet-section">' + demoStationHtml() + '</div>' +
-      '<div class="sheet-section" style="display:grid;gap:8px">' +
+      '<div class="sheet-section btn-stack">' +
       '<button type="button" class="btn btn-ghost btn-block" data-act="demo-reset">↺ 전체 상태 초기화</button>' +
       '<button type="button" class="btn btn-ghost btn-block" data-act="demo-fullscreen">' + fullscreenLabel(fs) + '</button>' +
       '</div>';
@@ -855,7 +855,7 @@
       html += '<div class="alt-box">' +
         '<div class="alt-title">⚠️ ' + escapeHtml(yeok(w.stationId)) + ' 엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</div>' +
         (alt && alt.station ? '<div class="alt-tip">추천 대체역: ' + altSummary(alt) + (alt.tip ? '<br>' + escapeHtml(alt.tip) : '') + '</div>' : '') +
-        '<div class="msg-actions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
+        '<div class="msg-actions">' +
           '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(w.stationId) + '">역 정보 보기</button>' +
           (alt && alt.station ? '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' : '') +
         '</div></div>';
