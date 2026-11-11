@@ -26,8 +26,8 @@
   z-index: 6;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 12px 14px;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4) var(--sp-3);
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -79,8 +79,8 @@
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
   font-size: var(--fs-caption);
   font-weight: var(--fw-strong);
   line-height: 1;
@@ -92,7 +92,7 @@
   pointer-events: none;
   white-space: nowrap;
 }
-.map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.map-legend span { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .map-legend .dot {
   display: inline-block;
   width: 8px;
