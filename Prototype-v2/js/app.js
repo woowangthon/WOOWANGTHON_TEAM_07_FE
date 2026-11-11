@@ -336,6 +336,8 @@
   // 바텀 시트
   // ---------------------------------------------------------------------------
   var sheet = { open: false, mode: null, stationId: null, alt: null };
+  // 시연 제어판에서 조작할 역. 마지막으로 연 역을 기억한다.
+  var demoStationId = null;
 
   function openSheetShell() {
     var bs = byId('bottomSheet'), bd = byId('sheetBackdrop');
@@ -372,6 +374,7 @@
     mapCall('focusStation', id, {});
     sheet.mode = 'station';
     sheet.stationId = id;
+    selectDemoStation(id);
     renderStationSheet(false);
     openSheetShell();
   }
@@ -411,13 +414,8 @@
             '<div class="elev-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' +
             (down && e.reason ? '<div class="elev-reason">' + escapeHtml(e.reason) + '</div>' : '') +
           '</div>' +
-          '<button type="button" class="btn btn-sm ' + (down ? 'btn-primary' : 'btn-ghost') +
-            '" data-act="toggle-elev" data-elev="' + escapeHtml(e.id) + '">' + (down ? '복구' : '고장 전환') + '</button>' +
           '</div>';
       }).join('') + '</div>';
-      var allDown = status === 'UNAVAILABLE';
-      html += '<div style="margin-top:10px"><button type="button" class="btn btn-danger btn-block" data-act="station-broken" data-broken="' +
-        (allDown ? '0' : '1') + '">' + (allDown ? '역 전체 복구' : '역 전체 고장 전환 (시연)') + '</button></div>';
     } else {
       html += '<div class="empty">이 역은 엘리베이터 데이터가 아직 없어요</div>';
     }
@@ -458,6 +456,73 @@
     setSheetHtml(html, keepScroll);
   }
 
+  // 시연 제어판의 "선택한 역" 항목. 데스크톱 패널(#demoStation)과 모바일 시연 시트가 함께 쓴다.
+  function demoStationHtml() {
+    var id = demoStationId;
+    var st = id ? getStation(id) : null;
+    var html = '<div class="section-label">선택한 역</div>';
+    if (!st) return html + '<div class="muted">지도에서 역을 선택하세요</div>';
+    var elevs = getElevators(id);
+    html += '<div class="demo-station-name">' + escapeHtml(yeok(st)) + ' ' + lineBadges(st) + '</div>' +
+      '<div class="demo-station-actions">' +
+        '<button type="button" class="btn btn-sm btn-danger" data-act="demo-station-broken" data-broken="1">이 역 전체 고장</button>' +
+        '<button type="button" class="btn btn-sm btn-ghost" data-act="demo-station-broken" data-broken="0">이 역 전체 복구</button>' +
+      '</div>';
+    if (!elevs.length) return html + '<div class="muted">엘리베이터 데이터가 없는 역이에요</div>';
+    html += '<div class="demo-elev-list">' + elevs.map(function (e) {
+      var down = isDown(e);
+      return '<div class="demo-elev-row">' +
+        '<div class="demo-elev-loc">' + escapeHtml(e.location) +
+          ' <span class="muted">· ' + escapeHtml(ELEV_STATUS_TEXT[e.status] || e.status) + '</span></div>' +
+        '<button type="button" class="btn btn-sm ' + (down ? 'btn-ghost' : 'btn-danger') +
+          '" data-act="demo-toggle-elev" data-elev="' + escapeHtml(e.id) + '">' + (down ? '복구' : '고장') + '</button>' +
+        '</div>';
+    }).join('') + '</div>';
+    return html;
+  }
+
+  function renderDemoPanelStation() {
+    var box = byId('demoStation');
+    if (box) box.innerHTML = demoStationHtml();
+  }
+
+  function selectDemoStation(id) {
+    demoStationId = id;
+    renderDemoPanelStation();
+  }
+
+  // 시연 제어판의 선택한 역 버튼 처리. 처리했으면 true.
+  function onDemoStationAction(btn) {
+    var act = btn.getAttribute('data-act');
+    var sid = demoStationId;
+    var es = ES();
+    if (!sid || !es) return false;
+    if (act === 'demo-toggle-elev') {
+      if (!es.toggleElevator) return true;
+      var eid = btn.getAttribute('data-elev');
+      var el = es.toggleElevator(sid, eid);
+      toast(yeok(sid) + (el ? ' ' + el.location : '') + ' 엘리베이터가 ' +
+        (el && isDown(el) ? '고장 상태로 전환되었어요' : '복구되었어요'));
+      return true;
+    }
+    if (act === 'demo-station-broken') {
+      if (!es.setStationBroken) return true;
+      var broken = btn.getAttribute('data-broken') === '1';
+      es.setStationBroken(sid, broken);
+      toast(yeok(sid) + ' 엘리베이터가 ' + (broken ? '모두 고장 상태로 전환되었어요' : '모두 복구되었어요'));
+      if (broken) {
+        var alt = findAlternative(sid);
+        if (alt && alt.station) {
+          setTimeout(function () { mapCall('highlightAlternative', sid, alt.station.id, alt.path); }, 300);
+        }
+      } else {
+        mapCall('clearHighlights');
+      }
+      return true;
+    }
+    return false;
+  }
+
   function renderDemoSheet() {
     var scenarios = MOCKDATA().demoScenarios || [];
     var fs = document.body.classList.contains('fullscreen');
@@ -469,6 +534,7 @@
           escapeHtml(s.stationId || s.id) + '">' + escapeHtml(s.label) + '</button>';
       }).join('') +
       '</div></div>' +
+      '<div class="sheet-section">' + demoStationHtml() + '</div>' +
       '<div class="sheet-section" style="display:grid;gap:8px">' +
       '<button type="button" class="btn btn-ghost btn-block" data-act="demo-reset">↺ 전체 상태 초기화</button>' +
       '<button type="button" class="btn btn-ghost btn-block" data-act="demo-fullscreen">' + fullscreenLabel(fs) + '</button>' +
@@ -494,35 +560,8 @@
     if (!btn) return;
     var act = btn.getAttribute('data-act');
     var sid = sheet.stationId;
-    var es = ES();
+    if (onDemoStationAction(btn)) return;
     switch (act) {
-      case 'toggle-elev': {
-        var eid = btn.getAttribute('data-elev');
-        if (!es || !es.toggleElevator) return;
-        es.toggleElevator(sid, eid);
-        var el = getElevators(sid).filter(function (x) { return x.id === eid; })[0];
-        var loc = el ? ' ' + el.location : '';
-        toast(yeok(sid) + loc + ' 엘리베이터가 ' +
-          (el && isDown(el) ? '고장 상태로 전환되었어요' : '복구되었어요'));
-        refreshSheet();
-        break;
-      }
-      case 'station-broken': {
-        if (!es || !es.setStationBroken) return;
-        var broken = btn.getAttribute('data-broken') === '1';
-        es.setStationBroken(sid, broken);
-        toast(yeok(sid) + ' 엘리베이터가 ' + (broken ? '고장 상태로 전환되었어요' : '모두 복구되었어요'));
-        refreshSheet();
-        if (broken) {
-          var alt = findAlternative(sid);
-          if (alt && alt.station) {
-            setTimeout(function () { mapCall('highlightAlternative', sid, alt.station.id, alt.path); }, 300);
-          }
-        } else {
-          mapCall('clearHighlights');
-        }
-        break;
-      }
       case 'detour': {
         var a = sheet.alt;
         if (a && a.station) mapCall('highlightAlternative', sid, a.station.id, a.path);
@@ -1095,6 +1134,14 @@
         if (b) runScenario(b.getAttribute('data-scenario'));
       });
     }
+    var stationBox = byId('demoStation');
+    if (stationBox) {
+      renderDemoPanelStation();
+      stationBox.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-act]');
+        if (b) onDemoStationAction(b);
+      });
+    }
     var reset = byId('demoReset');
     if (reset) reset.addEventListener('click', resetDemo);
     var fs = byId('fullscreenToggle');
@@ -1114,6 +1161,7 @@
     es.subscribe(function () {
       safe('refreshSheet', refreshSheet);
       safe('renderElevatorTab', renderElevatorTab);
+      safe('renderDemoPanelStation', renderDemoPanelStation);
     });
   }
 

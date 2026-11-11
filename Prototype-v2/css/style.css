@@ -271,6 +271,19 @@ body.fullscreen .demo-panel.show { display: block; }
 }
 .demo-hint { margin-top: 18px; font-size: 12px; line-height: 1.6; }
 
+/* 시연 제어판: 선택한 역 (REQ-COM-003) */
+.demo-station-name {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  font-size: 15px; font-weight: 700; color: var(--text);
+}
+.demo-station-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.demo-elev-list { margin-top: 10px; border-top: 1px solid var(--border); }
+.demo-elev-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.demo-elev-loc { flex: 1; min-width: 0; font-size: 13px; color: var(--text-2); }
+
 /* --------------------------------------------------------------------------
    5. App header & search
    -------------------------------------------------------------------------- */
