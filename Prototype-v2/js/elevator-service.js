@@ -243,6 +243,17 @@
     return STATUS_LABELS[status] || STATUS_LABELS.UNKNOWN;
   }
 
+  // 상태 모양(Material Symbols 이름). 색만으로 구분하지 않도록 상태마다 모양을 달리한다. (REQ-DS-003)
+  var STATUS_ICONS = {
+    AVAILABLE: 'check_circle',
+    PARTIAL: 'error',
+    UNAVAILABLE: 'cancel',
+    UNKNOWN: 'help'
+  };
+  function getStatusIcon(status) {
+    return STATUS_ICONS[status] || STATUS_ICONS.UNKNOWN;
+  }
+
   // ---------- 변경 ----------
   function toggleElevator(stationId, elevatorId) {
     ensureInit();
@@ -403,6 +414,7 @@
     hasElevatorData: hasElevatorData,
     getStationStatus: getStationStatus,
     getStatusLabel: getStatusLabel,
+    getStatusIcon: getStatusIcon,
     toggleElevator: toggleElevator,
     setStationBroken: setStationBroken,
     reset: reset,

@@ -252,7 +252,7 @@ REQ-DS-007. UI 아이콘은 Google **Material Symbols Rounded** 하나만 쓴다
 
 ### REQ-DS-003 엘리베이터 상태를 색만으로 구분하지 않기
 
-- 상태: 대기
+- 상태: 진행중
 - 우선순위: P1 (제안)
 - 등록일: 2026-11-11
 - 대상:
@@ -284,6 +284,13 @@ REQ-DS-007. UI 아이콘은 Google **Material Symbols Rounded** 하나만 쓴다
 - 관련: REQ-DS-002, REQ-DS-007, REQ-MAP-003
 
 **작업 기록**
+- 2026-11-12 진행 (상태 뱃지, 엘리베이터 목록, 요약 카드). 노선도와 범례는 사용자 결정으로 REQ-MAP-003에서 함께 하고, 그때 이 요구사항을 완료로 바꾼다.
+  - `Prototype-v2/js/elevator-service.js`: 상태 모양 `STATUS_ICONS`(정상 `check_circle`, 일부 운행 `error`, 이용 불가 `cancel`, 정보 없음 `help`)와 `getStatusIcon` 추가. 상태 이름처럼 모양도 이 한 곳에서 정한다.
+  - `Prototype-v2/js/app.js`: `statusIcon` 추가. `statusPill`에 상태 아이콘을 넣음. 요약 카드 이름 앞에 상태 아이콘을 넣고, 이름은 `getStatusLabel`에서 가져옴.
+  - `Prototype-v2/js/ai-agent.js`: `statusIcon` 추가. 챗봇 `pill`에 상태 아이콘을 넣음.
+  - `Prototype-v2/css/style.css`: `.status-pill::before` 색 점 삭제, 아이콘 쪽 여백을 `--sp-1`로. `.summary-label`에 아이콘 자리와 상태 색.
+  - 확인: 엘리베이터 탭(요약 카드, 목록), 검색 결과, 역 상세, 챗봇의 뱃지가 모두 아이콘 + 이름. 흑백(grayscale)으로 봐도 세 상태가 모양으로 구분됨. 뱃지 높이 26px 그대로. 콘솔 오류 없음.
+  - 남은 것: 노선도 상태 표시, 노선도 범례 (REQ-MAP-003).
 
 ### REQ-DS-004 글자 크기를 7단계로 정의하고 키우기
 

@@ -94,9 +94,15 @@
     return l || status;
   }
 
+  // 상태 모양은 elevator-service.js에서 가져온다. (REQ-DS-003)
+  function statusIcon(status) {
+    var es = ES();
+    return (es && es.getStatusIcon ? safe('getStatusIcon', function () { return es.getStatusIcon(status); }) : null) || 'help';
+  }
+
   function statusPill(status) {
     var cls = STATUS_CLASS[status] || 'unknown';
-    return '<span class="status-pill ' + cls + '">' + escapeHtml(statusLabel(status)) + '</span>';
+    return '<span class="status-pill ' + cls + '">' + icon(statusIcon(status)) + escapeHtml(statusLabel(status)) + '</span>';
   }
 
   function stationStatus(id) {
@@ -743,15 +749,15 @@
     var counts = { AVAILABLE: 0, PARTIAL: 0, UNAVAILABLE: 0 };
     items.forEach(function (x) { if (counts[x.status] !== undefined) counts[x.status]++; });
     var cards = [
-      { key: 'AVAILABLE', cls: 'ok', label: '정상' },
-      { key: 'PARTIAL', cls: 'warn', label: '일부 운행' },
-      { key: 'UNAVAILABLE', cls: 'bad', label: '이용 불가' }
+      { key: 'AVAILABLE', cls: 'ok' },
+      { key: 'PARTIAL', cls: 'warn' },
+      { key: 'UNAVAILABLE', cls: 'bad' }
     ];
     // 보여 주기만 하는 카드. 숫자는 필터와 상관없이 전체 기준이다.
     el.innerHTML = cards.map(function (c) {
       return '<div class="summary-card ' + c.cls + '">' +
         '<div class="summary-num">' + counts[c.key] + '<span class="summary-unit">역</span></div>' +
-        '<div class="summary-label">' + c.label + '</div></div>';
+        '<div class="summary-label">' + icon(statusIcon(c.key)) + escapeHtml(statusLabel(c.key)) + '</div></div>';
     }).join('');
   }
 

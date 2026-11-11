@@ -796,7 +796,7 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
   gap: var(--sp-1);
   flex: none;
   min-height: 1.75em;
-  padding: 0 var(--sp-2);
+  padding: 0 var(--sp-2) 0 var(--sp-1);
   font-size: var(--fs-label);
   font-weight: var(--fw-strong);
   white-space: nowrap;
@@ -804,13 +804,7 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
   color: var(--muted);
   background: var(--unknown-tint);
 }
-.status-pill::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
+/* 상태 뱃지는 색 점 대신 상태 아이콘으로 모양을 구분한다 (REQ-DS-003) */
 .status-pill.ok { color: var(--ok-text); background: var(--ok-tint); }
 .status-pill.warn { color: var(--warn-text); background: var(--warn-tint); }
 .status-pill.bad { color: var(--bad-text); background: var(--bad-tint); }
@@ -1019,7 +1013,11 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
 .summary-card.warn .summary-num { color: var(--warn); }
 .summary-card.bad .summary-num { color: var(--bad); }
 .summary-card.unknown .summary-num { color: var(--muted); }
-.summary-label { margin-top: 2px; font-size: var(--fs-label); font-weight: var(--fw-strong); color: var(--muted); }
+.summary-label { display: flex; align-items: center; gap: var(--sp-1); margin-top: 2px; font-size: var(--fs-label); font-weight: var(--fw-strong); color: var(--muted); }
+/* 요약 카드 이름 앞 상태 아이콘 (REQ-DS-003) */
+.summary-card.ok .summary-label .ms { color: var(--ok); }
+.summary-card.warn .summary-label .ms { color: var(--warn); }
+.summary-card.bad .summary-label .ms { color: var(--bad); }
 
 #elevatorFilter { margin: var(--sp-2) calc(-1 * var(--sp-4)) var(--sp-1); padding: var(--sp-2) var(--sp-4); scroll-padding-inline: var(--sp-4); }
 

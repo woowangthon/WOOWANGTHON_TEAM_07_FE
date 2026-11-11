@@ -114,8 +114,13 @@
     return { AVAILABLE: 'ok', PARTIAL: 'warn', UNAVAILABLE: 'bad' }[status] || 'unknown';
   }
 
+  // 상태 모양은 elevator-service.js에서 가져온다. (REQ-DS-003)
+  function statusIcon(status) {
+    return safe(function () { return ES().getStatusIcon(status); }, 'help');
+  }
+
   function pill(status) {
-    return '<span class="status-pill ' + pillClass(status) + '">' + esc(statusLabel(status)) + '</span>';
+    return '<span class="status-pill ' + pillClass(status) + '">' + icon(statusIcon(status)) + esc(statusLabel(status)) + '</span>';
   }
 
   function lineBadge(lineId) {
