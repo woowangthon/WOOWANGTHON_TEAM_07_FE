@@ -81,8 +81,8 @@
   align-items: center;
   gap: 10px;
   padding: 6px 12px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-strong);
   line-height: 1;
   color: var(--muted, #6B7280);
   background: rgba(255, 255, 255, .94);
@@ -133,7 +133,7 @@
   fill: var(--river-label);
   font-size: 22px;
   font-size: 26px;
-  font-weight: 700;
+  font-weight: var(--fw-strong);
   letter-spacing: 6px;
   opacity: .8;
 }
@@ -166,17 +166,17 @@
 
 .metro-svg .station-label {
   fill: #1F2937;
-  font-weight: 600;
+  font-weight: var(--fw-strong);
   paint-order: stroke fill;
   stroke: #fff;
   stroke-width: 3px;
   stroke-linejoin: round;
   pointer-events: none;
 }
-.metro-svg .station-node.transfer .station-label { font-weight: 800; fill: #111827; }
+.metro-svg .station-node.transfer .station-label { font-weight: var(--fw-bold); fill: #111827; }
 /* 겹치거나 배율이 낮아 숨긴 라벨 (metro-map.js layoutLabels) */
 .metro-svg .station-label.label-hidden { display: none; }
-.metro-svg .station-node.selected .station-label { fill: var(--text); font-weight: 800; }
+.metro-svg .station-node.selected .station-label { fill: var(--text); font-weight: var(--fw-bold); }
 
 /* 엘리베이터 상태 점 */
 .metro-svg .status-dot { display: none; stroke: #fff; stroke-width: 1.6; pointer-events: none; }
@@ -244,7 +244,7 @@
 }
 
 .metro-svg .map-tag rect { stroke: #fff; stroke-width: 1.5; }
-.metro-svg .map-tag text { fill: #fff; font-weight: 800; }
+.metro-svg .map-tag text { fill: #fff; font-weight: var(--fw-bold); }
 .metro-svg .map-tag.bad rect { fill: var(--bad, #DC2626); }
 .metro-svg .map-tag.ok rect  { fill: var(--ok, #16A34A); }
 .metro-svg .broken-target .map-tag,
