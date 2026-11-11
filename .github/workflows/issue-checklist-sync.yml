@@ -1,0 +1,64 @@
+name: Sync parent issue checklist
+
+# 하위 이슈가 닫히면 상위 이슈 본문의 "- [ ] #번호" 체크박스를 체크하고,
+# 다시 열리면 체크를 푼다. (예: #4가 닫히면 #1의 "- [ ] #4 ..."가 "- [x] #4 ...")
+
+on:
+  issues:
+    types: [closed, reopened]
+
+permissions:
+  issues: write
+
+concurrency:
+  group: issue-checklist-sync
+  cancel-in-progress: false
+
+jobs:
+  sync-checklist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update parent issue checklist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const number = issue.number;
+            // "완료"로 닫힌 경우만 체크한다. ("계획 안 함"으로 닫히거나 다시 열리면 체크 해제)
+            const checked = context.payload.action === 'closed' && issue.state_reason === 'completed';
+
+            const { repository } = await github.graphql(
+              `query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  issue(number: $number) { parent { number body } }
+                }
+              }`,
+              { owner: context.repo.owner, repo: context.repo.repo, number }
+            );
+
+            const parent = repository.issue.parent;
+            if (!parent) {
+              core.info(`#${number} has no parent issue. Skipping.`);
+              return;
+            }
+
+            const re = new RegExp(`^(\\s*[-*] \\[)[ xX](\\] #${number})(?!\\d)`, 'm');
+            const body = parent.body || '';
+            if (!re.test(body)) {
+              core.info(`No checklist line for #${number} in parent #${parent.number}. Skipping.`);
+              return;
+            }
+
+            const next = body.replace(re, `$1${checked ? 'x' : ' '}$2`);
+            if (next === body) {
+              core.info(`Checklist for #${number} is already ${checked ? 'checked' : 'unchecked'}.`);
+              return;
+            }
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parent.number,
+              body: next
+            });
+            core.info(`${checked ? 'Checked' : 'Unchecked'} #${number} in parent #${parent.number}.`);
