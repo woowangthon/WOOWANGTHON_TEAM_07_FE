@@ -87,12 +87,11 @@
   }
 
   var STATUS_CLASS = { AVAILABLE: 'ok', PARTIAL: 'warn', UNAVAILABLE: 'bad', UNKNOWN: 'unknown' };
-  var STATUS_LABEL_FALLBACK = { AVAILABLE: '정상 운행', PARTIAL: '일부 이용 불가', UNAVAILABLE: '이용 불가', UNKNOWN: '정보 없음' };
-
+  // 상태 이름은 elevator-service.js에서 가져온다. (REQ-DS-008)
   function statusLabel(status) {
     var es = ES();
     var l = es && es.getStatusLabel ? safe('getStatusLabel', function () { return es.getStatusLabel(status); }) : null;
-    return l || STATUS_LABEL_FALLBACK[status] || '정보 없음';
+    return l || status;
   }
 
   function statusPill(status) {

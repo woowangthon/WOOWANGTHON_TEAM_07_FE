@@ -58,16 +58,9 @@
     return safe(function () { return ES().hasElevatorData(id); }, getElevators(id).length > 0);
   }
 
-  var STATUS_LABELS = {
-    AVAILABLE: '정상 운행',
-    PARTIAL: '일부 이용 불가',
-    UNAVAILABLE: '이용 불가',
-    UNKNOWN: '정보 없음'
-  };
-
+  // 상태 이름은 elevator-service.js에서 가져온다. (REQ-DS-008)
   function statusLabel(status) {
-    return safe(function () { return ES().getStatusLabel(status); }, null) ||
-      STATUS_LABELS[status] || STATUS_LABELS.UNKNOWN;
+    return safe(function () { return ES().getStatusLabel(status); }, null) || status;
   }
 
   function findStationsInText(text) {
@@ -349,7 +342,7 @@
     } else if (status === 'UNKNOWN') {
       text = prefix + '엘리베이터가 확인된 가장 가까운 역은 ' + stName(a) + '이에요' + (how.length ? ' (' + how.join(', ') + ').' : '.');
     } else {
-      text = stName(st) + ' 엘리베이터가 ' + (status === 'UNAVAILABLE' ? '모두 이용 불가' : '일부 이용 불가') + '라서 ' +
+      text = stName(st) + ' 엘리베이터가 ' + (status === 'UNAVAILABLE' ? '모두 이용 불가' : '일부만 운행 중이') + '라서 ' +
         stName(a) + '을 추천드려요' + (how.length ? ' (' + how.join(', ') + ').' : '.') +
         (alt.tip ? '\n' + alt.tip : '');
     }

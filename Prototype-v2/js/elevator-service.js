@@ -4,9 +4,10 @@
 (function () {
   'use strict';
 
+  // 엘리베이터 상태 이름은 여기서만 정한다. 다른 파일은 getStatusLabel로 가져다 쓴다. (REQ-DS-008)
   var STATUS_LABELS = {
-    AVAILABLE: '정상 운행',
-    PARTIAL: '일부 이용 불가',
+    AVAILABLE: '정상',
+    PARTIAL: '일부 운행',
     UNAVAILABLE: '이용 불가',
     UNKNOWN: '정보 없음'
   };
