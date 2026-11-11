@@ -436,7 +436,7 @@
           '<div class="alt-title">' + (status === 'UNKNOWN' ? 'ℹ️ ' : '⚠️ ') + title + '</div>' +
           (alt.tip ? '<div class="alt-tip">' + escapeHtml(alt.tip) + '</div>' : '') +
           '<div class="msg-actions">' +
-            '<button type="button" class="btn btn-sm btn-primary" data-act="detour">지도에서 우회 경로 보기</button>' +
+            '<button type="button" class="btn btn-sm btn-primary btn-main" data-act="detour">지도에서 우회 경로 보기</button>' +
             '<button type="button" class="btn btn-sm btn-ghost" data-act="open-station" data-id="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' +
           '</div></div></div>';
       } else if (status !== 'UNKNOWN') {
@@ -449,7 +449,7 @@
 
     // 액션
     html += '<div class="sheet-section btn-stack">' +
-      '<button type="button" class="btn btn-primary btn-block" data-act="calc-time">⏱️ 이 역까지 출발 시각 계산</button>' +
+      '<button type="button" class="btn btn-primary btn-block btn-main" data-act="calc-time">⏱️ 이 역까지 출발 시각 계산</button>' +
       '<button type="button" class="btn btn-ghost btn-block" data-act="ask-ai">🤖 AI에게 물어보기</button>' +
       '</div>';
 
@@ -1001,7 +1001,9 @@
     var actions = resp.actions || [];
     if (actions.length) {
       html += '<div class="msg-actions">' + actions.map(function (a, i) {
-        return '<button type="button" class="btn btn-sm btn-ghost" data-action-index="' + i + '">' + escapeHtml(a.label) + '</button>';
+        // 우회 경로 보기는 핵심 동작이라 48px (REQ-DS-006)
+        var main = a.type === 'showAlternative' ? ' btn-main' : '';
+        return '<button type="button" class="btn btn-sm btn-ghost' + main + '" data-action-index="' + i + '">' + escapeHtml(a.label) + '</button>';
       }).join('') + '</div>';
     }
     div.innerHTML = html;
