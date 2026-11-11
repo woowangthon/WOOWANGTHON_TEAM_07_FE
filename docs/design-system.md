@@ -45,6 +45,7 @@
 | 일부 운행 (주의) | `--warn` / `--warn-text` / `--warn-tint` / `--warn-edge` | `#EA580C` / `#C2410C` / `#FFF7ED` / `#FED7AA` |
 | 오류 (고장) | `--bad` / `--bad-text` / `--bad-tint` | `#DC2626` / `#B91C1C` / `#FEE2E2` |
 | 정보 없음 | `--unknown-tint` | `#F3F4F6` |
+| 누르는 순간 (탭바 누름 반응) | `--press` | `#E5E7EB` |
 | 한강 (노선도, v2) | `--river` / `--river-edge` / `--river-label` | `#DBEAFE` / `#BFDBFE` / `#93C5FD` |
 
 ## 타이포그래피
@@ -91,7 +92,7 @@
 | 토큰 | 값 |
 |---|---|
 | `--statusbar-h` | `44px` |
-| `--tabbar-h` | `64px` (+ safe-area 하단) |
+| `--tabbar-h` | `72px` (+ safe-area 하단, REQ-COM-008) |
 | `--ease` | `cubic-bezier(.2, .8, .2, 1)` |
 | `--ease-sheet` | `cubic-bezier(.32, .72, 0, 1)` |
 | `--timeline-time-w` | `4.75rem` (타임라인 시각 칸 폭. `오후 12:00`이 한 줄에 들어간다, REQ-DS-009) |
@@ -120,6 +121,35 @@
 | `--tap-chip` | 36px | 칩이 늘어선 줄의 보이는 높이. `.chip::after`로 위아래를 투명하게 덧대 누르는 높이는 44px |
 
 예외: 탭바의 탭, 검색 결과·역 목록의 행, 노선도 확대·축소 묶음처럼 칸 하나하나가 44px 이상이고 서로 붙어 한 덩어리로 보이는 요소는 사이 간격 대신 칸 경계로 구분한다.
+
+## 아이콘
+
+REQ-DS-007. UI 아이콘은 Google **Material Symbols Rounded** 하나만 쓴다. 이모지는 아이콘으로 쓰지 않는다.
+
+| 항목 | 값 |
+|---|---|
+| 불러오기 | Google Fonts, `icon_names`로 쓰는 아이콘만 (`index.html` `<head>`). 새 아이콘을 쓰면 이 목록에 알파벳 순서로 추가한다 |
+| 크기 | `--icon-md` 20px (기본: 버튼, 목록, 글 속) / `--icon-lg` 24px (`.ms-lg`: 탭바, 아이콘 버튼, 시트 제목) |
+| 선 굵기 | `--icon-wght` 600. 400·500·600을 화면으로 비교해 글자 강조 굵기(`--fw-strong` 600)와 맞는 600으로 정함 |
+| 채움 | 기본 빈 아이콘(`FILL 0`). 선택된 탭만 채운 아이콘(`--ms-fill: 1`) |
+| 쓰는 법 | `<span class="ms" aria-hidden="true">search</span>`. JS는 `icon(name, size)` (`app.js`, `ai-agent.js`) |
+| 접근성 | 아이콘만 있는 버튼은 `aria-label`. 글자와 함께 있는 아이콘은 `aria-hidden="true"` |
+| 글꼴이 늦을 때 | 글꼴이 준비되기 전에는 아이콘 이름 글자를 숨긴다(`html:not(.ms-ready) .ms`). 아이콘 상자는 1em 밖을 잘라 이름이 넘치지 않는다 |
+
+아이콘 목록
+
+| 쓰는 곳 | 아이콘 |
+|---|---|
+| 탭: 노선도 / 엘리베이터 / 출발계산 / AI 챗봇 | `map` / `elevator` / `schedule` / `smart_toy` |
+| 검색, 설정(시연 제어판) | `search`, `settings` |
+| 줌 확대 / 축소 / 전체 보기 | `add` / `remove` / `fit_screen` |
+| 출발·도착 바꾸기, 보내기, 목록 화살표 | `swap_vert`, `arrow_upward`, `chevron_right` |
+| 경고, 정보, 팁 | `warning`, `info`, `lightbulb` |
+| 엘리베이터 상태 | 정상 `check_circle`, 일부 운행 `error`, 이용 불가 `cancel`, 정보 없음 `help` |
+| 경로: 지하철, 환승, 도보(휠체어), 엘리베이터, 출구, 도착 | `subway`, `sync_alt`, `accessible`, `elevator`, `door_front`, `flag` |
+| 시연: 초기화, 전체화면, 폰 프레임으로 | `restart_alt`, `fullscreen`, `fullscreen_exit` |
+| 챗봇: 도구 호출 표시, 고장 현황 | `build`, `list_alt` |
+| 폰 프레임 상태바 (장식) | `signal_cellular_alt`, `wifi`, `battery_full` |
 
 ## 규칙
 
@@ -419,7 +449,7 @@
 
 ### REQ-DS-007 이모지 아이콘을 Material Symbols Rounded로 교체
 
-- 상태: 대기
+- 상태: 완료
 - 우선순위: P1 (제안)
 - 등록일: 2026-11-11
 - 대상:
@@ -456,14 +486,14 @@ UI 아이콘이 이모지 20여 종이다. 기기(iOS, 안드로이드, 윈도�
 7. 그대로 두는 것: "지상 ↔ B1"처럼 글자 속 화살표(`↔`)는 아이콘이 아니라 글자이므로 바꾸지 않는다.
 
 **완료 조건**
-- [ ] `Prototype-v2/`의 화면에 이모지가 아이콘으로 쓰인 곳이 없다. (`↔` 제외)
-- [ ] 아이콘이 모두 Material Symbols Rounded이고, 크기는 20px 또는 24px다.
-- [ ] 탭바에서 선택된 탭만 채운 아이콘으로 보인다.
-- [ ] 아이콘만 있는 버튼에 모두 `aria-label`이 있다.
-- [ ] 챗봇 답변에 이모지가 없다.
-- [ ] 엘리베이터 상태 아이콘이 REQ-DS-003의 모양과 같다.
-- [ ] 네트워크가 느려 아이콘 글꼴이 늦게 와도 아이콘 이름 글자(예: "search")가 화면에 길게 노출되지 않는다.
-- [ ] 이 문서에 아이콘 세트, 크기 토큰, 선 굵기가 기록되어 있다.
+- [x] `Prototype-v2/`의 화면에 이모지가 아이콘으로 쓰인 곳이 없다. (`↔` 제외)
+- [x] 아이콘이 모두 Material Symbols Rounded이고, 크기는 20px 또는 24px다.
+- [x] 탭바에서 선택된 탭만 채운 아이콘으로 보인다.
+- [x] 아이콘만 있는 버튼에 모두 `aria-label`이 있다.
+- [x] 챗봇 답변에 이모지가 없다.
+- [x] 엘리베이터 상태 아이콘이 REQ-DS-003의 모양과 같다.
+- [x] 네트워크가 느려 아이콘 글꼴이 늦게 와도 아이콘 이름 글자(예: "search")가 화면에 길게 노출되지 않는다.
+- [x] 이 문서에 아이콘 세트, 크기 토큰, 선 굵기가 기록되어 있다.
 
 **참고**
 - 결정: 2026-11-11 Material Symbols Rounded로 결정. 후보였던 Tabler Icons(얇은 선), Lucide(엘리베이터 아이콘 없음)는 탈락.
@@ -471,6 +501,15 @@ UI 아이콘이 이모지 20여 종이다. 기기(iOS, 안드로이드, 윈도�
 - 관련: REQ-DS-001, REQ-DS-003, REQ-DS-006
 
 **작업 기록**
+- 2026-11-11 완료
+  - `Prototype-v2/index.html`: Material Symbols Rounded 불러오기 추가(`icon_names` 32개, `wght` 600, `FILL` 0..1, `display=block`). 탭바, 검색, 설정, 줌, 바꾸기, 보내기, 시연 제어판, 상태바의 이모지·기호를 아이콘으로 바꿈.
+  - `Prototype-v2/js/app.js`: `icon()` 함수 추가. 역 상세의 엘리베이터 아이콘(정상 `check_circle`, 고장 `cancel`), 경고·정보, 시트 버튼, 시연 제어판, 목록 화살표, 타임라인, 도구 호출 표시를 아이콘으로 바꿈. 빈 상태 문구의 🎉 삭제. 아이콘 글꼴이 준비되면 `<html>`에 `.ms-ready`를 붙이는 `watchIconFont` 추가.
+  - `Prototype-v2/js/ai-agent.js`: `icon()` 함수 추가. 챗봇 카드의 엘리베이터·경고·팁·사용법 아이콘을 바꿈. 답변 문장 속 이모지(😊🙏😅🙂🛗⚠️)와 ☎를 지움.
+  - `Prototype-v2/js/time-calculator.js`: 타임라인 `icon` 값을 이모지에서 아이콘 이름으로 바꿈.
+  - `Prototype-v2/css/style.css`, `css/map.css`: 토큰 `--icon-md`, `--icon-lg`, `--icon-wght`와 `.ms`, `.ms-lg` 추가. 이모지용 글자 크기(`font-size` 14~24px)와 탭 아이콘 흑백 필터를 지움. 선택된 탭은 `--ms-fill: 1`. 목록 화살표(`.station-row::after`)도 아이콘 글꼴로. 경고 제목(`.alt-title`)은 flex를 풀어 아이콘이 제목 첫 줄 앞에 붙게 함.
+  - 요구사항 표에 없던 아이콘: 상태바 `signal_cellular_alt`·`wifi`·`battery_full`, 팁 `lightbulb`, 도구 호출 `build`, 챗봇 사용법의 고장 현황 `list_alt`, 폰 프레임 모드 `fullscreen_exit`, 경로의 엘리베이터 이용 `elevator`.
+  - 확인: 375px에서 노선도, 역 상세, 시연 시트, 엘리베이터, 출발계산, 챗봇, 데스크톱 화면을 확인함. 아이콘 크기는 20px과 24px뿐이고, 이모지와 이름표 없는 아이콘 버튼은 없음. 선택된 탭만 `FILL 1`. 아이콘 글꼴을 막아도 이름 글자가 보이지 않음. 콘솔 오류 없음.
+  - 남은 것: 상태 뱃지, 노선도 범례, 노선도 상태 점의 모양은 REQ-DS-003에서 바꾼다. 이번에는 역 상세와 챗봇의 엘리베이터 아이콘만 REQ-DS-003의 모양(`check_circle` / `cancel`)으로 맞췄다.
 
 ### REQ-DS-008 엘리베이터 상태 이름을 앱 전체에서 통일
 

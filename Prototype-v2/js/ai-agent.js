@@ -25,6 +25,11 @@
   function ES() { return window.ElevatorService || null; }
   function TC() { return window.TimeCalculator || null; }
 
+  // 아이콘 (Material Symbols Rounded, REQ-DS-007). 기본 20px, lg 24px. 장식이라 화면 읽기에서 뺀다
+  function icon(name, size) {
+    return '<span class="ms' + (size === 'lg' ? ' ms-lg' : '') + '" aria-hidden="true">' + name + '</span>';
+  }
+
   // 화면의 시각은 TimeCalculator의 표기 함수로만 바꾼다. (REQ-DS-009)
   function showTime(hhmm) {
     return safe(function () { return TC().displayTime(hhmm); }, hhmm == null ? '' : String(hhmm));
@@ -144,7 +149,7 @@
     return '<div class="elev-list">' + elevs.map(function (e) {
       var down = isDown(e);
       return '<div class="elev-item' + (down ? ' down' : '') + '">' +
-        '<span class="elev-icon">' + (down ? '⛔' : '🛗') + '</span>' +
+        '<span class="elev-icon">' + icon(down ? 'cancel' : 'check_circle') + '</span>' +
         '<div>' +
         '<div class="elev-loc">' + esc(e.location || '엘리베이터') + '</div>' +
         '<div class="elev-meta">' + esc(e.floors || '') + (e.floors ? ' · ' : '') + esc(elevStatusWord(e)) + '</div>' +
@@ -171,7 +176,7 @@
     return '<div class="alt-box">' +
       '<div class="alt-title">' + esc(titlePrefix || '대체역') + ': ' + esc(stName(a)) + ' ' + lineBadges(a) + ' ' + pill(getStatus(a.id)) + '</div>' +
       (meta.length ? '<div class="card-sub">' + esc(stName(brokenId)) + '에서 ' + esc(meta.join(' · ')) + '</div>' : '') +
-      (alt.tip ? '<div class="alt-tip">💡 ' + esc(alt.tip) + '</div>' : '') +
+      (alt.tip ? '<div class="alt-tip">' + icon('lightbulb') + ' ' + esc(alt.tip) + '</div>' : '') +
       '</div>';
   }
 
@@ -188,7 +193,7 @@
     return '<div class="timeline">' + timeline.map(function (t) {
       return '<div class="timeline-item">' +
         '<span class="timeline-time">' + esc(showTime(t.time)) + '</span>' +
-        '<span class="timeline-icon">' + esc(t.icon || '•') + '</span>' +
+        '<span class="timeline-icon">' + icon(t.icon || 'flag') + '</span>' +
         '<span class="timeline-label">' + esc(t.label) + '</span>' +
         '</div>';
     }).join('') + '</div>';
@@ -291,7 +296,7 @@
         return (e.location || '엘리베이터') + '(' + elevStatusWord(e) + ')';
       }).join(', ');
       if (status === 'UNAVAILABLE') {
-        text2 = '⚠️ ' + stName(st) + ' 엘리베이터 ' + total + '대가 모두 이용 불가예요.';
+        text2 = stName(st) + ' 엘리베이터 ' + total + '대가 모두 이용 불가예요.';
       } else {
         text2 = stName(st) + ' 엘리베이터 ' + total + '대 중 ' + okCount + '대만 운행 중이에요. 이용 불가: ' + downDesc +
           (downList.length > 2 ? ' 외 ' + (downList.length - 2) + '대' : '') + '.';
@@ -326,7 +331,7 @@
     var prefix = '';
     if (status === 'AVAILABLE') {
       prefix = '현재 데이터상으로는 ' + stName(st) + ' 엘리베이터가 정상 운행 중으로 표시돼요. 그래도 이용이 어려우시다면 ';
-      html += '<div class="card-sub muted">현재 데이터상 정상 운행 중으로 표시돼요. 실제와 다르면 역무실(☎ 1577-1234)에 알려주세요.</div>';
+      html += '<div class="card-sub muted">현재 데이터상 정상 운행 중으로 표시돼요. 실제와 다르면 역무실(1577-1234)에 알려주세요.</div>';
     } else if (status === 'UNKNOWN') {
       prefix = stName(st) + '은 엘리베이터 정보가 없어요. ';
       html += '<div class="card-sub muted">엘리베이터 운행 정보가 제공되지 않는 역이에요.</div>';
@@ -445,7 +450,7 @@
       warnIds.push(sid);
       var status = w.status || getStatus(sid);
       var alt = normalizeAlt(w.alternative) || findAlternative(sid);
-      warnHtml += '<div class="card-row warn-text">⚠️ ' + esc(stName(sid)) + ' 엘리베이터 ' + esc(statusLabel(status)) + ' ' + pill(status) + '</div>';
+      warnHtml += '<div class="card-row warn-text">' + icon('warning') + esc(stName(sid)) + ' 엘리베이터 ' + esc(statusLabel(status)) + ' ' + pill(status) + '</div>';
       if (alt) {
         warnHtml += altBoxHtml(alt, sid, '대체역');
         if (actions.length < 1) {
@@ -461,7 +466,7 @@
         var s = getStatus(tid);
         if (s === 'PARTIAL' || s === 'UNAVAILABLE') {
           warnIds.push(tid);
-          warnHtml += '<div class="card-row warn-text">⚠️ 환승역 ' + esc(stName(tid)) + ' 엘리베이터 ' + esc(statusLabel(s)) + ' ' + pill(s) + '</div>';
+          warnHtml += '<div class="card-row warn-text">' + icon('warning') + '환승역 ' + esc(stName(tid)) + ' 엘리베이터 ' + esc(statusLabel(s)) + ' ' + pill(s) + '</div>';
         }
       });
     }
@@ -481,7 +486,7 @@
         (mins !== null ? ' (지금부터 ' + mins + '분 후).' : '.') + ' ' + r.boardAt + ' 열차를 타면 ' + r.arriveAt + '에 도착해요.';
     }
     text = showTimesIn(text);
-    if (warnIds.length) text += '\n⚠️ ' + warnIds.map(stName).join(', ') + ' 엘리베이터에 이용 불가 구간이 있어요.';
+    if (warnIds.length) text += '\n' + warnIds.map(stName).join(', ') + ' 엘리베이터에 이용 불가 구간이 있어요.';
     text = noteText + text;
 
     var sugg = [
@@ -510,7 +515,7 @@
 
     if (!outages.length) {
       ctx.focusId = null;
-      return resp('지금은 고장이나 점검 중인 엘리베이터가 없어요. 모든 역이 정상 운행 중이에요 🙂',
+      return resp('지금은 고장이나 점검 중인 엘리베이터가 없어요. 모든 역이 정상 운행 중이에요.',
         '<div class="card"><div class="card-title">엘리베이터 고장 현황</div><div class="card-sub muted">이용 불가 엘리베이터가 없어요.</div></div>',
         toolCalls, ['강남역 엘리베이터 돼?', '신도림에서 잠실까지 3시까지 가려면?'], []);
     }
@@ -592,7 +597,7 @@
     if (problems.length) {
       var p = problems[0];
       var alt = findAlternative(p);
-      html += '<div class="card-sub warn-text">⚠️ ' + esc(problems.map(stName).join(', ')) + ' 엘리베이터 이용에 제한이 있어요.</div>';
+      html += '<div class="card-sub warn-text">' + icon('warning') + ' ' + esc(problems.map(stName).join(', ')) + ' 엘리베이터 이용에 제한이 있어요.</div>';
       if (alt) {
         html += altBoxHtml(alt, p, stName(p) + ' 대체역');
         actions.push({ label: '지도에서 우회 경로 보기', type: 'showAlternative',
@@ -606,7 +611,7 @@
       route.stops + '개역, 약 ' + route.rideMinutes + '분 걸려요' +
       (transferIds.length ? ' (' + transferIds.map(stName).join(', ') + ' 환승).' : '.');
     text += problems.length
-      ? '\n⚠️ ' + problems.map(stName).join(', ') + ' 엘리베이터에 이용 불가 구간이 있어요.'
+      ? '\n' + problems.map(stName).join(', ') + ' 엘리베이터에 이용 불가 구간이 있어요.'
       : ' 경로상 엘리베이터는 모두 이용 가능해요.';
 
     return resp(text, html, toolCalls,
@@ -626,7 +631,7 @@
 
   function getWelcome() {
     var w = resp(
-      '안녕하세요! 지하철 엘리베이터 도우미예요 🛗\n' +
+      '안녕하세요! 지하철 엘리베이터 도우미예요.\n' +
       '역 엘리베이터 운행 상태 확인, 고장 시 가까운 대체역 안내, 엘리베이터를 고려한 출발 시각 계산을 도와드릴게요. 무엇이든 편하게 물어보세요.',
       '', [], [], []);
     w.suggestions = WELCOME_SUGGESTIONS.slice();
@@ -636,18 +641,18 @@
   function helpResponse(isGreeting) {
     var html = '<div class="card">' +
       '<div class="card-title">이런 걸 할 수 있어요</div>' +
-      '<div class="card-row">🛗 <span>역 엘리베이터 운행 상태 확인 <span class="muted">"강남역 엘리베이터 돼?"</span></span></div>' +
-      '<div class="card-row">🔁 <span>고장 시 대체역·우회 경로 안내 <span class="muted">"시청역 고장났는데 어디로 가?"</span></span></div>' +
-      '<div class="card-row">⏱️ <span>도착 시각에 맞춘 출발 시각 계산 <span class="muted">"신도림에서 잠실까지 3시까지"</span></span></div>' +
-      '<div class="card-row">🗺️ <span>경로와 환승역 엘리베이터 확인 <span class="muted">"홍대 가는 길 알려줘"</span></span></div>' +
-      '<div class="card-row">📋 <span>전체 고장 현황 <span class="muted">"지금 고장난 역 알려줘"</span></span></div>' +
+      '<div class="card-row">' + icon('elevator') + '<span>역 엘리베이터 운행 상태 확인 <span class="muted">"강남역 엘리베이터 돼?"</span></span></div>' +
+      '<div class="card-row">' + icon('sync_alt') + '<span>고장 시 대체역·우회 경로 안내 <span class="muted">"시청역 고장났는데 어디로 가?"</span></span></div>' +
+      '<div class="card-row">' + icon('schedule') + '<span>도착 시각에 맞춘 출발 시각 계산 <span class="muted">"신도림에서 잠실까지 3시까지"</span></span></div>' +
+      '<div class="card-row">' + icon('map') + '<span>경로와 환승역 엘리베이터 확인 <span class="muted">"홍대 가는 길 알려줘"</span></span></div>' +
+      '<div class="card-row">' + icon('list_alt') + '<span>전체 고장 현황 <span class="muted">"지금 고장난 역 알려줘"</span></span></div>' +
       '</div>';
-    return resp((isGreeting ? '안녕하세요! 😊 ' : '') + '엘리베이터 상태 확인, 대체역 안내, 출발 시각 계산을 도와드릴 수 있어요. 아래 예시처럼 물어보세요.',
+    return resp((isGreeting ? '안녕하세요! ' : '') + '엘리베이터 상태 확인, 대체역 안내, 출발 시각 계산을 도와드릴 수 있어요. 아래 예시처럼 물어보세요.',
       html, [], WELCOME_SUGGESTIONS.slice(0, 3), []);
   }
 
   function fallbackResponse() {
-    return resp('죄송해요, 잘 이해하지 못했어요 😅 역 이름과 함께 물어봐 주시면 더 정확히 도와드릴 수 있어요.\n예) "강남역 엘리베이터 돼?", "신도림에서 잠실까지 3시까지 가려면?"',
+    return resp('죄송해요, 잘 이해하지 못했어요. 역 이름과 함께 물어봐 주시면 더 정확히 도와드릴 수 있어요.\n예) "강남역 엘리베이터 돼?", "신도림에서 잠실까지 3시까지 가려면?"',
       '', [], ['강남역 엘리베이터 돼?', '지금 고장난 역 알려줘', '사용법 알려줘'], []);
   }
 
@@ -870,7 +875,7 @@
           r = handle(text);
         } catch (e) {
           if (typeof console !== 'undefined' && console.error) console.error('[AIAgent]', e);
-          r = resp('앗, 처리 중에 문제가 생겼어요. 잠시 후 다시 물어봐 주세요 🙏', '', [],
+          r = resp('앗, 처리 중에 문제가 생겼어요. 잠시 후 다시 물어봐 주세요.', '', [],
             ['강남역 엘리베이터 돼?', '지금 고장난 역 알려줘'], []);
         }
         resolve(r);

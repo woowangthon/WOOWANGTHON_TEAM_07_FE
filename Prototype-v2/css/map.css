@@ -62,7 +62,6 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  font-size: 18px;
   color: var(--text, #111827);
   cursor: pointer;
 }

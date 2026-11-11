@@ -7,7 +7,7 @@
 
 | 대기 | 진행중 | 완료 | 보류 |
 |---|---|---|---|
-| 25 | 0 | 11 | 0 |
+| 24 | 0 | 13 | 0 |
 
 ## 구현 순서
 
@@ -48,7 +48,7 @@
 | [REQ-DS-004](design-system.md#req-ds-004-글자-크기를-7단계로-정의하고-키우기) | 글자 크기를 7단계로 정의하고 키우기 | P1 | 완료 | 2026-11-11 |
 | [REQ-DS-005](design-system.md#req-ds-005-간격을-4px-단위-8단계로-정의) | 간격을 4px 단위 8단계로 정의 | P1 | 완료 | 2026-11-11 |
 | [REQ-DS-006](design-system.md#req-ds-006-누르는-영역을-최소-44px-주요-동작-48px로) | 누르는 영역을 최소 44px, 주요 동작 48px로 | P1 | 완료 | 2026-11-11 |
-| [REQ-DS-007](design-system.md#req-ds-007-이모지-아이콘을-material-symbols-rounded로-교체) | 이모지 아이콘을 Material Symbols Rounded로 교체 | P1 | 대기 | 2026-11-11 |
+| [REQ-DS-007](design-system.md#req-ds-007-이모지-아이콘을-material-symbols-rounded로-교체) | 이모지 아이콘을 Material Symbols Rounded로 교체 | P1 | 완료 | 2026-11-11 |
 | [REQ-DS-008](design-system.md#req-ds-008-엘리베이터-상태-이름을-앱-전체에서-통일) | 엘리베이터 상태 이름을 앱 전체에서 통일 | P1 | 완료 | 2026-11-11 |
 | [REQ-DS-009](design-system.md#req-ds-009-화면의-시각-표기를-오전오후-hmm으로-통일) | 화면의 시각 표기를 "오전/오후 h:mm"으로 통일 | P1 | 완료 | 2026-11-11 |
 | [REQ-COM-001](requirements/common.md#req-com-001-️-버튼을-설정정보-화면으로-변경) | ⚙️ 버튼을 "설정·정보" 화면으로 변경 | P1 | 대기 | 2026-11-11 |
@@ -58,6 +58,7 @@
 | [REQ-COM-005](requirements/common.md#req-com-005-역-상세의-엘리베이터-목록에서-이용-불가를-맨-위로) | 역 상세의 엘리베이터 목록에서 이용 불가를 맨 위로 | P1 | 대기 | 2026-11-11 |
 | [REQ-COM-006](requirements/common.md#req-com-006-바텀시트-하나에-강조-버튼은-하나만) | 바텀시트 하나에 강조 버튼은 하나만 | P1 | 대기 | 2026-11-11 |
 | [REQ-COM-007](requirements/common.md#req-com-007-역-상세-맨-위에-엘리베이터-운행-현황-막대-표시) | 역 상세 맨 위에 엘리베이터 운행 현황 막대 표시 | P1 | 대기 | 2026-11-11 |
+| [REQ-COM-008](requirements/common.md#req-com-008-탭바-누를-때-회색-사각형-현재-탭은-검은-채운-아이콘-위아래-여백) | 탭바: 누를 때 회색 사각형, 현재 탭은 검은 채운 아이콘, 위아래 여백 | P1 | 완료 | 2026-11-11 |
 | [REQ-CHAT-001](requirements/chat.md#req-chat-001-도구-호출-표시를-사람-말로-바꾸기) | 도구 호출 표시를 사람 말로 바꾸기 | P1 | 대기 | 2026-11-11 |
 | [REQ-CHAT-002](requirements/chat.md#req-chat-002-챗봇-역-카드를-역-상세와-같은-모양으로) | 챗봇 역 카드를 역 상세와 같은 모양으로 | P1 | 대기 | 2026-11-11 |
 | [REQ-CHAT-003](requirements/chat.md#req-chat-003-챗봇-역-카드에서-멈춘-엘리베이터만-펼치기) | 챗봇 역 카드에서 멈춘 엘리베이터만 펼치기 | P1 | 대기 | 2026-11-11 |

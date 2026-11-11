@@ -149,6 +149,20 @@
     return escapeHtml(yeok(alt.station)) + (parts.length ? ' (' + parts.join(' · ') + ')' : '');
   }
 
+  // 아이콘 글꼴이 오면 아이콘을 보인다. 오기 전이나 못 받으면 이름 글자("search")를 숨겨 둔다 (REQ-DS-007)
+  (function watchIconFont() {
+    var root = document.documentElement;
+    if (!document.fonts || !document.fonts.load) { root.classList.add('ms-ready'); return; }
+    document.fonts.load('24px "Material Symbols Rounded"', 'search').then(function (list) {
+      if (list && list.length) root.classList.add('ms-ready');
+    }, function () {});
+  })();
+
+  // 아이콘 (Material Symbols Rounded, REQ-DS-007). 기본 20px, lg 24px. 장식이라 화면 읽기에서 뺀다
+  function icon(name, size) {
+    return '<span class="ms' + (size === 'lg' ? ' ms-lg' : '') + '" aria-hidden="true">' + name + '</span>';
+  }
+
   // 화면의 시각은 TimeCalculator의 표기 함수로만 바꾼다. (REQ-DS-009)
   function showTime(hhmm) {
     var tc = TC();
@@ -217,9 +231,22 @@
     if (name === 'chat') scrollChat();
   }
 
+  // 누른 탭에 회색 둥근 사각형을 한 번 깔았다 지운다 (REQ-COM-008)
+  function flashTab(t) {
+    t.classList.remove('pressing');
+    void t.offsetWidth; // 연달아 눌러도 처음부터 다시 재생
+    t.classList.add('pressing');
+  }
+
   function initTabs() {
     $all('.tab-bar .tab[data-tab]').forEach(function (t) {
-      t.addEventListener('click', function () { switchTab(t.getAttribute('data-tab')); });
+      t.addEventListener('pointerdown', function () { flashTab(t); });
+      t.addEventListener('click', function (e) {
+        if (e.detail === 0) flashTab(t); // 키보드로 누른 경우
+        switchTab(t.getAttribute('data-tab'));
+      });
+      // 회색 사각형(탭 자신의 ::before)이 끝날 때 뗀다. 아이콘·이름의 커짐 효과는 그보다 먼저 끝난다
+      t.addEventListener('animationend', function (e) { if (e.target === t) t.classList.remove('pressing'); });
     });
   }
 
@@ -422,7 +449,7 @@
         if (ELEV_TYPE_TEXT[e.type]) metaParts.push(ELEV_TYPE_TEXT[e.type]);
         if (e.floors) metaParts.push(e.floors);
         return '<div class="elev-item' + (down ? ' down' : '') + '">' +
-          '<div class="elev-icon">' + (down ? '⛔' : '🛗') + '</div>' +
+          '<div class="elev-icon">' + icon(down ? 'cancel' : 'check_circle', 'lg') + '</div>' +
           '<div class="elev-body" style="flex:1;min-width:0">' +
             '<div class="elev-loc">' + escapeHtml(e.location) +
               ' <span class="muted">· ' + escapeHtml(ELEV_STATUS_TEXT[e.status] || e.status) + '</span></div>' +
@@ -448,14 +475,14 @@
           ? '정보가 확인된 가까운 역: ' + altSummary(alt)
           : '추천 대체역: ' + altSummary(alt);
         html += '<div class="sheet-section"><div class="alt-box">' +
-          '<div class="alt-title">' + (status === 'UNKNOWN' ? 'ℹ️ ' : '⚠️ ') + title + '</div>' +
+          '<div class="alt-title">' + icon(status === 'UNKNOWN' ? 'info' : 'warning') + title + '</div>' +
           (alt.tip ? '<div class="alt-tip">' + escapeHtml(alt.tip) + '</div>' : '') +
           '<div class="msg-actions">' +
             '<button type="button" class="btn btn-sm btn-primary btn-main" data-act="detour">지도에서 우회 경로 보기</button>' +
             '<button type="button" class="btn btn-sm btn-ghost" data-act="open-station" data-id="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' +
           '</div></div></div>';
       } else if (status !== 'UNKNOWN') {
-        html += '<div class="sheet-section"><div class="alt-box"><div class="alt-title">⚠️ 주변에 이용 가능한 대체역을 찾지 못했어요</div>' +
+        html += '<div class="sheet-section"><div class="alt-box"><div class="alt-title">' + icon('warning') + '주변에 이용 가능한 대체역을 찾지 못했어요</div>' +
           '<div class="alt-tip">역무원 호출 또는 다산콜센터(120)에 문의해 주세요.</div></div></div>';
       }
     }
@@ -464,8 +491,8 @@
 
     // 액션
     html += '<div class="sheet-section btn-stack">' +
-      '<button type="button" class="btn btn-primary btn-block btn-main" data-act="calc-time">⏱️ 이 역까지 출발 시각 계산</button>' +
-      '<button type="button" class="btn btn-ghost btn-block" data-act="ask-ai">🤖 AI에게 물어보기</button>' +
+      '<button type="button" class="btn btn-primary btn-block btn-main" data-act="calc-time">' + icon('schedule') + '이 역까지 출발 시각 계산</button>' +
+      '<button type="button" class="btn btn-ghost btn-block" data-act="ask-ai">' + icon('smart_toy') + 'AI에게 물어보기</button>' +
       '</div>';
 
     setSheetHtml(html, keepScroll);
@@ -541,7 +568,7 @@
   function renderDemoSheet() {
     var scenarios = MOCKDATA().demoScenarios || [];
     var fs = document.body.classList.contains('fullscreen');
-    var html = '<div class="sheet-header"><div class="sheet-title">⚙️ 시연 제어판</div>' +
+    var html = '<div class="sheet-header"><div class="sheet-title">' + icon('settings', 'lg') + ' 시연 제어판</div>' +
       '<div class="muted">엘리베이터 고장 상황을 만들어 대체역 안내를 확인해 보세요.</div></div>' +
       '<div class="sheet-section"><div class="section-label">시연 시나리오</div><div class="btn-stack">' +
       scenarios.map(function (s) {
@@ -551,7 +578,7 @@
       '</div></div>' +
       '<div class="sheet-section">' + demoStationHtml() + '</div>' +
       '<div class="sheet-section btn-stack">' +
-      '<button type="button" class="btn btn-ghost btn-block" data-act="demo-reset">↺ 전체 상태 초기화</button>' +
+      '<button type="button" class="btn btn-ghost btn-block" data-act="demo-reset">' + icon('restart_alt') + '전체 상태 초기화</button>' +
       '<button type="button" class="btn btn-ghost btn-block" data-act="demo-fullscreen">' + fullscreenLabel(fs) + '</button>' +
       '</div>';
     setSheetHtml(html, sheet.mode === 'demo');
@@ -745,7 +772,7 @@
     });
     if (!items.length) {
       el.innerHTML = '<div class="empty">' + (elevFilter === 'problem'
-        ? '지금은 이용 불가한 엘리베이터가 없어요 🎉' : '표시할 역이 없어요') + '</div>';
+        ? '지금은 이용 불가한 엘리베이터가 없어요' : '표시할 역이 없어요') + '</div>';
       return;
     }
     el.innerHTML = items.map(function (x) {
@@ -757,7 +784,7 @@
           '<div class="muted station-row-meta">' + escapeHtml(meta) + '</div>' +
         '</div>' +
         statusPill(x.status) +
-        '<span class="chevron" aria-hidden="true">›</span>' +
+        '<span class="chevron ms" aria-hidden="true">chevron_right</span>' +
         '</div>';
     }).join('');
   }
@@ -910,7 +937,7 @@
     (r.elevatorWarnings || []).forEach(function (w) {
       var alt = w.alternative;
       html += '<div class="alt-box">' +
-        '<div class="alt-title">⚠️ ' + escapeHtml(yeok(w.stationId)) + ' 엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</div>' +
+        '<div class="alt-title">' + icon('warning') + escapeHtml(yeok(w.stationId)) + ' 엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</div>' +
         (alt && alt.station ? '<div class="alt-tip">추천 대체역: ' + altSummary(alt) + (alt.tip ? '<br>' + escapeHtml(alt.tip) : '') + '</div>' : '') +
         '<div class="msg-actions">' +
           '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(w.stationId) + '">역 정보 보기</button>' +
@@ -935,7 +962,7 @@
         tl.map(function (t) {
           return '<div class="timeline-item">' +
             '<span class="timeline-time">' + escapeHtml(showTime(t.time)) + '</span>' +
-            '<span class="timeline-icon">' + escapeHtml(t.icon || '•') + '</span>' +
+            '<span class="timeline-icon">' + icon(t.icon || 'flag') + '</span>' +
             '<span class="timeline-label">' + escapeHtml(t.label) + '</span></div>';
         }).join('') + '</div></div>';
     }
@@ -994,7 +1021,7 @@
     } else {
       argStr = formatArgVal(args) || '';
     }
-    return '🔧 ' + (tc.name || 'tool') + '(' + argStr + ')';
+    return (tc.name || 'tool') + '(' + argStr + ')';
   }
 
   function appendUserMsg(text) {
@@ -1051,7 +1078,7 @@
     div.className = 'msg bot';
     var html = '';
     (resp.toolCalls || []).forEach(function (tc) {
-      html += '<div class="tool-chip">' + escapeHtml(formatToolCall(tc)) + '</div>';
+      html += '<div class="tool-chip">' + icon('build') + escapeHtml(formatToolCall(tc)) + '</div>';
     });
     if (resp.text) html += '<div class="bubble">' + formatText(resp.text) + '</div>';
     if (resp.html) html += resp.html; // AIAgent가 만든 신뢰된 카드 HTML
@@ -1151,12 +1178,12 @@
   // ---------------------------------------------------------------------------
   // 시연 제어판
   // ---------------------------------------------------------------------------
-  function fullscreenLabel(isFs) { return isFs ? '⛶ 폰 프레임 모드' : '⛶ 전체화면 모드'; }
+  function fullscreenLabel(isFs) { return isFs ? icon('fullscreen_exit') + '폰 프레임 모드' : icon('fullscreen') + '전체화면 모드'; }
 
   function toggleFullscreen() {
     var fs = document.body.classList.toggle('fullscreen');
     var b = byId('fullscreenToggle');
-    if (b) b.textContent = fullscreenLabel(fs);
+    if (b) b.innerHTML = fullscreenLabel(fs);
     if (sheet.open && sheet.mode === 'demo') renderDemoSheet();
   }
 

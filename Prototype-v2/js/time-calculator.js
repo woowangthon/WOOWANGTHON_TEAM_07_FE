@@ -255,17 +255,17 @@
     route.legs.forEach(function (leg, i) {
       if (i > 0) {
         var tw = T.transferMinutes + Math.round(headway(leg.lineId) / 2);
-        events.push({ time: t, label: '환승 (' + stationName(leg.from) + ', ' + lineName(leg.lineId) + ')', icon: '🔁' });
+        events.push({ time: t, label: '환승 (' + stationName(leg.from) + ', ' + lineName(leg.lineId) + ')', icon: 'sync_alt' });
         t += tw; transfer += tw;
-        events.push({ time: t, label: lineName(leg.lineId) + ' 탑승 (' + stationName(leg.from) + ')', icon: '🚇' });
+        events.push({ time: t, label: lineName(leg.lineId) + ' 탑승 (' + stationName(leg.from) + ')', icon: 'subway' });
       }
       var r = leg.stops * T.minutesPerStop;
       t += r; ride += r;
     });
     var arriveTrain = t;
-    events.push({ time: arriveTrain, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 하차', icon: '🏁' });
+    events.push({ time: arriveTrain, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 하차', icon: 'flag' });
     t += T.exitWalk;
-    events.push({ time: t, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 출구 도착', icon: '🚪' });
+    events.push({ time: t, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 출구 도착', icon: 'door_front' });
     return { events: events, ride: ride, transfer: transfer, arriveAt: t };
   }
 
@@ -321,9 +321,9 @@
     }
 
     var timeline = [
-      { time: fmt(plan.leave), label: '집에서 출발', icon: '🚶' },
-      { time: fmt(plan.leave + T.walkToStation), label: stationLabel(originId) + ' 도착 · 엘리베이터 이용', icon: '🛗' },
-      { time: fmt(plan.board), label: lineName(first.lineId) + ' 탑승 (' + stationName(originId) + ')', icon: '🚇' }
+      { time: fmt(plan.leave), label: '집에서 출발', icon: 'accessible' },
+      { time: fmt(plan.leave + T.walkToStation), label: stationLabel(originId) + ' 도착 · 엘리베이터 이용', icon: 'elevator' },
+      { time: fmt(plan.board), label: lineName(first.lineId) + ' 탑승 (' + stationName(originId) + ')', icon: 'subway' }
     ];
     plan.after.events.forEach(function (ev) {
       timeline.push({ time: fmt(ev.time), label: ev.label, icon: ev.icon });
