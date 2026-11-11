@@ -1,6 +1,6 @@
 /* ==========================================================================
    map.css — 노선도 화면(#view-map) 내부 요소 + SVG 내부 스타일 전용
-   (style.css의 토큰 --primary/--on-primary/--focus/--ok/--warn/--bad/--surface/--border/--text/--muted 사용)
+   (style.css의 토큰 --primary/--ok/--warn/--bad/--surface/--border/--text/--muted 사용)
    ========================================================================== */
 
 /* .view 가 이미 position:absolute 이면 그것을 존중 (특이도 0) */
@@ -26,8 +26,8 @@
   z-index: 6;
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-4) var(--sp-3);
+  gap: 6px;
+  padding: 10px 12px 14px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -67,9 +67,9 @@
   cursor: pointer;
 }
 .map-controls .icon-btn + .icon-btn { border-top: 1px solid var(--border, #E5E7EB); }
-.map-controls .icon-btn:hover { background: var(--primary-tint); box-shadow: none; }
-.map-controls .icon-btn:active { transform: none; background: var(--primary-glow); }
-.map-controls .icon-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.map-controls .icon-btn:hover { background: rgba(37, 99, 235, .06); box-shadow: none; }
+.map-controls .icon-btn:active { transform: none; background: rgba(37, 99, 235, .12); }
+.map-controls .icon-btn:focus-visible { outline: 2px solid var(--primary, #2563EB); outline-offset: -2px; }
 
 /* ---------------- 범례 (좌하단 알약) ---------------- */
 .map-legend {
@@ -79,10 +79,10 @@
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-1) var(--sp-3);
-  font-size: var(--fs-caption);
-  font-weight: var(--fw-strong);
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
   line-height: 1;
   color: var(--muted, #6B7280);
   background: rgba(255, 255, 255, .94);
@@ -92,7 +92,7 @@
   pointer-events: none;
   white-space: nowrap;
 }
-.map-legend span { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.map-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .map-legend .dot {
   display: inline-block;
   width: 8px;
@@ -101,7 +101,7 @@
   box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(17, 24, 39, .06);
 }
 .map-legend .dot.ok   { background: var(--ok, #16A34A); }
-.map-legend .dot.warn { background: var(--warn); }
+.map-legend .dot.warn { background: var(--warn, #F59E0B); }
 .map-legend .dot.bad  { background: var(--bad, #DC2626); }
 
 /* ==========================================================================
@@ -133,7 +133,7 @@
   fill: var(--river-label);
   font-size: 22px;
   font-size: 26px;
-  font-weight: var(--fw-strong);
+  font-weight: 700;
   letter-spacing: 6px;
   opacity: .8;
 }
@@ -166,22 +166,22 @@
 
 .metro-svg .station-label {
   fill: #1F2937;
-  font-weight: var(--fw-strong);
+  font-weight: 600;
   paint-order: stroke fill;
   stroke: #fff;
   stroke-width: 3px;
   stroke-linejoin: round;
   pointer-events: none;
 }
-.metro-svg .station-node.transfer .station-label { font-weight: var(--fw-bold); fill: #111827; }
+.metro-svg .station-node.transfer .station-label { font-weight: 800; fill: #111827; }
 /* 겹치거나 배율이 낮아 숨긴 라벨 (metro-map.js layoutLabels) */
 .metro-svg .station-label.label-hidden { display: none; }
-.metro-svg .station-node.selected .station-label { fill: var(--text); font-weight: var(--fw-bold); }
+.metro-svg .station-node.selected .station-label { fill: var(--primary, #2563EB); font-weight: 800; }
 
 /* 엘리베이터 상태 점 */
 .metro-svg .status-dot { display: none; stroke: #fff; stroke-width: 1.6; pointer-events: none; }
 .metro-svg .status-dot.ok   { display: inline; fill: var(--ok, #16A34A); }
-.metro-svg .status-dot.warn { display: inline; fill: var(--warn); }
+.metro-svg .status-dot.warn { display: inline; fill: var(--warn, #F59E0B); }
 .metro-svg .status-dot.bad  { display: inline; fill: var(--bad, #DC2626); }
 .metro-svg .status-pulse {
   display: none;
@@ -195,8 +195,8 @@
 /* 선택 */
 .metro-svg .select-ring {
   display: none;
-  fill: var(--primary-glow);
-  stroke: var(--on-primary);
+  fill: rgba(37, 99, 235, .14);
+  stroke: var(--primary, #2563EB);
   stroke-width: 3;
   pointer-events: none;
   transform-box: fill-box;
@@ -210,14 +210,14 @@
 .metro-svg .layer-markers { pointer-events: none; }
 .metro-svg .alt-route-halo {
   fill: none;
-  stroke: var(--primary);
+  stroke: #fff;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: .95;
 }
 .metro-svg .alt-route {
   fill: none;
-  stroke: var(--on-primary);
+  stroke: var(--primary, #2563EB);
   stroke-linecap: round;
   stroke-linejoin: round;
   animation: mm-dash .8s linear infinite;
@@ -244,7 +244,7 @@
 }
 
 .metro-svg .map-tag rect { stroke: #fff; stroke-width: 1.5; }
-.metro-svg .map-tag text { fill: #fff; font-weight: var(--fw-bold); }
+.metro-svg .map-tag text { fill: #fff; font-weight: 800; }
 .metro-svg .map-tag.bad rect { fill: var(--bad, #DC2626); }
 .metro-svg .map-tag.ok rect  { fill: var(--ok, #16A34A); }
 .metro-svg .broken-target .map-tag,
