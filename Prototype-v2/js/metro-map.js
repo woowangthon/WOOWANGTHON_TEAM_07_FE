@@ -14,6 +14,7 @@
   var MIN_ZOOM = 0.5;
   var MAX_ZOOM = 6;
   var TAP_SLOP = 6;          // px — 이 이하로 움직이면 탭
+  var HIT_PX = 22;           // 역을 누르는 영역 반지름 (화면 px). 지름 44px = --tap-min (REQ-MAP-004)
   var LABEL_K = 0.45;        // 배율(px/지도 단위)이 이보다 작으면 일반역 라벨 숨김 (홈 뷰에서는 환승역 라벨만)
   var LABEL_RELAYOUT = 0.04; // 배율이 이 비율(로그) 이상 바뀌면 라벨 겹침 재계산
   var FOCUS_ZOOM = 2.4;
@@ -209,6 +210,11 @@
       var fs = r5(LABEL_PX / f);
       S.layers.stations.setAttribute('font-size', fs);
       S.layers.markers.setAttribute('font-size', fs);
+      // 누르는 원은 배율과 상관없이 화면 기준 지름 44px (보이지 않음)
+      var hr = r5(HIT_PX / f);
+      for (var hid in S.nodes) {
+        if (Object.prototype.hasOwnProperty.call(S.nodes, hid)) S.nodes[hid].hit.setAttribute('r', hr);
+      }
     }
   }
 
@@ -460,7 +466,7 @@
       var g = el('g', { 'class': 'station-node' + (transfer ? ' transfer' : ''), 'data-id': st.id }, parent);
       el('title', null, g).textContent = st.name + '역';
       var sel = el('circle', { 'class': 'select-ring', r: r + 6 }, g);
-      el('circle', { 'class': 'hit', r: 15 }, g);
+      var hit = el('circle', { 'class': 'hit', r: 15 }, g);
       var ln = null;
       for (var j = 0; j < lines.length && !ln; j++) ln = getLine(lines[j]);
       // 상태가 바뀐 순간에만 퍼지는 고리 (REQ-MAP-003)
@@ -472,7 +478,7 @@
       var label = el('text', { 'class': 'station-label', x: lp.x, y: lp.y, 'text-anchor': lp.a }, g);
       label.textContent = st.name;
       S.nodes[st.id] = {
-        g: g, st: st, circle: circle, ring: ring, sel: sel, icon: icon, vec: vecs[st.id],
+        g: g, st: st, circle: circle, ring: ring, sel: sel, icon: icon, hit: hit, vec: vecs[st.id],
         label: label, cands: cands, cd: lp, baseR: r,
         r: r, transfer: transfer, hidden: false, w: textWidth(st.name, LABEL_PX)
       };
@@ -527,8 +533,7 @@
     S.pointerCount++;
     try { S.svg.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     if (S.pointerCount === 1) {
-      var t = e.target && e.target.closest ? e.target.closest('.station-node') : null;
-      S.gesture = { sx: p.x, sy: p.y, moved: 0, multi: false, target: t };
+      S.gesture = { sx: p.x, sy: p.y, moved: 0, multi: false };
       S.pinch = null;
     } else {
       if (S.gesture) S.gesture.multi = true;
@@ -566,12 +571,25 @@
       var g = S.gesture;
       S.gesture = null; S.pinch = null;
       S.svg.classList.remove('dragging');
-      if (!cancelled && g && !g.multi && g.moved < TAP_SLOP) handleTap(g.target);
+      if (!cancelled && g && !g.multi && g.moved < TAP_SLOP) handleTap(stationAt(g.sx, g.sy));
     } else if (S.pointerCount >= 2) {
       S.pinch = pinchInfo();
     } else {
       S.pinch = null;
     }
+  }
+
+  // 누른 곳에서 화면 기준 22px 안에 있는 역 가운데 노드 중심이 가장 가까운 역 (REQ-MAP-004)
+  // 누르는 영역이 이웃 역과 겹쳐도 더 가까운 역이 선택된다
+  function stationAt(px, py) {
+    var t = curT(), best = null, bd = HIT_PX;
+    for (var id in S.nodes) {
+      if (!Object.prototype.hasOwnProperty.call(S.nodes, id)) continue;
+      var n = S.nodes[id];
+      var d = Math.hypot(n.st.x * t.k + t.tx - px, n.st.y * t.k + t.ty - py);
+      if (d <= bd) { bd = d; best = n.g; }
+    }
+    return best;
   }
 
   function handleTap(node) {
