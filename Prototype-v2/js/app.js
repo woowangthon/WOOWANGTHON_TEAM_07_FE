@@ -274,28 +274,51 @@
     if (zr) zr.addEventListener('click', function () { mapCall('resetView'); });
   }
 
+  // 노선 고르기: 호선 ▼ 버튼을 누르면 드롭다운이 열리고, 한 노선만 고른다 (REQ-MAP-005)
   function initLineFilter() {
-    var wrap = byId('lineFilter');
-    if (!wrap) return;
+    var wrap = byId('lineMenu'), btn = byId('lineMenuBtn'), list = byId('lineMenuList');
+    if (!wrap || !btn || !list) return;
     var lines = MOCKDATA().lines || {};
-    var html = '<button type="button" class="chip active" data-line="">전체</button>';
-    Object.keys(lines).forEach(function (id) {
-      var l = lines[id];
-      html += '<button type="button" class="chip" data-line="' + escapeHtml(id) + '" style="--line-color:' +
-        escapeHtml(l.color) + '"><span class="chip-dot" style="background:' +
-        escapeHtml(l.color) + '"></span>' + escapeHtml(l.name) + '</button>';
-    });
-    wrap.innerHTML = html;
-    wrap.addEventListener('click', function (e) {
-      var chip = e.target.closest('.chip[data-line]');
-      if (!chip) return;
-      var id = chip.getAttribute('data-line') || null;
-      if (id && id === activeLine) id = null; // 같은 노선 다시 누르면 전체
+    var label = $('.dropdown-label', btn);
+
+    function dot(l) { return '<span class="line-dot" style="background:' + escapeHtml(l.color) + '"></span>'; }
+    function item(id, name, pre) {
+      var on = (id || null) === activeLine;
+      return '<button type="button" class="dropdown-item" role="option" aria-selected="' + on + '" data-line="' + escapeHtml(id) + '">' +
+        pre + '<span>' + escapeHtml(name) + '</span>' + (on ? icon('check') : '') + '</button>';
+    }
+    function renderList() {
+      var html = item('', '전체', '');
+      Object.keys(lines).forEach(function (id) { html += item(id, lines[id].name, dot(lines[id])); });
+      list.innerHTML = html;
+    }
+    function setOpen(open) {
+      if (open) renderList();
+      list.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    }
+    function choose(id) {
       activeLine = id;
       mapCall('setLineFilter', id);
-      $all('.chip[data-line]', wrap).forEach(function (c) {
-        c.classList.toggle('active', (c.getAttribute('data-line') || null) === id);
-      });
+      if (id) mapCall('fitLine', id); // 고른 노선 전체가 화면에 들어오게. 전체는 지도 위치 그대로
+      if (label) label.innerHTML = id && lines[id] ? dot(lines[id]) + escapeHtml(lines[id].name) : '호선';
+      btn.classList.toggle('is-set', !!id);
+    }
+
+    btn.addEventListener('click', function () { setOpen(list.hidden); });
+    list.addEventListener('click', function (e) {
+      var it = e.target.closest('[data-line]');
+      if (!it) return;
+      choose(it.getAttribute('data-line') || null);
+      setOpen(false);
+      btn.focus();
+    });
+    // 바깥을 누르거나 Esc로 닫기
+    document.addEventListener('pointerdown', function (e) {
+      if (!list.hidden && !wrap.contains(e.target)) setOpen(false);
+    }, true);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !list.hidden) { setOpen(false); btn.focus(); }
     });
   }
 

@@ -298,6 +298,58 @@ body.fullscreen .demo-panel.show { display: block; }
 html:not(.ms-ready) .ms,
 html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent; }
 
+/* 드롭다운: 버튼 + 아래로 열리는 목록 (REQ-MAP-005. REQ-ELV-001에서도 같은 모양을 쓴다) */
+.dropdown { position: relative; }
+.dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: var(--tap-min);
+  padding: 0 var(--sp-2) 0 var(--sp-4);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.dropdown-btn .dropdown-label { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.dropdown-btn[aria-expanded="true"] > .ms { transform: rotate(180deg); }
+.dropdown-btn.is-set { border-color: var(--on-primary); }
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  left: 0;
+  z-index: 10;
+  min-width: 10rem;
+  padding: var(--sp-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+.dropdown-menu[hidden] { display: none; }
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-strong);
+  text-align: left;
+  color: var(--text);
+  border-radius: var(--radius-sm);
+}
+.dropdown-item:hover { background: var(--surface-2); }
+.dropdown-item[aria-selected="true"] { font-weight: var(--fw-bold); background: var(--primary-tint); }
+.dropdown-item > .ms { margin-left: auto; }
+/* 노선 색 점 */
+.line-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+
 /* --------------------------------------------------------------------------
    4. Demo panel contents
    -------------------------------------------------------------------------- */

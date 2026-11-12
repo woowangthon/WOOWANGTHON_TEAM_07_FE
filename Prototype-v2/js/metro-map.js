@@ -20,7 +20,7 @@
   var FOCUS_ZOOM = 2.4;
   var FOCUS_Y = 0.27;        // 바텀시트(최대 높이 52%)를 피해 상단 27% 지점에 역을 둔다
   var SHEET_TOP = 0.44;      // 하이라이트 fit 시 사용할 컨테이너 상단 영역 비율
-  var FILTER_H = 52;         // 상단 노선 필터 칩 높이(px)
+  var FILTER_H = 56;         // 지도 위쪽에 띄운 호선 ▼ 버튼(44px + 여백 12px) 영역. 처음 화면과 경로 맞춤에서 비워 둔다 (REQ-MAP-005)
   var ANIM_MS = 350;
   var LABEL_PX = 11;
   var CORNER = 22;           // 노선 모서리 라운딩(지도 단위)
@@ -796,6 +796,25 @@
     }
   }
 
+  // 고른 노선 전체가 화면에 들어오도록 부드럽게 이동·확대 (REQ-MAP-005)
+  function fitLine(lineId) {
+    if (!S) return;
+    var id = String(lineId), ids = [];
+    var stations = mock().stations || {};
+    for (var sid in stations) {
+      if (Object.prototype.hasOwnProperty.call(stations, sid) && (stations[sid].lines || []).indexOf(id) >= 0) ids.push(sid);
+    }
+    measure();
+    var b = bbox(ids);
+    if (!b) return;
+    var pad = 28, top = FILTER_H, bottom = S.ch;
+    var availW = Math.max(60, S.cw - pad * 2), availH = Math.max(60, bottom - top - pad * 2);
+    var k = Math.min(availW / Math.max(b.w, 1), availH / Math.max(b.h, 1));
+    var zoom = clamp(k / S.fit, MIN_ZOOM, 3.6);
+    S.userMoved = true;
+    animateTo(centerFor(b.cx, b.cy, S.cw / 2, (top + bottom) / 2, zoom));
+  }
+
   function setLineFilter(lineId) {
     if (!S) return;
     var id = lineId == null || lineId === '' ? null : String(lineId);
@@ -886,6 +905,7 @@
     highlightAlternative: highlightAlternative,
     clearHighlights: clearHighlights,
     setLineFilter: setLineFilter,
+    fitLine: fitLine,
     zoomIn: zoomIn,
     zoomOut: zoomOut,
     resetView: resetView,
