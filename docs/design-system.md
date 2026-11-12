@@ -75,7 +75,7 @@
 | 줄 간격: 본문 | `--lh-body` | 1.5 |
 | 줄 간격: 제목 | `--lh-title` | 1.3 |
 
-예외: 노선도 SVG 안의 역 이름·한강 이름, 아이콘 글리프(`.tab-icon`, `.elev-icon`, `.icon-btn` 등)는 px 값을 쓴다. 아이콘은 REQ-DS-007, 역 이름은 REQ-MAP-006에서 정한다.
+예외: 노선도 SVG 안의 역 이름·한강 이름, 아이콘 글리프(`.tab-icon`, `.elev-icon`, `.icon-btn` 등)는 px 값을 쓴다. 아이콘은 REQ-DS-007(`--icon-md` / `--icon-lg`), 노선도 역 이름은 REQ-MAP-006에서 화면 기준 13px(`metro-map.js` `LABEL_PX`, `--fs-caption`과 같은 크기)로 정했다.
 
 ## 모서리, 그림자
 

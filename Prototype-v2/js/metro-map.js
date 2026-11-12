@@ -22,7 +22,7 @@
   var SHEET_TOP = 0.44;      // 하이라이트 fit 시 사용할 컨테이너 상단 영역 비율
   var FILTER_H = 56;         // 지도 위쪽에 띄운 호선 ▼ 버튼(44px + 여백 12px) 영역. 처음 화면과 경로 맞춤에서 비워 둔다 (REQ-MAP-005)
   var ANIM_MS = 350;
-  var LABEL_PX = 11;
+  var LABEL_PX = 13;         // 역 이름 화면 크기 (px). --fs-caption과 같은 13px (REQ-MAP-006)
   var CORNER = 22;           // 노선 모서리 라운딩(지도 단위)
 
   var S = null;              // 런타임 상태 (init 후 생성)
@@ -350,11 +350,11 @@
   function labelCandidates(vecs, r) {
     var g = r + 5;
     var c = [
-      { v: [1, 0], x: g, y: 4, a: 'start', b: 0 },
-      { v: [0, 1], x: 0, y: r + 13, a: 'middle', b: 0.06 },
-      { v: [-1, 0], x: -g, y: 4, a: 'end', b: 0.1 },
-      { v: [0.7071, 0.7071], x: r + 2, y: r + 11, a: 'start', b: 0.14 },
-      { v: [-0.7071, 0.7071], x: -(r + 2), y: r + 11, a: 'end', b: 0.18 },
+      { v: [1, 0], x: g, y: 5, a: 'start', b: 0 },
+      { v: [0, 1], x: 0, y: r + 15, a: 'middle', b: 0.06 },
+      { v: [-1, 0], x: -g, y: 5, a: 'end', b: 0.1 },
+      { v: [0.7071, 0.7071], x: r + 2, y: r + 13, a: 'start', b: 0.14 },
+      { v: [-0.7071, 0.7071], x: -(r + 2), y: r + 13, a: 'end', b: 0.18 },
       { v: [0, -1], x: 0, y: -(r + 7), a: 'middle', b: 0.2 },
       { v: [-0.7071, -0.7071], x: -(r + 2), y: -(r + 4), a: 'end', b: 0.26 },
       { v: [0.7071, -0.7071], x: r + 6, y: -(r + 4), a: 'start', b: 0.3 }
@@ -410,6 +410,13 @@
       var rr = n.r * f + 1, cx = n.st.x * k, cy = n.st.y * k;
       add({ x0: cx - rr, y0: cy - rr, x1: cx + rr, y1: cy + rr, owner: n.st.id });
     }
+    // 우회 경로 역 위의 고장·대체역 꼬리표(makeTag: 폭 최대 47, 높이 20, 노드 위 r+22)도 장애물 (REQ-MAP-006)
+    for (i = 0; i < S.emph.length; i++) {
+      n = S.nodes[S.emph[i]];
+      if (!n) continue;
+      var tx = n.st.x * k, ty = n.st.y * k - (n.r + 22) * f;
+      add({ x0: tx - 24 * f, y0: ty - 10 * f, x1: tx + 24 * f, y1: ty + 10 * f, owner: 'tag-' + n.st.id });
+    }
     function prio(nd) {
       var id = nd.st.id;
       if (id === S.selected) return 1000;
@@ -425,14 +432,18 @@
       var pr = prio(n), must = pr >= 900;
       var chosen = null;
       if (must || !(small && !n.transfer)) {
-        var sx = n.st.x * k, sy = n.st.y * k;
+        var sx = n.st.x * k, sy = n.st.y * k, fallback = null;
+        // 우회 경로 역은 노드 위에 고장·대체역 꼬리표가 붙으므로 이름을 위쪽에 두지 않는다 (REQ-MAP-006)
+        var tagged = S.emph.indexOf(n.st.id) >= 0;
         for (var c = 0; c < n.cands.length; c++) {
           var cd = n.cands[c], ox = cd.x * f, oy = cd.y * f;
+          if (tagged && cd.y < 0) continue;
           var x0 = cd.a === 'start' ? ox : (cd.a === 'end' ? ox - n.w : ox - n.w / 2);
           var b = { x0: sx + x0 - 1, x1: sx + x0 + n.w + 1, y0: sy + oy - fs * 0.85, y1: sy + oy + fs * 0.3, owner: n.st.id };
           if (!hits(b)) { chosen = { cd: cd, b: b }; break; }
-          if (must && c === 0) chosen = { cd: cd, b: b };
+          if (must && !fallback) fallback = { cd: cd, b: b };
         }
+        if (!chosen) chosen = fallback;
       }
       var hide = !chosen;
       if (!hide) {
@@ -723,7 +734,8 @@
   function addMarker(st, kind) {
     var g = el('g', { 'class': kind, 'data-id': st.id }, S.layers.markers);
     var transfer = (st.lines || []).length > 1;
-    var r = transfer ? 7.5 : 5;
+    // 노드의 지금 크기에 맞춘다 (일부 운행·이용 불가 역은 커진 노드, REQ-MAP-003)
+    var r = S.nodes[st.id] ? S.nodes[st.id].r : (transfer ? 7.5 : 5);
     if (kind === 'alt-target') {
       el('circle', { 'class': 'at-pulse', r: r + 7 }, g);
       el('circle', { 'class': 'at-ring', r: r + 6 }, g);
