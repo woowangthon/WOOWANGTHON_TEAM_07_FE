@@ -600,9 +600,10 @@
 
     html += elevSection;
 
-    // 액션
+    // 액션. 시트 하나에 강조 버튼은 하나만: 요약에 우회 경로 보기가 있으면 출발 시각 계산은 보조 버튼 (REQ-COM-006)
+    var detourShown = problem && alt && alt.station;
     html += '<div class="sheet-section btn-stack">' +
-      '<button type="button" class="btn btn-primary btn-block btn-main" data-act="calc-time">' + icon('schedule') + '이 역까지 출발 시각 계산</button>' +
+      '<button type="button" class="btn ' + (detourShown ? 'btn-ghost' : 'btn-primary') + ' btn-block btn-main" data-act="calc-time">' + icon('schedule') + '이 역까지 출발 시각 계산</button>' +
       '<button type="button" class="btn btn-ghost btn-block" data-act="ask-ai">' + icon('smart_toy') + 'AI에게 물어보기</button>' +
       '</div>';
 
