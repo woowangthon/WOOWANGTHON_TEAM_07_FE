@@ -1260,25 +1260,18 @@
         '</div></div>';
     });
 
-    // 경로
-    var legs = route.legs || [];
-    if (legs.length) {
-      html += '<div class="card"><div class="card-title">경로</div><div class="route-legs">' +
-        legs.map(function (l) {
-          return '<div class="route-leg">' + lineBadge(l.lineId) + ' <span>' + escapeHtml(stationName(l.from)) + ' → ' +
-            escapeHtml(stationName(l.to)) + ' · ' + escapeHtml(l.stops) + '개역</span></div>';
-        }).join('') + '</div></div>';
-    }
-
+    // "경로" 카드는 없애고 노선·이동 역 수는 이동 순서(타임라인)에 붙인다 (REQ-TIME-003)
     // 타임라인. 엘리베이터에 문제가 있는 역의 단계에는 상태 아이콘 + 멈춘 위치 (+ 이용 불가면 대체역 보기) (REQ-TIME-004)
     var warnBy = {};
     (r.elevatorWarnings || []).forEach(function (w) { warnBy[w.stationId] = w; });
     var tl = r.timeline || [];
     if (tl.length) {
-      html += '<div class="card"><div class="card-title">타임라인</div><div class="timeline">' +
+      html += '<div class="card"><div class="card-title">이동 순서</div><div class="timeline">' +
         tl.map(function (t) {
           var w = t.elevStation ? warnBy[t.elevStation] : null;
-          var label = escapeHtml(t.label);
+          // 탑승: 노선 뱃지 + "· n개역 이동", 환승: 갈아타는 노선 뱃지 (REQ-TIME-003)
+          var label = (t.lineId ? lineBadge(t.lineId) + ' ' : '') + escapeHtml(t.label) +
+            (t.kind === 'board' && t.stops ? ' · ' + escapeHtml(t.stops) + '개역 이동' : '');
           if (w) {
             var cls = STATUS_CLASS[w.status] || 'unknown';
             var where = stoppedWhere(w.stationId);

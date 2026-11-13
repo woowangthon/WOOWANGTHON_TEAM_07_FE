@@ -255,9 +255,9 @@
     route.legs.forEach(function (leg, i) {
       if (i > 0) {
         var tw = T.transferMinutes + Math.round(headway(leg.lineId) / 2);
-        events.push({ time: t, label: '환승 (' + stationName(leg.from) + ', ' + lineName(leg.lineId) + ')', icon: 'sync_alt', elevStation: leg.from });
+        events.push({ time: t, label: '환승 (' + stationName(leg.from) + ', ' + lineName(leg.lineId) + ')', icon: 'sync_alt', elevStation: leg.from, lineId: leg.lineId, kind: 'transfer' });
         t += tw; transfer += tw;
-        events.push({ time: t, label: lineName(leg.lineId) + ' 탑승 (' + stationName(leg.from) + ')', icon: 'subway' });
+        events.push({ time: t, label: lineName(leg.lineId) + ' 탑승 (' + stationName(leg.from) + ')', icon: 'subway', lineId: leg.lineId, stops: leg.stops, kind: 'board' });
       }
       var r = leg.stops * T.minutesPerStop;
       t += r; ride += r;
@@ -323,10 +323,11 @@
     var timeline = [
       { time: fmt(plan.leave), label: '집에서 출발', icon: 'accessible' },
       { time: fmt(plan.leave + T.walkToStation), label: stationLabel(originId) + ' 도착 · 엘리베이터 이용', icon: 'elevator', elevStation: originId },
-      { time: fmt(plan.board), label: lineName(first.lineId) + ' 탑승 (' + stationName(originId) + ')', icon: 'subway' }
+      { time: fmt(plan.board), label: lineName(first.lineId) + ' 탑승 (' + stationName(originId) + ')', icon: 'subway', lineId: first.lineId, stops: first.stops, kind: 'board' }
     ];
     plan.after.events.forEach(function (ev) {
-      timeline.push({ time: fmt(ev.time), label: ev.label, icon: ev.icon, elevStation: ev.elevStation }); // 엘리베이터를 쓰는 역 (REQ-TIME-004)
+      // 엘리베이터를 쓰는 역 (REQ-TIME-004), 탑승·환승 노선과 이동 역 수 (REQ-TIME-003)
+      timeline.push({ time: fmt(ev.time), label: ev.label, icon: ev.icon, elevStation: ev.elevStation, lineId: ev.lineId, stops: ev.stops, kind: ev.kind });
     });
 
     // 엘리베이터 경고
