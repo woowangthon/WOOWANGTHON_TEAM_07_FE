@@ -450,6 +450,32 @@
     openSheetShell();
   }
 
+  // 엘리베이터 운행 현황: 상태 아이콘 + 이름, 운행/전체 대수, 한 대당 한 칸 막대 (REQ-COM-007)
+  //   멈춘 칸은 역 상태색 + 빗금. 칸이 너무 많으면(OP_MAX_CELLS 초과) 칸 없이 비율 막대
+  var OP_MAX_CELLS = 12;
+  function opStatusHtml(status, total, down) {
+    var cls = STATUS_CLASS[status] || 'unknown';
+    var head = '<span class="op-label">' + icon(statusIcon(status)) + escapeHtml(statusLabel(status)) + '</span>';
+    if (status === 'UNKNOWN' || !total) {
+      return '<div class="op-status ' + cls + '">' + '<div class="op-head">' + head + '</div></div>';
+    }
+    var up = total - down;
+    var bar = '';
+    if (total <= OP_MAX_CELLS) {
+      for (var i = 0; i < total; i++) bar += '<span class="op-cell' + (i < up ? '' : ' down') + '"></span>';
+    } else {
+      bar = (up ? '<span class="op-cell" style="flex-grow:' + up + '"></span>' : '') +
+        (down ? '<span class="op-cell down" style="flex-grow:' + down + '"></span>' : '');
+    }
+    var sentence = '엘리베이터 ' + total + '대 중 ' + up + '대 운행 중' + (down ? ', ' + down + '대 멈춤' : '');
+    return '<div class="op-status ' + cls + '">' +
+      '<p class="sr-only">' + escapeHtml(sentence) + '</p>' +
+      '<div class="op-head" aria-hidden="true">' + head +
+        '<span class="op-count"><b>' + up + '</b> / ' + total + '대</span></div>' +
+      '<div class="op-bar" aria-hidden="true">' + bar + '</div>' +
+      '</div>';
+  }
+
   function renderStationSheet(keepScroll) {
     var id = sheet.stationId;
     var st = getStation(id);
@@ -460,13 +486,11 @@
     var downCount = elevs.filter(isDown).length;
     var html = '';
 
-    // 헤더
+    // 헤더: 역 이름 + 엘리베이터 운행 현황 (REQ-COM-007)
     html += '<div class="sheet-header">' +
       '<div class="sheet-title">' + escapeHtml(yeok(st)) + ' ' + lineBadges(st) + '</div>' +
-      '<div class="card-row">' + statusPill(status) +
-      (data ? ' <span class="muted">엘리베이터 ' + elevs.length + '대' +
-        (downCount ? ' 중 ' + downCount + '대 이용 불가' : ' 모두 정상') + '</span>' : '') +
-      '</div></div>';
+      opStatusHtml(data ? status : 'UNKNOWN', elevs.length, downCount) +
+      '</div>';
 
     // 엘리베이터 목록 (대체역 박스를 위에 두기 위해 나중에 다시 붙인다)
     var elevStart = html.length;

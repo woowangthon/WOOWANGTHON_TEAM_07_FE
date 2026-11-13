@@ -664,6 +664,42 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
 }
 .sheet-title { font-size: var(--fs-heading); font-weight: var(--fw-bold); letter-spacing: -0.035em; margin-right: 2px; }
 .sheet-header .status-pill { margin-left: auto; }
+
+/* 엘리베이터 운행 현황 (REQ-COM-007) */
+.op-status { width: 100%; margin-top: var(--sp-1); }
+.op-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.op-label { display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-body); font-weight: var(--fw-bold); }
+.op-count { font-size: var(--fs-title); font-weight: var(--fw-bold); color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.op-count b { font-size: var(--fs-heading); }
+.op-status.ok .op-label { color: var(--ok-text); }
+.op-status.warn .op-label { color: var(--warn-text); }
+.op-status.bad .op-label { color: var(--bad-text); }
+.op-status.unknown .op-label { color: var(--muted); }
+.op-bar { display: flex; gap: 2px; height: var(--sp-3); margin-top: var(--sp-2); }
+.op-cell { flex: 1 1 0; min-width: 0; border-radius: var(--sp-1); background: var(--ok); }
+/* 멈춘 칸: 상태색 + 빗금 (색만으로 구분하지 않기, REQ-DS-003) */
+.op-cell.down {
+  --stop: var(--bad);
+  background: repeating-linear-gradient(-45deg, var(--stop) 0 var(--sp-1), transparent var(--sp-1) var(--sp-2)), var(--bad-tint);
+  box-shadow: inset 0 0 0 1.5px var(--stop);
+}
+.op-status.warn .op-cell.down {
+  --stop: var(--warn);
+  background: repeating-linear-gradient(-45deg, var(--stop) 0 var(--sp-1), transparent var(--sp-1) var(--sp-2)), var(--warn-tint);
+}
+
+/* 화면에는 숨기고 화면 읽기 프로그램만 읽는 글 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 .sheet-sub { width: 100%; font-size: var(--fs-label); color: var(--muted); }
 .sheet-section { margin-top: var(--sp-5); }
 .sheet-section > .section-label { margin-bottom: var(--sp-2); }
