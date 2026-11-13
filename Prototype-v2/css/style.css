@@ -478,6 +478,9 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+/* 출발계산 탭: 스크롤은 되고 오른쪽 스크롤 막대만 숨긴다 (REQ-COM-009). 엘리베이터 탭은 막대를 둔다 */
+#view-time .view-scroll { scrollbar-width: none; }
+#view-time .view-scroll::-webkit-scrollbar { display: none; }
 
 .view-title {
   margin: var(--sp-2) 0 var(--sp-4);
