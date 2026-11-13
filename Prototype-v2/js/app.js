@@ -931,6 +931,13 @@
     if (el) el.textContent = showTime(nowHHMM(elevUpdatedAt)) + ' 기준';
   }
 
+  // 멈춘 엘리베이터 위치: "8-1번 출구", 여러 대면 "8-1번 출구 외 1곳" (데이터 순서의 첫 위치). 없으면 ''
+  //   엘리베이터 탭 목록(REQ-ELV-004)과 출발계산 타임라인(REQ-TIME-004)이 같이 쓴다
+  function stoppedWhere(stationId) {
+    var stopped = getElevators(stationId).filter(isDown);
+    return stopped.length ? stopped[0].location + (stopped.length > 1 ? ' 외 ' + (stopped.length - 1) + '곳' : '') : '';
+  }
+
   function renderElevatorTab() {
     renderElevUpdated();
     renderElevatorSummary();
@@ -982,10 +989,7 @@
     el.innerHTML = items.map(function (x) {
       var s = x.station;
       var up = x.total - x.down;
-      var stopped = getElevators(s.id).filter(isDown); // 데이터 순서
-      var where = stopped.length
-        ? stopped[0].location + (stopped.length > 1 ? ' 외 ' + (stopped.length - 1) + '곳' : '')
-        : '';
+      var where = stoppedWhere(s.id);
       var sentence = yeok(s) + ', ' + (s.lines || []).join(', ') + '호선, 엘리베이터 ' + x.total + '대 중 ' + up + '대 운행' +
         (where ? ', 멈춤 ' + where : '');
       return '<div class="station-row elev-row" data-id="' + escapeHtml(s.id) + '" role="button" tabindex="0" aria-label="' + escapeHtml(sentence) + '">' +
@@ -1266,15 +1270,31 @@
         }).join('') + '</div></div>';
     }
 
-    // 타임라인
+    // 타임라인. 엘리베이터에 문제가 있는 역의 단계에는 상태 아이콘 + 멈춘 위치 (+ 이용 불가면 대체역 보기) (REQ-TIME-004)
+    var warnBy = {};
+    (r.elevatorWarnings || []).forEach(function (w) { warnBy[w.stationId] = w; });
     var tl = r.timeline || [];
     if (tl.length) {
       html += '<div class="card"><div class="card-title">타임라인</div><div class="timeline">' +
         tl.map(function (t) {
-          return '<div class="timeline-item">' +
+          var w = t.elevStation ? warnBy[t.elevStation] : null;
+          var label = escapeHtml(t.label);
+          if (w) {
+            var cls = STATUS_CLASS[w.status] || 'unknown';
+            var where = stoppedWhere(w.stationId);
+            var alt = w.alternative;
+            label = '<span class="timeline-main">' + label +
+                ' <span class="timeline-warn ' + cls + '">' + icon(statusIcon(w.status)) +
+                  '<span class="sr-only">엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</span></span></span>' +
+              (where ? '<span class="timeline-stop">멈춤: ' + escapeHtml(where) + '</span>' : '') +
+              (w.status === 'UNAVAILABLE' && alt && alt.station
+                ? '<button type="button" class="timeline-alt" data-open-station="' + escapeHtml(alt.station.id) + '">대체역 보기 (' + escapeHtml(yeok(alt.station)) + ')</button>'
+                : '');
+          }
+          return '<div class="timeline-item' + (w ? ' has-warn' : '') + '">' +
             '<span class="timeline-time">' + escapeHtml(showTime(t.time)) + '</span>' +
             '<span class="timeline-icon">' + icon(t.icon || 'flag') + '</span>' +
-            '<span class="timeline-label">' + escapeHtml(t.label) + '</span></div>';
+            '<span class="timeline-label">' + label + '</span></div>';
         }).join('') + '</div></div>';
     }
     return html;

@@ -1028,6 +1028,27 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
 .timeline-item:first-child .timeline-icon,
 .timeline-item:last-child .timeline-icon { border-color: var(--on-primary); background: var(--primary); }
 .timeline-label { font-size: var(--fs-label); color: var(--text-2); min-width: 0; }
+/* 엘리베이터 문제가 있는 단계 (REQ-TIME-004) */
+.timeline-item.has-warn { align-items: start; }
+.timeline-item.has-warn .timeline-time { margin-top: 2px; }
+.timeline-main { display: block; }
+.timeline-warn { display: inline-flex; vertical-align: -0.2em; }
+.timeline-warn.warn { color: var(--warn); }
+.timeline-warn.bad { color: var(--bad); }
+.timeline-stop { display: block; margin-top: 2px; font-size: var(--fs-caption); color: var(--text-2); }
+.timeline-alt {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: 0;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+  color: var(--primary-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+}
 
 .route-legs { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); }
 .route-leg {

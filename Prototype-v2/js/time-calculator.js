@@ -255,7 +255,7 @@
     route.legs.forEach(function (leg, i) {
       if (i > 0) {
         var tw = T.transferMinutes + Math.round(headway(leg.lineId) / 2);
-        events.push({ time: t, label: '환승 (' + stationName(leg.from) + ', ' + lineName(leg.lineId) + ')', icon: 'sync_alt' });
+        events.push({ time: t, label: '환승 (' + stationName(leg.from) + ', ' + lineName(leg.lineId) + ')', icon: 'sync_alt', elevStation: leg.from });
         t += tw; transfer += tw;
         events.push({ time: t, label: lineName(leg.lineId) + ' 탑승 (' + stationName(leg.from) + ')', icon: 'subway' });
       }
@@ -265,7 +265,7 @@
     var arriveTrain = t;
     events.push({ time: arriveTrain, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 하차', icon: 'flag' });
     t += T.exitWalk;
-    events.push({ time: t, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 출구 도착', icon: 'door_front' });
+    events.push({ time: t, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 출구 도착', icon: 'door_front', elevStation: route.legs[route.legs.length - 1].to });
     return { events: events, ride: ride, transfer: transfer, arriveAt: t };
   }
 
@@ -322,11 +322,11 @@
 
     var timeline = [
       { time: fmt(plan.leave), label: '집에서 출발', icon: 'accessible' },
-      { time: fmt(plan.leave + T.walkToStation), label: stationLabel(originId) + ' 도착 · 엘리베이터 이용', icon: 'elevator' },
+      { time: fmt(plan.leave + T.walkToStation), label: stationLabel(originId) + ' 도착 · 엘리베이터 이용', icon: 'elevator', elevStation: originId },
       { time: fmt(plan.board), label: lineName(first.lineId) + ' 탑승 (' + stationName(originId) + ')', icon: 'subway' }
     ];
     plan.after.events.forEach(function (ev) {
-      timeline.push({ time: fmt(ev.time), label: ev.label, icon: ev.icon });
+      timeline.push({ time: fmt(ev.time), label: ev.label, icon: ev.icon, elevStation: ev.elevStation }); // 엘리베이터를 쓰는 역 (REQ-TIME-004)
     });
 
     // 엘리베이터 경고
