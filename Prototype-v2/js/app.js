@@ -411,7 +411,7 @@
     if (!bs) return;
     var m = sheetMetrics();
     if (sheet.state === 'auto') {
-      bs.style.height = '';
+      bs.style.height = sheet.mode === 'pick' ? m.full + 'px' : ''; // 역 고르기는 결과 수가 바뀌어도 높이 고정
       bs.style.maxHeight = m.full + 'px';
     } else {
       bs.style.height = m.full + 'px';
@@ -718,6 +718,9 @@
         sendChat(name + ' 엘리베이터 돼?');
         break;
       }
+      case 'pick-station':
+        pickStation(btn.getAttribute('data-id'));
+        break;
       case 'demo-scenario':
         runScenario(btn.getAttribute('data-id'));
         break;
@@ -1061,6 +1064,96 @@
     if (row) row.hidden = now;
   }
 
+  // ---------- 출발역·도착역 고르기: 역 검색 시트 (REQ-TIME-001) ----------
+  var RECENT_KEY = 'ev.recentStations';
+  function recentStations() {
+    try {
+      var ids = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+      return Array.isArray(ids) ? ids.filter(function (id) { return !!getStation(id); }) : [];
+    } catch (e) { return []; }
+  }
+  function rememberStation(id) {
+    var ids = recentStations().filter(function (x) { return x !== id; });
+    ids.unshift(id);
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(ids.slice(0, 5))); } catch (e) { /* 저장 못 하면 넘어간다 */ }
+  }
+
+  // 칸: 역 이름(길면 말줄임) + 노선 뱃지
+  function renderStationFields() {
+    [['originBtn', 'originSelect', '출발역'], ['destBtn', 'destSelect', '도착역']].forEach(function (x) {
+      var btn = byId(x[0]), sel = byId(x[1]);
+      if (!btn || !sel) return;
+      var st = sel.value ? getStation(sel.value) : null;
+      btn.innerHTML = st
+        ? '<span class="station-field-name">' + escapeHtml(yeok(st)) + '</span><span class="station-field-lines">' + lineBadges(st) + '</span>'
+        : '<span class="station-field-name muted">역 선택</span>';
+      btn.setAttribute('aria-label', x[2] + ': ' + (st ? yeok(st) : '선택 안 함') + ', 바꾸려면 누르세요');
+    });
+  }
+
+  function pickItemHtml(s) {
+    var status = stationStatus(s.id);
+    return '<button type="button" class="pick-item" data-act="pick-station" data-id="' + escapeHtml(s.id) + '">' +
+      '<span class="pick-name">' + escapeHtml(yeok(s)) + '</span>' +
+      '<span class="pick-lines">' + lineBadges(s) + '</span>' +
+      '<span class="pick-status ' + (STATUS_CLASS[status] || 'unknown') + '" title="' + escapeHtml(statusLabel(status)) + '">' + icon(statusIcon(status)) +
+        '<span class="sr-only">엘리베이터 ' + escapeHtml(statusLabel(status)) + '</span></span>' +
+      '</button>';
+  }
+
+  function renderPickList() {
+    var input = byId('pickInput'), list = byId('pickList');
+    if (!input || !list) return;
+    var q = input.value.trim();
+    if (!q) {
+      var recent = recentStations().map(getStation).filter(Boolean);
+      list.innerHTML = recent.length
+        ? '<div class="section-label">최근 고른 역</div>' + recent.map(pickItemHtml).join('')
+        : '<div class="empty">최근 고른 역이 없어요. 역 이름을 입력해 보세요.</div>';
+      return;
+    }
+    var found = searchStations(q); // 상단 검색과 같은 규칙
+    list.innerHTML = found.length
+      ? found.map(pickItemHtml).join('')
+      : '<div class="empty">"' + escapeHtml(q) + '"에 해당하는 역이 없어요</div>';
+  }
+
+  function openStationPicker(which) {
+    sheet.mode = 'pick';
+    sheet.pick = which;
+    sheet.stationId = null;
+    setSheetHtml(
+      '<div class="sheet-header"><div class="sheet-title">' + (which === 'origin' ? '출발역' : '도착역') + ' 고르기</div></div>' +
+      '<div class="pick-search">' + icon('search') +
+        '<input id="pickInput" type="search" placeholder="역 이름 검색 (예: 신도림)" autocomplete="off" aria-label="역 이름 검색" />' +
+      '</div>' +
+      '<div id="pickList" class="pick-list"></div>', false);
+    renderPickList();
+    openSheetShell('auto');
+    var input = byId('pickInput');
+    if (input) {
+      input.addEventListener('input', renderPickList);
+      input.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var first = $('#pickList .pick-item');
+        if (first) first.click();
+      });
+      input.focus(); // 열리자마자 입력
+    }
+  }
+
+  function pickStation(id) {
+    var which = sheet.pick;
+    var sel = byId(which === 'origin' ? 'originSelect' : 'destSelect');
+    if (sel && hasOption(sel, id)) sel.value = id;
+    rememberStation(id);
+    closeSheet();
+    renderStationFields();
+    var btn = byId(which === 'origin' ? 'originBtn' : 'destBtn');
+    if (btn) btn.focus();
+  }
+
   function initTimeTab() {
     var o = byId('originSelect'), d = byId('destSelect');
     var stations = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
@@ -1078,7 +1171,12 @@
     var swap = byId('swapBtn');
     if (swap && o && d) swap.addEventListener('click', function () {
       var t = o.value; o.value = d.value; d.value = t;
+      renderStationFields();
     });
+    $all('#timeForm .station-field').forEach(function (b) {
+      b.addEventListener('click', function () { openStationPicker(b.getAttribute('data-pick')); });
+    });
+    renderStationFields();
     var modeNow = byId('modeNow'), seg = byId('timeMode');
     if (seg && modeNow) seg.addEventListener('click', function (e) {
       var b = e.target.closest('.seg-btn');
@@ -1189,6 +1287,7 @@
     var o = byId('originSelect'), d = byId('destSelect'), arrive = byId('arriveBy'), modeNow = byId('modeNow');
     if (opts.originId && hasOption(o, opts.originId)) o.value = opts.originId;
     if (opts.destId && hasOption(d, opts.destId)) d.value = opts.destId;
+    renderStationFields();
     if (Object.prototype.hasOwnProperty.call(opts, 'arriveBy')) {
       if (opts.arriveBy) {
         if (modeNow) modeNow.checked = false;
@@ -1468,7 +1567,15 @@
   // ---------------------------------------------------------------------------
   // 초기화
   // ---------------------------------------------------------------------------
+  // 폰 화면 자체는 스크롤되지 않는다. 화면 밖(요약 상태 시트의 아래쪽 버튼 등)에 포커스가 가도
+  // 브라우저가 폰 화면을 밀어 올리지 않게 바로 되돌린다 (REQ-COM-004 뒤처리)
+  function lockPhoneScroll() {
+    var phone = byId('phone');
+    if (phone) phone.addEventListener('scroll', function () { if (phone.scrollTop || phone.scrollLeft) { phone.scrollTop = 0; phone.scrollLeft = 0; } });
+  }
+
   function init() {
+    safe('phoneScroll', lockPhoneScroll);
     safe('clock', initClock);
     safe('tabs', initTabs);
     safe('map', initMap);

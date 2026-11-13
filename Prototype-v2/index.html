@@ -97,16 +97,19 @@
                 <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="now">지금 출발</button>
               </div>
               <input id="modeNow" type="checkbox" hidden />
-              <div class="form-row">
+              <!-- 출발역·도착역: 누르면 역 검색 시트 (REQ-TIME-001). 고른 값은 숨은 <select>에 둔다 -->
+              <div class="form-row station-pick-row">
                 <div class="form-field">
-                  <label class="form-label" for="originSelect">출발역</label>
-                  <select id="originSelect"></select>
+                  <span id="originLabel" class="form-label">출발역</span>
+                  <button id="originBtn" class="station-field" type="button" data-pick="origin" aria-describedby="originLabel"></button>
+                  <select id="originSelect" hidden></select>
+                </div>
+                <div class="form-field">
+                  <span id="destLabel" class="form-label">도착역</span>
+                  <button id="destBtn" class="station-field" type="button" data-pick="dest" aria-describedby="destLabel"></button>
+                  <select id="destSelect" hidden></select>
                 </div>
                 <button id="swapBtn" class="icon-btn swap-btn" type="button" aria-label="출발/도착 바꾸기"><span class="ms ms-lg" aria-hidden="true">swap_vert</span></button>
-                <div class="form-field">
-                  <label class="form-label" for="destSelect">도착역</label>
-                  <select id="destSelect"></select>
-                </div>
               </div>
               <div class="form-row time-row">
                 <div class="form-field">
