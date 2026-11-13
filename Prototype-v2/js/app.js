@@ -810,31 +810,110 @@
   // ---------------------------------------------------------------------------
   // 엘리베이터 탭
   // ---------------------------------------------------------------------------
+  // 필터 바: 네 버튼 중 하나만 선택. 'lines'는 호선 ▼에서 여러 호선을 고른 상태 (REQ-ELV-001)
   var elevFilter = 'all';
+  var elevLines = [];
   var ELEV_FILTERS = [
-    { id: 'all', label: '전체' },
-    { id: 'problem', label: '이용 불가·점검' },
-    { id: 'line2', label: '2호선' },
+    { id: 'all', label: '전체역' },
+    { id: 'problem', label: '고장·점검' },
     { id: 'transfer', label: '환승역' }
   ];
+
+  // 버튼 문구: 호선 / 2호선 / 2·4호선 / 2·4 외 1
+  function elevLinesLabel() {
+    var n = elevLines.length;
+    if (!n) return '호선';
+    if (n === 1) return elevLines[0] + '호선';
+    if (n === 2) return elevLines[0] + '·' + elevLines[1] + '호선';
+    return elevLines[0] + '·' + elevLines[1] + ' 외 ' + (n - 2);
+  }
+
+  function renderElevatorFilter() {
+    var f = byId('elevatorFilter');
+    if (!f) return;
+    $all('[data-filter]', f).forEach(function (b) {
+      var on = b.getAttribute('data-filter') === elevFilter;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    var label = $('#elevLineBtn .dropdown-label', f);
+    if (label) label.textContent = elevLinesLabel();
+    var list = byId('elevLineList');
+    if (list && !list.hidden) renderElevLineList();
+  }
+
+  function renderElevLineList() {
+    var list = byId('elevLineList');
+    if (!list) return;
+    var lines = MOCKDATA().lines || {};
+    list.innerHTML = Object.keys(lines).sort(function (a, b) { return a - b; }).map(function (id) {
+      var on = elevLines.indexOf(id) >= 0;
+      return '<button type="button" class="dropdown-item" role="option" aria-selected="' + on + '" data-line="' + escapeHtml(id) + '">' +
+        '<span class="line-dot" style="background:' + escapeHtml(lines[id].color) + '"></span><span>' + escapeHtml(lines[id].name) + '</span>' +
+        (on ? icon('check') : '') + '</button>';
+    }).join('');
+  }
+
+  function setElevLineMenu(open) {
+    var list = byId('elevLineList'), btn = byId('elevLineBtn');
+    if (!list || !btn) return;
+    if (open) renderElevLineList();
+    list.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+  }
+
+  function setElevFilter(id) {
+    elevFilter = id;
+    if (id !== 'lines') elevLines = [];
+    renderElevatorFilter();
+    renderElevatorList();
+  }
+
+  // 호선을 누르는 즉시 반영. 드롭다운은 열린 채로 둔다. 모두 해제하면 전체역
+  function toggleElevLine(id) {
+    var i = elevLines.indexOf(id);
+    if (i >= 0) elevLines.splice(i, 1); else elevLines.push(id);
+    elevLines.sort(function (a, b) { return a - b; });
+    setElevFilter(elevLines.length ? 'lines' : 'all');
+  }
   var STATUS_RANK = { UNAVAILABLE: 0, PARTIAL: 1, AVAILABLE: 2, UNKNOWN: 3 };
 
   function initElevatorTab() {
     var f = byId('elevatorFilter');
     if (f) {
       f.innerHTML = ELEV_FILTERS.map(function (x) {
-        return '<button type="button" class="chip' + (x.id === elevFilter ? ' active' : '') + '" data-filter="' + x.id + '">' +
-          escapeHtml(x.label) + '</button>';
-      }).join('');
+        return '<button type="button" class="chip" data-filter="' + x.id + '" aria-pressed="false">' + escapeHtml(x.label) + '</button>';
+      }).join('') +
+        '<div id="elevLineMenu" class="dropdown">' +
+          '<button type="button" id="elevLineBtn" class="chip" data-filter="lines" aria-pressed="false" aria-haspopup="listbox" aria-expanded="false" aria-controls="elevLineList">' +
+            '<span class="dropdown-label">호선</span>' + icon('expand_more') + '</button>' +
+          '<div id="elevLineList" class="dropdown-menu dropdown-menu-end" role="listbox" aria-multiselectable="true" aria-label="호선 고르기" hidden></div>' +
+        '</div>';
       f.addEventListener('click', function (e) {
-        var chip = e.target.closest('.chip[data-filter]');
-        if (!chip) return;
-        elevFilter = chip.getAttribute('data-filter');
-        $all('.chip[data-filter]', f).forEach(function (c) {
-          c.classList.toggle('active', c.getAttribute('data-filter') === elevFilter);
-        });
-        renderElevatorList();
+        var item = e.target.closest('#elevLineList [data-line]');
+        if (item) { toggleElevLine(item.getAttribute('data-line')); return; }
+        var btn = e.target.closest('[data-filter]');
+        if (!btn) return;
+        if (btn.id === 'elevLineBtn') { setElevLineMenu(byId('elevLineList').hidden); return; }
+        setElevLineMenu(false);
+        setElevFilter(btn.getAttribute('data-filter'));
       });
+      // 바깥을 누르거나 Esc로 호선 목록 닫기. 바깥을 누른 그 한 번은 닫기만 한다 (뒤의 역이 열리지 않게)
+      var swallowClick = false;
+      document.addEventListener('pointerdown', function (e) {
+        var m = byId('elevLineMenu');
+        if (m && !byId('elevLineList').hidden && !m.contains(e.target)) { setElevLineMenu(false); swallowClick = true; }
+      }, true);
+      document.addEventListener('click', function (e) {
+        if (!swallowClick) return;
+        swallowClick = false;
+        e.preventDefault();
+        e.stopPropagation();
+      }, true);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && byId('elevLineList') && !byId('elevLineList').hidden) { setElevLineMenu(false); byId('elevLineBtn').focus(); }
+      });
+      renderElevatorFilter();
     }
     var list = byId('elevatorList');
     if (list) {
@@ -885,11 +964,13 @@
   function renderElevatorList() {
     var el = byId('elevatorList');
     if (!el) return;
+    // 엘리베이터 정보가 있는 역만 (dataStations)
     var items = dataStations().filter(function (x) {
+      var lines = x.station.lines || [];
       switch (elevFilter) {
-        case 'problem': return x.status === 'PARTIAL' || x.status === 'UNAVAILABLE';
-        case 'line2': return (x.station.lines || []).indexOf('2') >= 0;
-        case 'transfer': return (x.station.lines || []).length > 1;
+        case 'problem': return x.down > 0; // 이용 불가 또는 점검 중인 엘리베이터가 하나라도
+        case 'transfer': return lines.length > 1;
+        case 'lines': return lines.some(function (l) { return elevLines.indexOf(l) >= 0; });
         default: return true;
       }
     });
@@ -899,7 +980,7 @@
     });
     if (!items.length) {
       el.innerHTML = '<div class="empty">' + (elevFilter === 'problem'
-        ? '지금은 이용 불가한 엘리베이터가 없어요' : '표시할 역이 없어요') + '</div>';
+        ? '지금은 고장·점검 중인 엘리베이터가 없어요' : '표시할 역이 없어요') + '</div>';
       return;
     }
     el.innerHTML = items.map(function (x) {
