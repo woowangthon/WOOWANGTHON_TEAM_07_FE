@@ -90,6 +90,12 @@
           <div class="view-scroll">
             <h2 class="view-title">출발 시각 계산</h2>
             <form id="timeForm" class="card time-form">
+              <!-- 계산 방식 고르기 (REQ-TIME-002). 고른 값은 숨은 #modeNow에 둔다 -->
+              <div id="timeMode" class="seg" role="radiogroup" aria-label="계산 방식">
+                <button type="button" class="seg-btn" role="radio" aria-checked="true" data-mode="arrive">도착 시각 맞추기</button>
+                <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="now">지금 출발</button>
+              </div>
+              <input id="modeNow" type="checkbox" hidden />
               <div class="form-row">
                 <div class="form-field">
                   <label class="form-label" for="originSelect">출발역</label>
@@ -112,10 +118,6 @@
                   </div>
                   <input id="arriveBy" type="hidden" value="15:00" />
                 </div>
-                <label class="switch">
-                  <input id="modeNow" type="checkbox" />
-                  <span>지금 바로 출발</span>
-                </label>
               </div>
               <button class="btn btn-primary btn-block btn-main" type="submit">출발 시각 계산하기</button>
             </form>

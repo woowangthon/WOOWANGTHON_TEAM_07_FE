@@ -1050,13 +1050,15 @@
     readArrivePicker();
   }
 
+  // 계산 방식: 도착 시각 맞추기 | 지금 출발. 지금 출발이면 도착 시각 입력칸을 숨긴다 (REQ-TIME-002)
   function syncTimeMode() {
     var modeNow = byId('modeNow');
-    var off = !!(modeNow && modeNow.checked);
-    ARRIVE_PICKER.forEach(function (id) {
-      var el = byId(id);
-      if (el) el.disabled = off;
+    var now = !!(modeNow && modeNow.checked);
+    $all('#timeMode .seg-btn').forEach(function (b) {
+      b.setAttribute('aria-checked', String((b.getAttribute('data-mode') === 'now') === now));
     });
+    var row = $('#timeForm .time-row');
+    if (row) row.hidden = now;
   }
 
   function initTimeTab() {
@@ -1077,8 +1079,13 @@
     if (swap && o && d) swap.addEventListener('click', function () {
       var t = o.value; o.value = d.value; d.value = t;
     });
-    var modeNow = byId('modeNow');
-    if (modeNow) modeNow.addEventListener('change', syncTimeMode);
+    var modeNow = byId('modeNow'), seg = byId('timeMode');
+    if (seg && modeNow) seg.addEventListener('click', function (e) {
+      var b = e.target.closest('.seg-btn');
+      if (!b) return;
+      modeNow.checked = b.getAttribute('data-mode') === 'now';
+      syncTimeMode();
+    });
     syncTimeMode();
 
     var form = byId('timeForm');
