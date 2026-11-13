@@ -71,10 +71,13 @@
         <!-- 엘리베이터 -->
         <section id="view-elevator" class="view" data-view="elevator">
           <div class="view-scroll">
-            <h2 class="view-title">엘리베이터 현황</h2>
-            <div id="elevatorSummary" class="summary-grid"></div>
-            <!-- 상단 고정 필터 바: 전체역 / 고장·점검 / 환승역 / 호선 ▼ (REQ-ELV-001) -->
-            <div id="elevatorFilter" class="filter-bar" role="toolbar" aria-label="역 목록 거르기"></div>
+            <!-- 위쪽 흰 영역: 제목 + 요약 카드 + 필터 탭 (REQ-ELV-007) -->
+            <div class="elev-head">
+              <h2 class="view-title">엘리베이터 현황</h2>
+              <div id="elevatorSummary" class="summary-grid"></div>
+            </div>
+            <!-- 상단 고정 필터 탭: 전체역 / 고장·점검 / 환승역 / 호선 ▼ (REQ-ELV-001, REQ-ELV-006) -->
+            <div id="elevatorFilter" class="filter-tabs" role="toolbar" aria-label="역 목록 거르기"></div>
             <div id="elevatorList" class="station-list"></div>
           </div>
         </section>

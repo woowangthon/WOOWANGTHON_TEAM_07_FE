@@ -831,34 +831,34 @@
   function renderElevatorFilter() {
     var f = byId('elevatorFilter');
     if (!f) return;
-    $all('[data-filter]', f).forEach(function (b) {
-      var on = b.getAttribute('data-filter') === elevFilter;
-      b.classList.toggle('active', on);
-      b.setAttribute('aria-pressed', String(on));
+    $all('.filter-tab', f).forEach(function (t) {
+      var on = t.getAttribute('data-filter') === elevFilter;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-pressed', String(on));
     });
-    var label = $('#elevLineBtn .dropdown-label', f);
+    var label = $('#elevLineBtn .tab-label', f);
     if (label) label.textContent = elevLinesLabel();
-    var list = byId('elevLineList');
-    if (list && !list.hidden) renderElevLineList();
+    $all('#elevLinePanel [data-line]', f).forEach(function (c) {
+      var on = elevLines.indexOf(c.getAttribute('data-line')) >= 0;
+      c.classList.toggle('active', on);
+      c.setAttribute('aria-pressed', String(on));
+    });
   }
 
-  function renderElevLineList() {
-    var list = byId('elevLineList');
-    if (!list) return;
+  // 호선 칩 두 줄: 필터 탭 아래로 펼쳐 목록을 밀어낸다. 목록을 가리지 않는다 (REQ-ELV-005)
+  function elevLinePanelHtml() {
     var lines = MOCKDATA().lines || {};
-    list.innerHTML = Object.keys(lines).sort(function (a, b) { return a - b; }).map(function (id) {
-      var on = elevLines.indexOf(id) >= 0;
-      return '<button type="button" class="dropdown-item" role="option" aria-selected="' + on + '" data-line="' + escapeHtml(id) + '">' +
-        '<span class="line-dot" style="background:' + escapeHtml(lines[id].color) + '"></span><span>' + escapeHtml(lines[id].name) + '</span>' +
-        (on ? icon('check') : '') + '</button>';
-    }).join('');
+    return '<div id="elevLinePanel" class="line-panel" role="group" aria-label="호선 고르기" hidden>' +
+      Object.keys(lines).sort(function (x, y) { return x - y; }).map(function (id) {
+        return '<button type="button" class="line-chip" data-line="' + escapeHtml(id) + '" aria-pressed="false">' +
+          '<span class="line-dot" style="background:' + escapeHtml(lines[id].color) + '"></span>' + escapeHtml(lines[id].name) + '</button>';
+      }).join('') + '</div>';
   }
 
-  function setElevLineMenu(open) {
-    var list = byId('elevLineList'), btn = byId('elevLineBtn');
-    if (!list || !btn) return;
-    if (open) renderElevLineList();
-    list.hidden = !open;
+  function setElevLinePanel(open) {
+    var p = byId('elevLinePanel'), btn = byId('elevLineBtn');
+    if (!p || !btn) return;
+    p.hidden = !open;
     btn.setAttribute('aria-expanded', String(open));
   }
 
@@ -881,37 +881,21 @@
   function initElevatorTab() {
     var f = byId('elevatorFilter');
     if (f) {
-      f.innerHTML = ELEV_FILTERS.map(function (x) {
-        return '<button type="button" class="chip" data-filter="' + x.id + '" aria-pressed="false">' + escapeHtml(x.label) + '</button>';
+      // 밑줄 탭 네 칸 (REQ-ELV-006) + 그 아래 호선 칩 (REQ-ELV-005)
+      f.innerHTML = '<div class="filter-tabs-row">' + ELEV_FILTERS.map(function (x) {
+        return '<button type="button" class="filter-tab" data-filter="' + x.id + '" aria-pressed="false">' + escapeHtml(x.label) + '</button>';
       }).join('') +
-        '<div id="elevLineMenu" class="dropdown">' +
-          '<button type="button" id="elevLineBtn" class="chip" data-filter="lines" aria-pressed="false" aria-haspopup="listbox" aria-expanded="false" aria-controls="elevLineList">' +
-            '<span class="dropdown-label">호선</span>' + icon('expand_more') + '</button>' +
-          '<div id="elevLineList" class="dropdown-menu dropdown-menu-end" role="listbox" aria-multiselectable="true" aria-label="호선 고르기" hidden></div>' +
-        '</div>';
+        '<button type="button" id="elevLineBtn" class="filter-tab" data-filter="lines" aria-pressed="false" aria-expanded="false" aria-controls="elevLinePanel">' +
+          '<span class="tab-label">호선</span>' + icon('expand_more') + '</button>' +
+        '</div>' + elevLinePanelHtml();
       f.addEventListener('click', function (e) {
-        var item = e.target.closest('#elevLineList [data-line]');
-        if (item) { toggleElevLine(item.getAttribute('data-line')); return; }
-        var btn = e.target.closest('[data-filter]');
-        if (!btn) return;
-        if (btn.id === 'elevLineBtn') { setElevLineMenu(byId('elevLineList').hidden); return; }
-        setElevLineMenu(false);
-        setElevFilter(btn.getAttribute('data-filter'));
-      });
-      // 바깥을 누르거나 Esc로 호선 목록 닫기. 바깥을 누른 그 한 번은 닫기만 한다 (뒤의 역이 열리지 않게)
-      var swallowClick = false;
-      document.addEventListener('pointerdown', function (e) {
-        var m = byId('elevLineMenu');
-        if (m && !byId('elevLineList').hidden && !m.contains(e.target)) { setElevLineMenu(false); swallowClick = true; }
-      }, true);
-      document.addEventListener('click', function (e) {
-        if (!swallowClick) return;
-        swallowClick = false;
-        e.preventDefault();
-        e.stopPropagation();
-      }, true);
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && byId('elevLineList') && !byId('elevLineList').hidden) { setElevLineMenu(false); byId('elevLineBtn').focus(); }
+        var chip = e.target.closest('#elevLinePanel [data-line]');
+        if (chip) { toggleElevLine(chip.getAttribute('data-line')); return; }
+        var tab = e.target.closest('.filter-tab');
+        if (!tab) return;
+        if (tab.id === 'elevLineBtn') { setElevLinePanel(byId('elevLinePanel').hidden); return; }
+        setElevLinePanel(false);
+        setElevFilter(tab.getAttribute('data-filter'));
       });
       renderElevatorFilter();
     }

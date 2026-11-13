@@ -298,55 +298,6 @@ body.fullscreen .demo-panel.show { display: block; }
 html:not(.ms-ready) .ms,
 html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent; }
 
-/* 드롭다운: 버튼 + 아래로 열리는 목록 (REQ-ELV-001. REQ-MAP-005에서 처음 만들었고 MAP-005는 되돌림) */
-.dropdown { position: relative; }
-.dropdown-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  height: var(--tap-min);
-  padding: 0 var(--sp-2) 0 var(--sp-4);
-  font-size: var(--fs-body);
-  font-weight: var(--fw-bold);
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: var(--shadow);
-  white-space: nowrap;
-}
-.dropdown-btn .dropdown-label { display: inline-flex; align-items: center; gap: var(--sp-2); }
-.dropdown-btn[aria-expanded="true"] > .ms { transform: rotate(180deg); }
-.dropdown-btn.is-set { border-color: var(--on-primary); }
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + var(--sp-2));
-  left: 0;
-  z-index: 10;
-  min-width: 10rem;
-  padding: var(--sp-1);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
-}
-.dropdown-menu[hidden] { display: none; }
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  width: 100%;
-  min-height: var(--tap-min);
-  padding: 0 var(--sp-3);
-  font-size: var(--fs-body);
-  font-weight: var(--fw-strong);
-  text-align: left;
-  color: var(--text);
-  border-radius: var(--radius-sm);
-}
-.dropdown-item:hover { background: var(--surface-2); }
-.dropdown-item[aria-selected="true"] { font-weight: var(--fw-bold); background: var(--primary-tint); }
-.dropdown-item > .ms { margin-left: auto; }
 /* 노선 색 점 */
 .line-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
 
@@ -1125,23 +1076,79 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
 .summary-card.warn .summary-label .ms { color: var(--warn); }
 .summary-card.bad .summary-label .ms { color: var(--bad); }
 
-/* 엘리베이터 탭 필터 바: 목록을 스크롤해도 위에 붙어 있다 (REQ-ELV-001) */
-.filter-bar {
+/* 엘리베이터 탭 위쪽 흰 영역: 제목 + 필터 탭 (REQ-ELV-007). 요약 카드와 목록은 회색 바탕 */
+.elev-head {
+  margin: calc(-1 * var(--sp-4)) calc(-1 * var(--sp-4)) 0;
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  background: var(--surface);
+}
+.elev-head .view-title { margin: var(--sp-2) 0 var(--sp-4); }
+/* 필터 탭: 목록을 스크롤해도 위에 붙어 있다 (REQ-ELV-001). 밑줄 탭 (REQ-ELV-006) */
+.filter-tabs {
   position: sticky;
   top: calc(-1 * var(--sp-4)); /* .view-scroll 위쪽 여백만큼 올려 맨 위에 딱 붙인다 */
   z-index: 5;
-  display: flex;
-  gap: var(--sp-2);
-  margin: var(--sp-2) calc(-1 * var(--sp-4)) var(--sp-1);
-  padding: var(--sp-2) var(--sp-4);
-  background: var(--bg);
+  margin: 0 calc(-1 * var(--sp-4)) var(--sp-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
-.filter-bar > .chip,
-.filter-bar > .dropdown { flex: 1 1 auto; }
-.filter-bar .chip { justify-content: center; padding: 0 var(--sp-2); }
-.filter-bar .dropdown > .chip { width: 100%; gap: 0; padding-right: var(--sp-1); }
-.filter-bar .chip[aria-expanded="true"] > .ms { transform: rotate(180deg); }
-.dropdown-menu-end { left: auto; right: 0; }
+.filter-tabs-row { display: flex; padding: 0 var(--sp-2); }
+.filter-tab {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: var(--tap-main);
+  padding: 0 var(--sp-1);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  color: var(--muted);
+  background: none;
+  border: 0;
+}
+.filter-tab.active { color: var(--text); font-weight: var(--fw-bold); }
+/* 고른 탭 밑줄. 흰 바탕 위 얇은 선이라 노랑 대신 차콜 (노랑 사용 규칙) */
+.filter-tab.active::after {
+  content: "";
+  position: absolute;
+  left: var(--sp-2);
+  right: var(--sp-2);
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--on-primary);
+}
+.filter-tab[aria-expanded="true"] > .ms { transform: rotate(180deg); }
+/* 호선 칩 두 줄 (REQ-ELV-005) */
+.line-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+.line-panel[hidden] { display: none; }
+.line-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  min-width: 0;
+  height: var(--tap-min);
+  padding: 0 var(--sp-1);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.line-chip.active { color: var(--on-primary); font-weight: var(--fw-bold); background: var(--primary); border-color: var(--primary); }
 
 .station-list { display: flex; flex-direction: column; gap: var(--sp-2); }
 .station-row {
