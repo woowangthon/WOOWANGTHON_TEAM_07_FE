@@ -73,7 +73,10 @@
           <div class="view-scroll">
             <!-- 위쪽 흰 영역: 제목 + 요약 카드 + 필터 탭 (REQ-ELV-007) -->
             <div class="elev-head">
-              <h2 class="view-title">엘리베이터 현황</h2>
+              <div class="elev-title-row">
+                <h2 class="view-title">엘리베이터 현황</h2>
+                <span id="elevUpdated" class="elev-updated"></span>
+              </div>
               <div id="elevatorSummary" class="summary-grid"></div>
             </div>
             <!-- 상단 고정 필터 탭: 전체역 / 고장·점검 / 환승역 / 호선 ▼ (REQ-ELV-001, REQ-ELV-006) -->

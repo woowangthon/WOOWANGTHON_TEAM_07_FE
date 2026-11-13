@@ -921,7 +921,15 @@
     });
   }
 
+  // 엘리베이터 정보 기준 시각. 목업에는 갱신 시각이 없어 앱을 연 시각, 상태가 바뀌면 그 시각 (REQ-ELV-003)
+  var elevUpdatedAt = new Date();
+  function renderElevUpdated() {
+    var el = byId('elevUpdated');
+    if (el) el.textContent = showTime(nowHHMM(elevUpdatedAt)) + ' 기준';
+  }
+
   function renderElevatorTab() {
+    renderElevUpdated();
     renderElevatorSummary();
     renderElevatorList();
   }
@@ -1443,6 +1451,7 @@
     var es = ES();
     if (!es || !es.subscribe) return;
     es.subscribe(function () {
+      elevUpdatedAt = new Date(); // 상태가 바뀐 시각을 기준 시각으로 (REQ-ELV-003)
       safe('refreshSheet', refreshSheet);
       safe('renderElevatorTab', renderElevatorTab);
       safe('renderDemoPanelStation', renderDemoPanelStation);

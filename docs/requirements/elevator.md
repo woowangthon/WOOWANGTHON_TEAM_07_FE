@@ -132,7 +132,7 @@
 
 ### REQ-ELV-003 엘리베이터 정보 기준 시각을 작게 표시
 
-- 상태: 대기
+- 상태: 완료
 - 우선순위: P2 (제안)
 - 등록일: 2026-11-11
 - 대상: `Prototype-v2/index.html` `#view-elevator` `.view-title` 아래 / `Prototype-v2/js/app.js` `renderElevatorTab`, `renderElevatorSummary`
@@ -147,9 +147,9 @@
 4. 시각 형식은 REQ-DS-009를 따른다. (예: `오후 6:52 기준`)
 
 **완료 조건**
-- [ ] 제목 근처에 `오후 6:52 기준`처럼 기준 시각이 13px 보조 글자색으로 보인다.
-- [ ] 요약 카드나 필터 바보다 눈에 덜 띈다.
-- [ ] 시연 제어판으로 엘리베이터 상태를 바꾸면 기준 시각이 그 시각으로 바뀐다.
+- [x] 제목 근처에 `오후 6:52 기준`처럼 기준 시각이 13px 보조 글자색으로 보인다.
+- [x] 요약 카드나 필터 바보다 눈에 덜 띈다.
+- [x] 시연 제어판으로 엘리베이터 상태를 바꾸면 기준 시각이 그 시각으로 바뀐다.
 
 **참고**
 - 2026-11-11 결정. 사용자 원문: "좋아. 눈에 크게 띄지는 않게 하자."
@@ -157,6 +157,12 @@
 - 관련: REQ-COM-003 (시연 제어판 상태 조작)
 
 **작업 기록**
+- 2026-11-13 완료
+  - `Prototype-v2/index.html`: 제목 줄을 `.elev-title-row`로 감싸고 오른쪽에 `#elevUpdated`.
+  - `Prototype-v2/js/app.js`: `elevUpdatedAt`(앱을 연 시각), `renderElevUpdated`(`showTime(nowHHMM(...))` + ` 기준`, REQ-DS-009 형식). 엘리베이터 상태가 바뀌면(`ElevatorService.subscribe`) 그 시각으로 갱신.
+  - `Prototype-v2/css/style.css`: `.elev-title-row`(제목과 기준 시각을 한 줄, 글자 아래선 맞춤), `.elev-updated`(`--fs-caption`, `--muted`, `--fw-regular`, 아이콘·배경 없음).
+  - 확인: 시계를 18:52로 고정해 열면 제목 줄 오른쪽에 `오후 6:52 기준`(13px, #6B7280, 400). 7분 뒤 잠실역을 고장 내면 `오후 6:59 기준`. 글자 125%에서도 제목과 한 줄. 콘솔 오류 없음.
+
 
 ### REQ-ELV-004 역 목록 한 줄을 "운행 대수 + 멈춘 위치"로 정리
 

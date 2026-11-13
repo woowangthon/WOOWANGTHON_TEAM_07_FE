@@ -1082,7 +1082,10 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
   padding: var(--sp-4) var(--sp-4) var(--sp-3);
   background: var(--surface);
 }
-.elev-head .view-title { margin: var(--sp-2) 0 var(--sp-4); }
+.elev-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); margin: var(--sp-2) 0 var(--sp-4); }
+.elev-head .view-title { margin: 0; }
+/* 엘리베이터 정보 기준 시각: 눈에 크게 띄지 않게 (REQ-ELV-003) */
+.elev-updated { flex: none; font-size: var(--fs-caption); font-weight: var(--fw-regular); color: var(--muted); white-space: nowrap; }
 /* 필터 탭: 목록을 스크롤해도 위에 붙어 있다 (REQ-ELV-001). 밑줄 탭 (REQ-ELV-006) */
 .filter-tabs {
   position: sticky;
