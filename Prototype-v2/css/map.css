@@ -17,19 +17,35 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ---------------- 노선 고르기: 왼쪽 위 호선 ▼ 버튼 (REQ-MAP-005) ---------------- */
-.line-menu {
+/* ---------------- 노선 필터 칩 (상단 오버레이) ---------------- */
+.line-filter {
   position: absolute;
-  top: var(--sp-3);
-  left: var(--sp-3);
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4) var(--sp-3);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  background: linear-gradient(to bottom, rgba(248, 250, 252, .96) 0%, rgba(248, 250, 252, .88) 60%, rgba(248, 250, 252, 0) 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
+          mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
 }
+.line-filter::-webkit-scrollbar { display: none; }
+.line-filter > * { flex: 0 0 auto; white-space: nowrap; }
+.line-filter:empty { display: none; }
 
 /* ---------------- 줌 컨트롤 (우측 세로 스택) ---------------- */
 .map-controls {
   position: absolute;
-  top: var(--sp-3);
-  right: var(--sp-3);
+  top: 60px;
+  right: 12px;
   z-index: 5;
   display: flex;
   flex-direction: column;

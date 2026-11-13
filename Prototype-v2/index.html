@@ -53,13 +53,7 @@
       <main class="views">
         <!-- 노선도 -->
         <section id="view-map" class="view active" data-view="map">
-          <!-- 노선 고르기: 호선 ▼ 버튼 + 드롭다운 (REQ-MAP-005) -->
-          <div id="lineMenu" class="line-menu dropdown">
-            <button id="lineMenuBtn" class="dropdown-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="lineMenuList">
-              <span class="dropdown-label">호선</span><span class="ms" aria-hidden="true">expand_more</span>
-            </button>
-            <div id="lineMenuList" class="dropdown-menu" role="listbox" aria-label="노선 고르기" hidden></div>
-          </div>
+          <div id="lineFilter" class="line-filter"></div>
           <div id="mapContainer" class="map-container"></div>
           <div class="map-controls">
             <button id="zoomIn" class="icon-btn" type="button" aria-label="확대"><span class="ms ms-lg" aria-hidden="true">add</span></button>
