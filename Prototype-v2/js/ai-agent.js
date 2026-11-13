@@ -151,6 +151,7 @@
 
   function elevListHtml(elevs) {
     if (!elevs.length) return '';
+    elevs = safe(function () { return ES().sortForDisplay(elevs); }, elevs); // 멈춘 것 먼저 (REQ-COM-005)
     return '<div class="elev-list">' + elevs.map(function (e) {
       var down = isDown(e);
       return '<div class="elev-item' + (down ? ' down' : '') + '">' +

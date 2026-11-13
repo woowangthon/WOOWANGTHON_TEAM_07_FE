@@ -555,7 +555,8 @@
     var elevStart = html.length;
     html += '<div class="sheet-section"><div class="section-label">엘리베이터</div>';
     if (data) {
-      html += '<div class="elev-list">' + elevs.map(function (e) {
+      var ordered = ES() && ES().sortForDisplay ? ES().sortForDisplay(elevs) : elevs; // 멈춘 것 먼저 (REQ-COM-005)
+      html += '<div class="elev-list">' + ordered.map(function (e) {
         var down = isDown(e);
         var metaParts = [];
         if (ELEV_TYPE_TEXT[e.type]) metaParts.push(ELEV_TYPE_TEXT[e.type]);

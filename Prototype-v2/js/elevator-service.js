@@ -221,6 +221,13 @@
     return state.elevators[stationId] || [];
   }
 
+  // 화면에 보여 줄 순서: 멈춘 엘리베이터(고장·점검) → 정상. 같은 상태 안에서는 데이터 순서 유지 (REQ-COM-005)
+  function sortForDisplay(list) {
+    return (list || []).map(function (e, i) { return { e: e, i: i, down: !e || e.status !== 'AVAILABLE' }; })
+      .sort(function (a, b) { return (b.down - a.down) || (a.i - b.i); })
+      .map(function (x) { return x.e; });
+  }
+
   function hasElevatorData(stationId) {
     ensureInit();
     var e = state.elevators[stationId];
@@ -411,6 +418,7 @@
     findStationsInText: findStationsInText,
     getLine: getLine,
     getElevators: getElevators,
+    sortForDisplay: sortForDisplay,
     hasElevatorData: hasElevatorData,
     getStationStatus: getStationStatus,
     getStatusLabel: getStatusLabel,
