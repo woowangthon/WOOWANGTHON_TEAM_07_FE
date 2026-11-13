@@ -1160,6 +1160,30 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
   transition: transform .15s var(--ease), box-shadow .2s var(--ease);
 }
 .station-row:hover { box-shadow: var(--shadow); }
+/* 엘리베이터 탭 역 한 줄: 이름 | 상태 아이콘 + 운행/전체대 | ›, 둘째 줄 멈춘 위치 (REQ-ELV-004) */
+.station-row.elev-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--sp-2);
+  row-gap: 2px;
+}
+.elev-row-name { min-width: 0; font-size: var(--fs-body); }
+.elev-row-op { display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-body); color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.elev-row-op b { font-weight: var(--fw-bold); color: var(--text); }
+.elev-row-op.ok .ms { color: var(--ok); }
+.elev-row-op.warn .ms { color: var(--warn); }
+.elev-row-op.bad .ms { color: var(--bad); }
+.elev-row .chevron { grid-column: 3; grid-row: 1 / span 2; }
+.elev-row-stop {
+  grid-column: 1 / 3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-label);
+  color: var(--text-2);
+}
 .station-row:active { transform: scale(.98); }
 .station-row .station-name { font-size: var(--fs-body); font-weight: var(--fw-bold); letter-spacing: -0.025em; }
 .station-row .station-sub { font-size: var(--fs-label); color: var(--muted); }

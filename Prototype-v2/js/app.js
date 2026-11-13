@@ -983,16 +983,22 @@
         ? '지금은 고장·점검 중인 엘리베이터가 없어요' : '표시할 역이 없어요') + '</div>';
       return;
     }
+    // 한 줄: 역 이름 + 노선 | 상태 아이콘 + 운행/전체대 | ›, 멈춘 엘리베이터가 있으면 둘째 줄에 위치 (REQ-ELV-004)
     el.innerHTML = items.map(function (x) {
       var s = x.station;
-      var meta = x.down ? '이용 불가 ' + x.down + ' / 전체 ' + x.total + '대' : '엘리베이터 ' + x.total + '대 정상';
-      return '<div class="station-row" data-id="' + escapeHtml(s.id) + '" role="button" tabindex="0">' +
-        '<div class="station-row-main" style="flex:1;min-width:0">' +
-          '<div class="station-row-name"><strong>' + escapeHtml(yeok(s)) + '</strong> ' + lineBadges(s) + '</div>' +
-          '<div class="muted station-row-meta">' + escapeHtml(meta) + '</div>' +
-        '</div>' +
-        statusPill(x.status) +
+      var up = x.total - x.down;
+      var stopped = getElevators(s.id).filter(isDown); // 데이터 순서
+      var where = stopped.length
+        ? stopped[0].location + (stopped.length > 1 ? ' 외 ' + (stopped.length - 1) + '곳' : '')
+        : '';
+      var sentence = yeok(s) + ', ' + (s.lines || []).join(', ') + '호선, 엘리베이터 ' + x.total + '대 중 ' + up + '대 운행' +
+        (where ? ', 멈춤 ' + where : '');
+      return '<div class="station-row elev-row" data-id="' + escapeHtml(s.id) + '" role="button" tabindex="0" aria-label="' + escapeHtml(sentence) + '">' +
+        '<div class="elev-row-name" aria-hidden="true"><strong>' + escapeHtml(yeok(s)) + '</strong> ' + lineBadges(s) + '</div>' +
+        '<div class="elev-row-op ' + (STATUS_CLASS[x.status] || 'unknown') + '" aria-hidden="true">' + icon(statusIcon(x.status)) +
+          '<span><b>' + up + '</b>/' + x.total + '대</span></div>' +
         '<span class="chevron ms" aria-hidden="true">chevron_right</span>' +
+        (where ? '<div class="elev-row-stop" aria-hidden="true">멈춤: ' + escapeHtml(where) + '</div>' : '') +
         '</div>';
     }).join('');
   }
