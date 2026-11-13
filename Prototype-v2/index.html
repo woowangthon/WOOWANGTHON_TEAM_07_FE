@@ -88,7 +88,8 @@
         <!-- 출발 시각 계산 -->
         <section id="view-time" class="view" data-view="time">
           <div class="view-scroll">
-            <h2 class="view-title">출발 시각 계산</h2>
+            <!-- 제목은 화면에서 없애고 화면 읽기용으로만 남긴다 (REQ-TIME-005) -->
+            <h2 class="sr-only">출발 시각 계산</h2>
             <form id="timeForm" class="card time-form">
               <!-- 계산 방식 고르기 (REQ-TIME-002). 고른 값은 숨은 #modeNow에 둔다 -->
               <div id="timeMode" class="seg" role="radiogroup" aria-label="계산 방식">
