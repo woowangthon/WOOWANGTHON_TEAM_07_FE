@@ -7,7 +7,7 @@
 
 | 대기 | 진행중 | 완료 | 보류 |
 |---|---|---|---|
-| 19 | 0 | 18 | 0 |
+| 18 | 0 | 18 | 0 |
 
 ## 구현 순서
 
@@ -17,7 +17,7 @@
 |---|---|---|
 | 1. 바로 고칠 깨짐 (P0) | REQ-COM-003, REQ-ELV-002 | 작고 독립적이며, 시연 화면이 바로 깔끔해진다 |
 | 2. 디자인 시스템 기초 | REQ-DS-001 + REQ-DS-002 (함께), REQ-DS-004, REQ-DS-005, REQ-DS-006, REQ-DS-008, REQ-DS-009, REQ-DS-007 → REQ-DS-003 | 이후 화면 작업에서 값을 두 번 고치지 않기 위해 먼저 한다 |
-| 3. 노선도 → 역 상세 | REQ-MAP-003 → REQ-MAP-004 → REQ-MAP-005 → REQ-MAP-006 → REQ-MAP-007 / REQ-COM-007 → REQ-COM-004 → REQ-COM-005, REQ-COM-006 | 발표의 중심 장면 |
+| 3. 노선도 → 역 상세 | REQ-MAP-003 → REQ-MAP-004 → REQ-MAP-005 → REQ-MAP-006 / REQ-COM-007 → REQ-COM-004 → REQ-COM-005, REQ-COM-006 | 발표의 중심 장면 |
 | 4. 나머지 탭 | 엘리베이터: REQ-ELV-001 → REQ-ELV-004 → REQ-ELV-003 / 출발계산: REQ-TIME-002 → REQ-TIME-001 → REQ-TIME-004 → REQ-TIME-003 / 챗봇: REQ-CHAT-002 → REQ-CHAT-003 → REQ-CHAT-001 | 탭끼리 영향이 없어 나눠서 동시에 진행할 수 있다 |
 | 5. 설정과 음성 | REQ-COM-001 → REQ-COM-002 (P0, 공개 전 필수) / REQ-CHAT-004 → REQ-CHAT-005 | REQ-COM-002는 설정·정보 화면(REQ-COM-001)이 있어야 넣을 수 있다 |
 
@@ -33,7 +33,6 @@
 | [REQ-MAP-004](requirements/map.md#req-map-004-역을-누르는-영역을-화면-기준-44px로) | 역을 누르는 영역을 화면 기준 44px로 | P1 | 완료 | 2026-11-11 |
 | [REQ-MAP-005](requirements/map.md#req-map-005-노선-필터를-호선--버튼-하나로-바꾸고-고르면-그-노선으로-이동) | 노선 필터를 `호선 ▼` 버튼 하나로 바꾸고, 고르면 그 노선으로 이동 | P1 | 완료 | 2026-11-11 |
 | [REQ-MAP-006](requirements/map.md#req-map-006-지도-위-역-이름을-화면-기준-13px-이상으로) | 지도 위 역 이름을 화면 기준 13px 이상으로 | P1 | 완료 | 2026-11-11 |
-| [REQ-MAP-007](requirements/map.md#req-map-007-고장점검-역을-한눈에-보여-주는-버튼-추가) | 고장·점검 역을 한눈에 보여 주는 버튼 추가 | P1 | 대기 | 2026-11-11 |
 | [REQ-ELV-001](requirements/elevator.md#req-elv-001-상단-고정-필터-바로-역-목록-개편) | 상단 고정 필터 바로 역 목록 개편 | P1 | 대기 | 2026-11-11 |
 | [REQ-ELV-002](requirements/elevator.md#req-elv-002-요약-카드-높이-어긋남-고치기와-이름-정리) | 요약 카드 높이 어긋남 고치기와 이름 정리 | P0 | 완료 | 2026-11-11 |
 | [REQ-ELV-003](requirements/elevator.md#req-elv-003-엘리베이터-정보-기준-시각을-작게-표시) | 엘리베이터 정보 기준 시각을 작게 표시 | P2 | 대기 | 2026-11-11 |
