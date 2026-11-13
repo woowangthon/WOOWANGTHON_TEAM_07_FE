@@ -264,7 +264,11 @@
   function initMap() {
     var container = byId('mapContainer');
     if (MAP() && MAP().init && container) {
-      MAP().init(container, { onStationClick: function (id) { openStation(id); } });
+      MAP().init(container, {
+        onStationClick: function (id) { openStation(id); },
+        // 시트가 펼쳐져 있으면 요약으로 내린다. 닫지는 않는다 (REQ-COM-004)
+        onMapClick: function () { if (sheet.open && sheet.state === 'full') setSheetState('peek'); }
+      });
     } else {
       console.error('[App] MetroMap 사용 불가');
     }
@@ -406,22 +410,69 @@
   // ---------------------------------------------------------------------------
   // 바텀 시트
   // ---------------------------------------------------------------------------
-  var sheet = { open: false, mode: null, stationId: null, alt: null };
+  // state: 역 시트는 'peek'(요약) / 'full'(펼침), 다른 시트는 'auto'(내용 높이, 막 있음) (REQ-COM-004)
+  var sheet = { open: false, mode: null, stationId: null, alt: null, state: null };
   // 시연 제어판에서 조작할 역. 마지막으로 연 역을 기억한다.
   var demoStationId = null;
 
-  function openSheetShell() {
-    var bs = byId('bottomSheet'), bd = byId('sheetBackdrop');
-    if (bs) { bs.style.transform = ''; bs.style.transition = ''; bs.classList.add('open'); }
-    if (bd) bd.classList.add('show');
+  // 시트 높이: 펼침 = 상단 검색창 아래까지, 요약 = 역 이름 + 운행 현황 (+ 우회 경로 버튼)
+  function sheetMetrics() {
+    var phone = byId('phone'), hdr = $('.app-header');
+    var pr = phone ? phone.getBoundingClientRect() : { top: 0, bottom: innerHeight, height: innerHeight };
+    var hb = hdr ? hdr.getBoundingClientRect().bottom : pr.top;
+    var full = Math.round(pr.bottom - hb - 8);
+    var peek = full;
+    var sum = $('#sheetContent .sheet-summary');
+    if (sum) peek = Math.min(full, Math.max(Math.round(pr.height * 0.25), sum.offsetTop + sum.offsetHeight + 16));
+    return { full: full, peek: peek };
+  }
+
+  function sheetY(state, m) { return state === 'peek' ? m.full - m.peek : 0; }
+
+  function applySheet() {
+    var bs = byId('bottomSheet'), bd = byId('sheetBackdrop'), h = byId('sheetHandle');
+    if (!bs) return;
+    var m = sheetMetrics();
+    if (sheet.state === 'auto') {
+      bs.style.height = '';
+      bs.style.maxHeight = m.full + 'px';
+    } else {
+      bs.style.height = m.full + 'px';
+      bs.style.maxHeight = 'none';
+    }
+    bs.style.setProperty('--sheet-y', sheetY(sheet.state, m) + 'px');
+    bs.classList.toggle('is-peek', sheet.state === 'peek');
+    bs.classList.toggle('is-full', sheet.state === 'full');
+    if (sheet.state === 'peek') { var c = byId('sheetContent'); if (c) c.scrollTop = 0; }
+    // 요약일 때는 막 없이 지도를 그대로 쓴다. 다른 시트(시연 제어판 등)만 막을 둔다
+    if (bd) bd.classList.toggle('show', sheet.open && sheet.state === 'auto');
+    if (h) {
+      h.hidden = sheet.state === 'auto';
+      h.setAttribute('aria-label', sheet.state === 'peek' ? '시트 펼치기' : '시트 접기');
+      h.setAttribute('aria-expanded', String(sheet.state === 'full'));
+    }
+  }
+
+  function setSheetState(state) {
+    if (!sheet.open) return;
+    sheet.state = state;
+    applySheet();
+  }
+
+  function openSheetShell(state) {
+    var bs = byId('bottomSheet');
     sheet.open = true;
+    sheet.state = state || 'auto';
+    applySheet();
+    if (bs) { bs.style.transition = ''; bs.classList.add('open'); }
   }
 
   function closeSheet() {
     var bs = byId('bottomSheet'), bd = byId('sheetBackdrop');
-    if (bs) { bs.classList.remove('open'); bs.style.transform = ''; bs.style.transition = ''; }
+    if (bs) { bs.classList.remove('open', 'is-peek', 'is-full'); bs.style.transition = ''; }
     if (bd) bd.classList.remove('show');
     sheet.open = false;
+    sheet.state = null;
     sheet.mode = null;
     sheet.stationId = null;
     sheet.alt = null;
@@ -447,7 +498,7 @@
     sheet.stationId = id;
     selectDemoStation(id);
     renderStationSheet(false);
-    openSheetShell();
+    openSheetShell('peek'); // 다른 역을 눌러도 그 역의 요약으로
   }
 
   // 엘리베이터 운행 현황: 상태 아이콘 + 이름, 운행/전체 대수, 한 대당 한 칸 막대 (REQ-COM-007)
@@ -486,10 +537,18 @@
     var downCount = elevs.filter(isDown).length;
     var html = '';
 
-    // 헤더: 역 이름 + 엘리베이터 운행 현황 (REQ-COM-007)
-    html += '<div class="sheet-header">' +
+    var problem = status === 'PARTIAL' || status === 'UNAVAILABLE';
+    sheet.alt = (problem || status === 'UNKNOWN') ? findAlternative(id) : null;
+    var alt = sheet.alt;
+
+    // 요약 (REQ-COM-004): 역 이름 + 운행 현황(REQ-COM-007) + 문제 역이면 우회 경로 보기
+    html += '<div class="sheet-summary"><div class="sheet-header">' +
       '<div class="sheet-title">' + escapeHtml(yeok(st)) + ' ' + lineBadges(st) + '</div>' +
       opStatusHtml(data ? status : 'UNKNOWN', elevs.length, downCount) +
+      '</div>' +
+      (problem && alt && alt.station
+        ? '<button type="button" class="btn btn-primary btn-block btn-main sheet-detour" data-act="detour">' + icon('alt_route') + '우회 경로 보기</button>'
+        : '') +
       '</div>';
 
     // 엘리베이터 목록 (대체역 박스를 위에 두기 위해 나중에 다시 붙인다)
@@ -518,11 +577,8 @@
     var elevSection = html.slice(elevStart);
     html = html.slice(0, elevStart);
 
-    // 대체역 (이용 불가일 때 헤더 바로 아래에 보여준다)
-    sheet.alt = null;
-    if (status === 'PARTIAL' || status === 'UNAVAILABLE' || status === 'UNKNOWN') {
-      var alt = findAlternative(id);
-      sheet.alt = alt;
+    // 대체역 (이용 불가일 때 요약 바로 아래에 보여준다)
+    if (problem || status === 'UNKNOWN') {
       if (alt && alt.station) {
         var title = status === 'UNKNOWN'
           ? '정보가 확인된 가까운 역: ' + altSummary(alt)
@@ -531,7 +587,8 @@
           '<div class="alt-title">' + icon(status === 'UNKNOWN' ? 'info' : 'warning') + title + '</div>' +
           (alt.tip ? '<div class="alt-tip">' + escapeHtml(alt.tip) + '</div>' : '') +
           '<div class="msg-actions">' +
-            '<button type="button" class="btn btn-sm btn-primary btn-main" data-act="detour">지도에서 우회 경로 보기</button>' +
+            // 문제 역의 강조 버튼(우회 경로 보기)은 요약에 있다
+            (problem ? '' : '<button type="button" class="btn btn-sm btn-ghost" data-act="detour">지도에서 경로 보기</button>') +
             '<button type="button" class="btn btn-sm btn-ghost" data-act="open-station" data-id="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' +
           '</div></div></div>';
       } else if (status !== 'UNKNOWN') {
@@ -641,13 +698,14 @@
     sheet.mode = 'demo';
     sheet.stationId = null;
     renderDemoSheet();
-    openSheetShell();
+    openSheetShell('auto');
   }
 
   function refreshSheet() {
     if (!sheet.open) return;
     if (sheet.mode === 'station') renderStationSheet(true);
     else if (sheet.mode === 'demo') renderDemoSheet();
+    applySheet(); // 우회 경로 버튼이 생기거나 없어지면 요약 높이도 바뀐다
   }
 
   function onSheetAction(e) {
@@ -660,6 +718,7 @@
       case 'detour': {
         var a = sheet.alt;
         if (a && a.station) mapCall('highlightAlternative', sid, a.station.id, a.path);
+        if (sheet.state === 'full') setSheetState('peek'); // 지도에서 경로가 보이게
         break;
       }
       case 'open-station':
@@ -698,39 +757,75 @@
     var bd = byId('sheetBackdrop');
     var bs = byId('bottomSheet');
     var content = byId('sheetContent');
-    if (bd) bd.addEventListener('click', closeSheet);
+    // 막은 다른 시트(시연 제어판 등)에만 있다. 누르면 닫힌다
+    if (bd) bd.addEventListener('click', function () { if (sheet.state === 'auto') closeSheet(); else setSheetState('peek'); });
     if (content) content.addEventListener('click', onSheetAction);
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && sheet.open) closeSheet();
     });
+    window.addEventListener('resize', function () { if (sheet.open) applySheet(); });
     if (!bs) return;
 
-    // 핸들/헤더 드래그로 닫기
+    // 손잡이를 누르면 요약 ↔ 펼침 (REQ-COM-004)
+    var handle = byId('sheetHandle');
+    var suppressClick = false;
+    if (handle) handle.addEventListener('click', function () {
+      if (suppressClick) { suppressClick = false; return; }
+      if (sheet.state === 'peek') setSheetState('full');
+      else if (sheet.state === 'full') setSheetState('peek');
+    });
+
+    // 끌기: 위로 끌면 펼침, 아래로 끌면 요약, 요약에서 더 끌면 닫힘. 닫기는 아래로 끌기로만
+    //   역 시트 요약일 때는 시트 어디를 끌어도 되고, 펼침일 때는 손잡이·머리 부분만(내용은 스크롤)
     var drag = null;
     bs.addEventListener('pointerdown', function (e) {
-      if (!sheet.open) return;
-      var handle = e.target.closest('.sheet-handle, .sheet-header');
-      if (!handle || e.target.closest('button, a, input, select')) return;
-      drag = { startY: e.clientY, dy: 0, id: e.pointerId, el: handle };
-      try { handle.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
-      bs.style.transition = 'none';
+      if (!sheet.open || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      var onHandle = !!e.target.closest('.sheet-handle');
+      if (!onHandle && e.target.closest('button, a, input, select, label')) return;
+      var head = onHandle || e.target.closest('.sheet-header');
+      if (!head && sheet.state !== 'peek') return;
+      var m = sheetMetrics();
+      drag = { startY: e.clientY, dy: 0, id: e.pointerId, moved: false, m: m, base: sheetY(sheet.state, m) };
+      // 끄는 동안 손가락이 시트 밖으로 나가도 따라가도록 화면 전체에서 받는다
+      window.addEventListener('pointermove', onDragMove, true);
+      window.addEventListener('pointerup', endDrag, true);
+      window.addEventListener('pointercancel', endDrag, true);
     });
-    bs.addEventListener('pointermove', function (e) {
+    function onDragMove(e) {
       if (!drag || e.pointerId !== drag.id) return;
-      drag.dy = Math.max(0, e.clientY - drag.startY);
-      bs.style.transform = 'translateY(' + drag.dy + 'px)';
-    });
+      drag.dy = e.clientY - drag.startY;
+      if (!drag.moved && Math.abs(drag.dy) < 6) return;
+      drag.moved = true;
+      bs.style.transition = 'none';
+      var y = sheet.state === 'auto' ? Math.max(0, drag.dy) : Math.max(0, drag.base + drag.dy);
+      bs.style.setProperty('--sheet-y', y + 'px');
+      e.preventDefault();
+      e.stopPropagation(); // 끄는 동안 지도가 같이 움직이지 않게
+    }
     function endDrag(e) {
       if (!drag || (e && e.pointerId !== drag.id)) return;
-      var dy = drag.dy;
-      try { drag.el.releasePointerCapture(drag.id); } catch (err) { /* noop */ }
+      var d = drag;
       drag = null;
+      window.removeEventListener('pointermove', onDragMove, true);
+      window.removeEventListener('pointerup', endDrag, true);
+      window.removeEventListener('pointercancel', endDrag, true);
       bs.style.transition = '';
-      bs.style.transform = '';
-      if (dy > 80) closeSheet();
+      if (!d.moved) return; // 그냥 누른 것: 손잡이는 click에서 처리
+      suppressClick = true;
+      setTimeout(function () { suppressClick = false; }, 0);
+      var dy = d.dy;
+      if (sheet.state === 'auto') { if (dy > 80) closeSheet(); else applySheet(); return; }
+      if (sheet.state === 'full') { setSheetState(dy > 60 ? 'peek' : 'full'); return; }
+      // 요약
+      if (dy < -40) setSheetState('full');
+      else if (dy > 60) closeSheet();
+      else applySheet();
     }
-    bs.addEventListener('pointerup', endDrag);
-    bs.addEventListener('pointercancel', endDrag);
+
+    // 요약에서 내용을 위로 밀면(휠) 펼침
+    if (content) content.addEventListener('wheel', function (e) {
+      if (sheet.state === 'peek' && e.deltaY > 0) { e.preventDefault(); setSheetState('full'); }
+    }, { passive: false });
   }
 
   // ---------------------------------------------------------------------------

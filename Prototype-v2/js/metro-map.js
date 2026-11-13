@@ -18,8 +18,8 @@
   var LABEL_K = 0.45;        // 배율(px/지도 단위)이 이보다 작으면 일반역 라벨 숨김 (홈 뷰에서는 환승역 라벨만)
   var LABEL_RELAYOUT = 0.04; // 배율이 이 비율(로그) 이상 바뀌면 라벨 겹침 재계산
   var FOCUS_ZOOM = 2.4;
-  var FOCUS_Y = 0.27;        // 바텀시트(최대 높이 52%)를 피해 상단 27% 지점에 역을 둔다
-  var SHEET_TOP = 0.44;      // 하이라이트 fit 시 사용할 컨테이너 상단 영역 비율
+  var FOCUS_Y = 0.38;        // 역 상세 시트 요약(화면 아래 약 1/4)을 피해, 남은 지도 영역 가운데쯤에 역을 둔다 (REQ-COM-004)
+  var SHEET_TOP = 0.7;       // 우회 경로 맞춤 때 쓰는 지도 위쪽 영역 비율 (시트 요약 위, REQ-COM-004)
   var FILTER_H = 56;         // 지도 위쪽에 띄운 호선 ▼ 버튼(44px + 여백 12px) 영역. 처음 화면과 경로 맞춤에서 비워 둔다 (REQ-MAP-005)
   var ANIM_MS = 350;
   var LABEL_PX = 13;         // 역 이름 화면 크기 (px). --fs-caption과 같은 13px (REQ-MAP-006)
