@@ -1,0 +1,82 @@
+/* 카카오 로그인 버튼은 공식 이미지(kakao_login_kr_large.png)를 그대로 쓴다.
+   배경·테두리·패딩을 덮어 이미지 자체가 버튼이 되도록 한다. 이미지 비율은 바꾸지 않는다. */
+/* 카카오: 공식 이미지(높이 46px, 원본 비율)를 가운데 두고, 좌우는 같은 노란색(#FEE500)으로 채워 구글 버튼과 같은 너비·높이(48px)를 맞춘다. */
+.auth-btn.auth-kakao-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: #FEE500;
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
+  line-height: 0;
+}
+.auth-btn.auth-kakao-image img {
+  display: block;
+  width: auto;
+  height: 46px;
+  flex: none;
+}
+
+/* Google 로그인 버튼: Google Identity Services의 gsi-material-button 스타일을 따른다. */
+.auth-btn.auth-google-gsi {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
+  color: #1f1f1f;
+  box-sizing: border-box;
+  font-family: 'Roboto', arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: .25px;
+  overflow: hidden;
+  text-align: center;
+  transition: background-color .218s, border-color .218s, box-shadow .218s;
+}
+.auth-btn.auth-google-gsi:hover {
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
+  filter: none;
+}
+.auth-btn.auth-google-gsi .gsi-material-button-state {
+  position: absolute;
+  inset: 0;
+  transition: background-color .218s;
+}
+.auth-btn.auth-google-gsi:hover .gsi-material-button-state { background-color: #303030; opacity: .08; }
+.auth-btn.auth-google-gsi .gsi-material-button-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.auth-btn.auth-google-gsi .gsi-material-button-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+}
+.auth-btn.auth-google-gsi .gsi-material-button-icon svg { width: 20px; height: 20px; }
+.auth-btn.auth-google-gsi .gsi-material-button-contents {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
