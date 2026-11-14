@@ -616,3 +616,21 @@ UI 아이콘이 이모지 20여 종이다. 기기(iOS, 안드로이드, 윈도�
   - 확인: 375px, 글자 크기 100%·125%에서 출발계산 결과, 타임라인, 바텀시트, 챗봇 화면에 24시간제 시각 없음. 고르기 칸 93×44px. "지금 바로 출발"을 켜면 세 칸 모두 꺼짐. 정오 `오후 12:00`, 자정 `오전 12:00`. 계산 결과(`leaveAt`, `boardAt`, `arriveAt`) 값은 바뀌지 않음. 콘솔 오류 없음.
   - 기기별 입력칸: 브라우저 기본 시각 입력 대신 고르기 칸(`<select>`)을 써서 고른 글자가 그대로 보인다. 윈도우 Chrome에서 확인했고, 안드로이드·iOS는 실제 기기에서 확인하지 못했다.
   - 남은 것: 챗봇 답변 위의 도구 호출 표시(`🔧 calculate_departure(신도림, 강남, 15:00)`)는 함수에 넘긴 값을 그대로 보여 주는 개발용 표시라 바꾸지 않았다. 엘리베이터 기준 시각은 REQ-ELV-003에서 만들 때 `displayTime`을 쓰면 된다.
+
+
+## #66 재통합 추가 토큰과 접근성 보완
+
+#43의 기존 :root 토큰 선언은 모두 보존한다. `--primary` #FFD400·`--on-primary` #111827·`--warn` #EA580C를 기능 브랜치 색으로 덮지 않는다. 기존 rem 폰트 토큰을 html 기본16px×글자설정으로 한 번만 확대한다.
+
+| 추가 토큰 | 값/역할 |
+|---|---|
+| --fs-scale | 1 / 1.125 / 1.25 / 1.5 |
+| --google-bg/text/border | #FFFFFF / #1F1F1F / #747775 |
+| --kakao / --kakao-text | #FEE500 / rgba(0,0,0,.85) |
+| --logout-blue / --logout-blue-press / --on-logout | #2563EB / #1D4ED8 / #FFFFFF (로그아웃 버튼만) |
+| --station-combo-results-min-width | 240px |
+| --filter-edge | 24px, 오른쪽 고정 추가 버튼 앞의 스크롤 끝 간격 |
+| --departure-motion-duration/distance | 650ms / 8px, 일회성·reduced-motion 없음 |
+| --route-space-xs/sm/md/lg, --route-touch-min | 4/8/12/16px, 44px |
+
+아이콘 폰트가 없을 때 글리프 이름 노출을 막고 일반 SVG 대체 표시를 제공한다. 최대 글자에서 지도 범례는 폰 안에서 줄바꿈한다. 두 보완 모두 원래 아이콘/지도 코드를 대체하지 않고 추가 규칙으로 적용한다. 즐겨찾기 데모는 명시적 재생·1회·축소 모션 비활성화다.

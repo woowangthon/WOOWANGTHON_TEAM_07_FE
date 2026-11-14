@@ -372,17 +372,13 @@
       path.unshift(p);
     }
     var stops = dist[altId];
-    var walkPer = (mock.timing && mock.timing.walkPerStopMinutes) || 12;
-    var walkMinutes = stops * walkPer;
-    var alt = getStation(altId);
-    var tip = tips[stationId + '>' + altId];
-    if (!tip) {
-      var partialNote = getStationStatus(altId) === 'PARTIAL' ? '일부 운행 중입니다' : '정상 운행 중입니다';
-      tip = stationLabel(alt) + '(' + stops + '개역 거리)은 엘리베이터가 ' + partialNote +
-        '. 지상 도보 약 ' + walkMinutes + '분 또는 버스로 이동 후 이용하세요.';
-    }
-    return { station: alt, stops: stops, path: path, lineId: lineId, walkMinutes: walkMinutes, tip: tip };
+    // 역별 상태와 위상 거리만 있는 후보는 실제 접근성 경로가 아니다.
+    return { station: getStation(altId), stops: stops, path: path, lineId: lineId,
+      walkMinutes: null, tip: '', accessibilityStatus: 'UNCONFIRMED', source: 'DEMO' };
   }
+
+  // 경로별 근거 API 미연동. 협의용 계약: docs/accessible-route-api-proposal.md
+  function getAccessibleRouteSnapshot() { return null; }
 
   function getOutages() {
     ensureInit();
@@ -428,6 +424,7 @@
     reset: reset,
     getNeighbors: getNeighbors,
     findAlternativeStation: findAlternativeStation,
+    getAccessibleRouteSnapshot: getAccessibleRouteSnapshot,
     getOutages: getOutages,
     subscribe: subscribe
   };
