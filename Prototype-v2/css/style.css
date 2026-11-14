@@ -53,6 +53,8 @@
   --ease: cubic-bezier(.2, .8, .2, 1);
   --ease-sheet: cubic-bezier(.32, .72, 0, 1);
 
+  --station-combo-results-min-width: 240px;
+
   --statusbar-h: 44px;
   --tabbar-h: 64px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -933,7 +935,43 @@ button.summary-card:active { transform: scale(.97); }
 .summary-card.unknown .summary-num { color: var(--muted); }
 .summary-label { margin-top: 2px; font-size: calc(12px * var(--fs-scale)); font-weight: 600; color: var(--muted); }
 
-#elevatorFilter { margin: 16px -16px 12px; padding: 2px 16px; }
+#elevatorFilter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--filter-gap);
+  margin: var(--filter-inset) calc(-1 * var(--filter-inset)) var(--filter-chip-padding);
+  padding: 2px var(--filter-inset);
+  overflow: visible;
+}
+.elevator-filter-scroll {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: var(--filter-gap);
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.elevator-filter-scroll::-webkit-scrollbar { display: block; height: var(--filter-scrollbar); }
+#elevatorFilter .chip,
+#elevatorFilter .custom-filter-chip {
+  flex: none;
+  height: var(--filter-target);
+  white-space: nowrap;
+}
+.filter-fade {
+  grid-area: 1 / 1;
+  align-self: stretch;
+  justify-self: end;
+  width: var(--filter-edge);
+  background: linear-gradient(to right, transparent, var(--bg));
+  pointer-events: none;
+  z-index: 1;
+}
 
 .station-list { display: flex; flex-direction: column; gap: 8px; }
 .station-row {
@@ -1031,8 +1069,13 @@ button.summary-card:active { transform: scale(.97); }
   transition: transform .35s var(--ease), box-shadow .2s var(--ease);
 }
 .swap-btn:active { transform: rotate(180deg) scale(.92); }
-.station-pair { flex-direction: column; align-items: stretch; gap: 8px; }
-.station-pair .swap-btn { align-self: center; width: 44px; height: 44px; margin: 0; }
+.station-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+.station-pair .swap-btn { width: 44px; height: 44px; margin: 0; }
 
 .switch {
   display: inline-flex;
@@ -1702,13 +1745,21 @@ html[data-fontsize="max"] { --fs-scale: 1.5;   --tabbar-h: 90px; }
 /* --------------------------------------------------------------------------
    Custom elevator filters (login-gated)
    -------------------------------------------------------------------------- */
+:root {
+  --filter-gap: 8px;
+  --filter-inset: 16px;
+  --filter-chip-padding: 12px;
+  --filter-target: 44px;
+  --filter-edge: 24px;
+  --filter-scrollbar: 6px;
+}
 .custom-filter-slot { display: contents; }
 .custom-filter-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--line-color, #9CA3AF);
+  background: var(--line-color, var(--muted-2));
   flex: none;
 }
 .custom-filter-chip {
@@ -1716,12 +1767,12 @@ html[data-fontsize="max"] { --fs-scale: 1.5;   --tabbar-h: 90px; }
   align-items: center;
   gap: 4px;
   height: 30px;
-  padding: 0 10px;
+  padding: 0 var(--filter-chip-padding);
   font-size: calc(12px * var(--fs-scale));
   font-weight: 600;
   border-radius: 15px;
-  background: color-mix(in srgb, var(--line-color, #9CA3AF) 15%, transparent);
-  border: 1.5px solid var(--line-color, #9CA3AF);
+  background: color-mix(in srgb, var(--line-color, var(--muted-2)) 15%, transparent);
+  border: 1.5px solid var(--line-color, var(--muted-2));
   color: var(--text);
 }
 .custom-filter-chip .chip-x {
@@ -1743,8 +1794,11 @@ html[data-fontsize="max"] { --fs-scale: 1.5;   --tabbar-h: 90px; }
 }
 .custom-filter-chip .chip-x:hover { opacity: 1; }
 .chip-add-btn {
-  height: 30px;
-  padding: 0 10px;
+  grid-area: 1 / 2;
+  min-height: var(--filter-target);
+  min-width: var(--filter-target);
+  padding: 0 var(--filter-chip-padding);
+  white-space: nowrap;
   font-size: calc(12px * var(--fs-scale));
   font-weight: 600;
   border-radius: 15px;
@@ -1820,7 +1874,8 @@ html[data-fontsize="max"] { --fs-scale: 1.5;   --tabbar-h: 90px; }
 .station-combo-results {
   position: absolute;
   left: 0;
-  right: 0;
+  width: max(100%, var(--station-combo-results-min-width));
+  max-width: calc(100vw - 32px);
   top: calc(100% + 4px);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1831,6 +1886,7 @@ html[data-fontsize="max"] { --fs-scale: 1.5;   --tabbar-h: 90px; }
   z-index: 100;
   overscroll-behavior: contain;
 }
+#destCombo .station-combo-results { left: auto; right: 0; }
 .station-combo-results[hidden] { display: none; }
 
 .combo-item {

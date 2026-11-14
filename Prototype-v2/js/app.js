@@ -628,6 +628,7 @@
   function renderCustomFilterChips() {
     var slot = byId('customFilterSlot');
     if (!slot) return;
+    var addButton = byId('addFilterBtn');
     var auth = AUTH();
     var session = auth ? auth.getSession() : null;
     if (!session) {
@@ -636,26 +637,37 @@
       if (hadFilters) { saveElevCustomFilters([]); renderElevatorList(); }
       slot.hidden = true;
       slot.innerHTML = '';
+      if (addButton) addButton.hidden = true;
+      requestAnimationFrame(updateFilterOverflow);
       return;
     }
     elevCustomFilters = loadElevCustomFilters();
     slot.hidden = false;
-    slot.innerHTML = '<button type="button" class="chip-add-btn" id="addFilterBtn">＋ 노선</button>' +
-      elevCustomFilters.map(function (lineId) {
+    if (addButton) addButton.hidden = false;
+    slot.innerHTML = elevCustomFilters.map(function (lineId) {
         var l = getLine(lineId);
-        return '<span class="custom-filter-chip" data-custom-filter="' + escapeHtml(lineId) + '" ' +
+        return '<span class="custom-filter-chip" tabindex="0" data-custom-filter="' + escapeHtml(lineId) + '" ' +
           'style="--line-color:' + escapeHtml(l.color) + '">' +
           '<span class="custom-filter-dot" aria-hidden="true"></span>' +
           escapeHtml(l.name) +
           '<button type="button" class="chip-x" data-remove-filter="' + escapeHtml(lineId) + '" aria-label="' + escapeHtml(l.name) + ' 필터 제거">×</button>' +
           '</span>';
       }).join('');
+    requestAnimationFrame(updateFilterOverflow);
+  }
+
+  function updateFilterOverflow() {
+    var scroller = byId('elevatorFilterScroll');
+    var fade = byId('elevatorFilterFade');
+    if (!scroller || !fade) return;
+    var remaining = scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft;
+    fade.hidden = remaining <= 1;
   }
 
   function openFilterPicker() {
     var lines = MOCKDATA().lines || {};
     var lineIds = Object.keys(lines);
-    var html = '<div class="sheet-header">' +
+    var html = '<div id="filterPicker"><div class="sheet-header">' +
       '<div class="sheet-title">노선 필터 추가</div>' +
       '<div class="card-sub">노선을 선택하면 해당 노선 역만 표시됩니다</div>' +
       '</div>' +
@@ -671,10 +683,10 @@
       '</div></div>' +
       '<div class="sheet-section">' +
       '<button type="button" class="btn btn-primary btn-block" id="filterPickerDone">적용</button>' +
-      '</div>';
+      '</div></div>';
     setSheetHtml(html, false);
     openSheetShell();
-    var content = byId('sheetContent');
+    var content = byId('filterPicker');
     if (content) {
       content.addEventListener('click', function (e) {
         var chip = e.target.closest('[data-pick-line]');
@@ -699,11 +711,17 @@
   function initElevatorTab() {
     var f = byId('elevatorFilter');
     if (f) {
-      f.innerHTML = ELEV_FILTERS.map(function (x) {
+      f.innerHTML = '<div id="elevatorFilterScroll" class="elevator-filter-scroll" tabindex="0" role="region" aria-label="엘리베이터 필터 좌우 스크롤">' + ELEV_FILTERS.map(function (x) {
         return '<button type="button" class="chip' + (x.id === elevFilter ? ' active' : '') + '" data-filter="' + x.id + '"' +
           (x.title ? ' title="' + escapeHtml(x.title) + '"' : '') + '>' +
           escapeHtml(x.label) + '</button>';
-      }).join('') + '<span id="customFilterSlot" class="custom-filter-slot" hidden></span>';
+      }).join('') + '<span id="customFilterSlot" class="custom-filter-slot" hidden></span></div>' +
+        '<span id="elevatorFilterFade" class="filter-fade" aria-hidden="true" hidden></span>' +
+        '<button type="button" class="chip-add-btn" id="addFilterBtn" hidden>＋ 노선</button>';
+      byId('elevatorFilterScroll').addEventListener('scroll', updateFilterOverflow, { passive: true });
+      if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(updateFilterOverflow).observe(byId('elevatorFilterScroll'));
+      }
       f.addEventListener('click', function (e) {
         var rmBtn = e.target.closest('[data-remove-filter]');
         if (rmBtn) {
