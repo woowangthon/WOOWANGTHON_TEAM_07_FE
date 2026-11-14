@@ -1,0 +1,62 @@
+{
+ "_source": "Recorded 2026-11-15 from BE branch feat/station-status-list commit d3cab6c (worktree wt/be-station-status), local uvicorn on a copy of the dev DB (all elevator statuses stale, so every station status is null); GET /api/stations/31/elevators",
+ "station": {
+  "station_id": 31,
+  "station_name": "강남"
+ },
+ "station_status": {
+  "status": null,
+  "data_fresh": false,
+  "total_elevator_count": 4,
+  "unknown_elevator_count": 4
+ },
+ "limitations": [
+  "확인 가능한 엘리베이터 상태가 없어 역 상태를 판정할 수 없음"
+ ],
+ "elevators": [
+  {
+   "elevator_id": 101,
+   "elevator_name": "승강기)엘리베이터-강남 10번 출구측 외부#2",
+   "location_description": "10번 출입구",
+   "operation_section": "B1-1F",
+   "status": null,
+   "data_fresh": false,
+   "unknown_reason": "STALE",
+   "observed_at": null,
+   "fetched_at": "2026-11-15T00:24:38+09:00"
+  },
+  {
+   "elevator_id": 102,
+   "elevator_name": "승강기)엘리베이터-강남 1번 출구측 외부#1",
+   "location_description": "1번 출입구",
+   "operation_section": "B1-1F",
+   "status": null,
+   "data_fresh": false,
+   "unknown_reason": "STALE",
+   "observed_at": null,
+   "fetched_at": "2026-11-15T00:24:38+09:00"
+  },
+  {
+   "elevator_id": 103,
+   "elevator_name": "승강기)엘리베이터-강남 내선 3-4 내부#2",
+   "location_description": "교대 방면3-4",
+   "operation_section": "B2-B1",
+   "status": null,
+   "data_fresh": false,
+   "unknown_reason": "STALE",
+   "observed_at": null,
+   "fetched_at": "2026-11-15T00:24:38+09:00"
+  },
+  {
+   "elevator_id": 104,
+   "elevator_name": "승강기)엘리베이터-강남 외선 8-1 내부#1",
+   "location_description": "역삼 방면8-1",
+   "operation_section": "B2-B1",
+   "status": null,
+   "data_fresh": false,
+   "unknown_reason": "STALE",
+   "observed_at": null,
+   "fetched_at": "2026-11-15T00:24:38+09:00"
+  }
+ ]
+}

@@ -146,9 +146,23 @@
     return window.AccessibleRouteView ? window.AccessibleRouteView.render(snapshot, context) : '<div class="alt-box">접근 가능한 이동 경로는 확인이 필요해요. 역무원에게 확인해 주세요.</div>';
   }
 
-  function isDown(elev) { return elev && elev.status !== 'AVAILABLE'; }
+  // 정보 없음(UNKNOWN)은 멈춘 것도 정상도 아니다
+  function isDown(elev) { return elev && elev.status !== 'AVAILABLE' && elev.status !== 'UNKNOWN'; }
 
-  var ELEV_STATUS_TEXT = { AVAILABLE: '정상', UNAVAILABLE: '고장', MAINTENANCE: '점검 중' };
+  var ELEV_STATUS_TEXT = { AVAILABLE: '정상', UNAVAILABLE: '고장', MAINTENANCE: '점검 중', UNKNOWN: '정보 없음' };
+
+  // 실데이터(BE) 모드 여부와 불러오기 상태. 목업 모드에서는 live=false, phase='ready'
+  function apiMode() { var es = ES(); return !!(es && es.isLive && es.isLive()); }
+  function liveState() {
+    var es = ES();
+    return es && es.getLiveState ? es.getLiveState() : { live: false, phase: 'ready', error: null };
+  }
+  // BE가 가져온 시각(ISO, KST 표기 그대로)을 "11/15 오후 2:00 기준"으로. 값이 없으면 null
+  function showBeTime(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso || '');
+    if (!m) return null;
+    return m[2] + '/' + m[3] + ' ' + showTime(m[4] + ':' + m[5]) + ' 기준';
+  }
   var ELEV_TYPE_TEXT = { exit: '출구', platform: '승강장', transfer: '환승' };
 
 
@@ -477,6 +491,7 @@
     selectDemoStation(id);
     renderStationSheet(false);
     openSheetShell('peek'); // 다른 역을 눌러도 그 역의 요약으로
+    if (apiMode()) { var es = ES(); if (es && es.fetchStationElevators) es.fetchStationElevators(id); }
   }
 
   // 엘리베이터 운행 현황: 상태 아이콘 + 이름, 운행/전체 대수, 한 대당 한 칸 막대 (REQ-COM-007)
@@ -505,6 +520,23 @@
       '</div>';
   }
 
+  // 실데이터 모드: 불러오는 중/실패/기준 시각/BE가 준 한계 문구를 그대로 보여 준다
+  function liveNoteHtml(id, status, info, elevState) {
+    var es = ES(), parts = [];
+    var ls = liveState();
+    if (ls.phase === 'loading') parts.push('엘리베이터 상태를 확인 중이에요');
+    else if (ls.phase === 'error') parts.push('연결 실패 · 상태는 정보 없음으로 표시해요');
+    else if (elevState === 'unmapped') parts.push('서버 역 정보와 연결되지 않아 정보 없음이에요');
+    else {
+      if (status === 'AVAILABLE' && info && !info.dataFresh) parts.push('확인된 설비 기준이에요. 일부 설비 상태는 확인하지 못했어요');
+      var t = es && es.getDataTime ? showBeTime(es.getDataTime(id)) : null;
+      if (elevState === 'ready') parts.push(t ? '서버 확인 시각 ' + t : '서버 확인 시각 없음');
+      var lim = es && es.getLimitations ? es.getLimitations(id) : [];
+      lim.forEach(function (x) { parts.push(x); });
+    }
+    return parts.length ? '<div class="sheet-live-note muted">' + parts.map(function (x) { return '<div>' + escapeHtml(x) + '</div>'; }).join('') + '</div>' : '';
+  }
+
   function renderStationSheet(keepScroll) {
     var id = sheet.stationId;
     var st = getStation(id);
@@ -514,6 +546,10 @@
     var data = hasData(id) && elevs.length > 0;
     var downCount = elevs.filter(isDown).length;
     var html = '';
+    var live = apiMode();
+    var es0 = ES();
+    var elevState = live && es0 && es0.getElevatorsState ? es0.getElevatorsState(id) : 'ready';
+    var info = live && es0 && es0.getStationInfo ? es0.getStationInfo(id) : null;
 
     var problem = status === 'PARTIAL' || status === 'UNAVAILABLE';
     sheet.alt = null;
@@ -521,7 +557,8 @@
     // 요약 (REQ-COM-004): 역 이름과 운행 현황(REQ-COM-007)
     html += '<div class="sheet-summary"><div class="sheet-header">' +
       '<div class="sheet-title">' + escapeHtml(yeok(st)) + ' ' + lineBadges(st) + '</div>' +
-      opStatusHtml(data ? status : 'UNKNOWN', elevs.length, downCount) +
+      opStatusHtml(live ? status : (data ? status : 'UNKNOWN'), live && info ? info.total - info.unknown : elevs.length, downCount) +
+      (live ? liveNoteHtml(id, status, info, elevState) : '') +
       '</div>' +
       (problem ? '<button type="button" class="btn btn-primary btn-block btn-main sheet-accessibility" data-act="check-accessibility">' + icon('accessible') + '접근성 확인</button>' : '') +
       '</div>';
@@ -536,16 +573,23 @@
         var metaParts = [];
         if (ELEV_TYPE_TEXT[e.type]) metaParts.push(ELEV_TYPE_TEXT[e.type]);
         if (e.floors) metaParts.push(e.floors);
+        var unk = e.status === 'UNKNOWN';
         return '<div class="elev-item' + (down ? ' down' : '') + '">' +
-          '<div class="elev-icon">' + icon(down ? 'cancel' : 'check_circle', 'lg') + '</div>' +
+          '<div class="elev-icon">' + icon(unk ? 'help' : (down ? 'cancel' : 'check_circle'), 'lg') + '</div>' +
           '<div class="elev-body" style="flex:1;min-width:0">' +
             '<div class="elev-loc">' + escapeHtml(e.location) +
               ' <span class="muted">· ' + escapeHtml(ELEV_STATUS_TEXT[e.status] || e.status) + '</span></div>' +
             '<div class="elev-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' +
-            (down && e.reason ? '<div class="elev-reason">' + escapeHtml(showTimesIn(e.reason)) + '</div>' : '') +
+            ((down || unk) && e.reason ? '<div class="elev-reason">' + escapeHtml(showTimesIn(e.reason)) + '</div>' : '') +
           '</div>' +
           '</div>';
       }).join('') + '</div>';
+    } else if (live && elevState === 'loading') {
+      html += '<div class="empty">엘리베이터 정보를 확인 중이에요</div>';
+    } else if (live && elevState === 'error') {
+      html += '<div class="empty">연결 실패 · 엘리베이터 정보를 가져오지 못했어요. 상태는 정보 없음으로 봐 주세요</div>';
+    } else if (live && elevState === 'unmapped') {
+      html += '<div class="empty">이 역은 서버와 연결된 정보가 없어요 (정보 없음)</div>';
     } else {
       html += '<div class="empty">이 역은 엘리베이터 데이터가 아직 없어요</div>';
     }
@@ -571,6 +615,7 @@
   // 시연 제어판의 "선택한 역" 항목. 데스크톱 패널(#demoStation)과 모바일 시연 시트가 함께 쓴다.
   function demoStationHtml() {
     var id = demoStationId;
+    if (apiMode()) return ''; // 실데이터 모드에는 가상 고장 전환을 두지 않는다
     var st = id ? getStation(id) : null;
     var html = '<div class="section-label">선택한 역</div>';
     if (!st) return html + '<div class="muted">지도에서 역을 선택하세요</div>';
@@ -632,6 +677,12 @@
   function renderDemoSheet() {
     var scenarios = MOCKDATA().demoScenarios || [];
     var fs = document.body.classList.contains('fullscreen');
+    if (apiMode()) {
+      setSheetHtml('<div class="sheet-header"><div class="sheet-title">' + icon('settings', 'lg') + ' 시연 제어판</div></div>' +
+        '<div class="sheet-section btn-stack">' +
+        '<button type="button" class="btn btn-ghost btn-block" data-demo-act="demo-fullscreen" data-act="demo-fullscreen">' + fullscreenLabel(fs) + '</button></div>', sheet.mode === 'demo');
+      return;
+    }
     var html = '<div class="sheet-header"><div class="sheet-title">' + icon('settings', 'lg') + ' 시연 제어판</div>' +
       '<div class="muted">엘리베이터 고장 상황을 만들어 접근성 확인 안내를 살펴보세요.</div></div>' +
       '<div class="sheet-section"><div class="section-label">시연 시나리오</div><div class="btn-stack">' +
@@ -1012,7 +1063,9 @@
   }
 
   function dataStations() {
-    return allStations().filter(function (s) { return hasData(s.id); }).map(function (s) {
+    // 실데이터 모드에서는 상태를 모르는 역도 "정보 없음"으로 목록에 둔다
+    var live = apiMode();
+    return allStations().filter(function (s) { return live || hasData(s.id); }).map(function (s) {
       var elevs = getElevators(s.id);
       return { station: s, status: stationStatus(s.id), total: elevs.length, down: elevs.filter(isDown).length };
     });
@@ -1022,7 +1075,13 @@
   var elevUpdatedAt = new Date();
   function renderElevUpdated() {
     var el = byId('elevUpdated');
-    if (el) el.textContent = showTime(nowHHMM(elevUpdatedAt)) + ' 기준';
+    if (!el) return;
+    if (!apiMode()) { el.textContent = showTime(nowHHMM(elevUpdatedAt)) + ' 기준'; return; }
+    // 실데이터 모드: 앱을 연 시각이 아니라 서버가 설비 상태를 가져온 시각을 보여 준다
+    var ls = liveState(), es = ES();
+    if (ls.phase === 'loading') { el.textContent = '확인 중'; return; }
+    if (ls.phase === 'error') { el.textContent = '연결 실패'; return; }
+    el.textContent = (es && es.getDataTime ? showBeTime(es.getDataTime()) : null) || '갱신 시각 없음';
   }
 
   // 멈춘 엘리베이터 위치: "8-1번 출구", 여러 대면 "8-1번 출구 외 1곳" (데이터 순서의 첫 위치). 없으면 ''
@@ -1042,7 +1101,7 @@
     var el = byId('elevatorSummary');
     if (!el) return;
     var items = dataStations();
-    var counts = { AVAILABLE: 0, PARTIAL: 0, UNAVAILABLE: 0 };
+    var counts = { AVAILABLE: 0, PARTIAL: 0, UNAVAILABLE: 0, UNKNOWN: 0 };
     items.forEach(function (x) { if (counts[x.status] !== undefined) counts[x.status]++; });
     var cards = [
       { key: 'AVAILABLE', cls: 'ok' },
@@ -1050,12 +1109,19 @@
       { key: 'UNAVAILABLE', cls: 'bad' }
     ];
     // 보여 주기만 하는 카드. 숫자는 필터와 상관없이 전체 기준이다.
+    if (apiMode()) {
+      var lsum = liveState();
+      if (lsum.phase !== 'ready') {
+        el.innerHTML = '<div class="empty">' + (lsum.phase === 'loading' ? '엘리베이터 상태를 확인 중이에요' : '연결 실패 · 모든 역을 정보 없음으로 표시해요') + '</div>';
+        return;
+      }
+    }
     el.innerHTML = cards.map(function (c) {
       return '<div class="summary-card ' + c.cls + '">' +
         '<div class="summary-icon">' + icon(statusIcon(c.key)) + '</div>' +
         '<div class="summary-label">' + escapeHtml(statusLabel(c.key)) + '</div>' +
         '<div class="summary-body"><span class="summary-num">' + counts[c.key] + '</span><span class="summary-unit">역</span></div></div>';
-    }).join('');
+    }).join('') + (apiMode() ? '<div class="summary-unknown-note muted">' + escapeHtml(statusLabel('UNKNOWN')) + ' ' + counts.UNKNOWN + '역</div>' : '');
   }
 
   function renderElevatorList() {
@@ -1085,12 +1151,13 @@
       var s = x.station;
       var up = x.total - x.down;
       var where = stoppedWhere(s.id);
-      var sentence = yeok(s) + ', ' + (s.lines || []).join(', ') + '호선, 엘리베이터 ' + x.total + '대 중 ' + up + '대 운행' +
+      var unk = x.status === 'UNKNOWN';
+      var sentence = yeok(s) + ', ' + (s.lines || []).join(', ') + '호선, ' + (unk ? '엘리베이터 정보 없음' : '엘리베이터 ' + x.total + '대 중 ' + up + '대 운행') +
         (where ? ', 멈춤 ' + where : '');
       return '<div class="station-row elev-row" data-id="' + escapeHtml(s.id) + '" role="button" tabindex="0" aria-label="' + escapeHtml(sentence) + '">' +
         '<div class="elev-row-name" aria-hidden="true"><strong>' + escapeHtml(yeok(s)) + '</strong> ' + lineBadges(s) + '</div>' +
         '<div class="elev-row-op ' + (STATUS_CLASS[x.status] || 'unknown') + '" aria-hidden="true">' + icon(statusIcon(x.status)) +
-          '<span><b>' + up + '</b>/' + x.total + '대</span></div>' +
+          (unk ? '<span>' + escapeHtml(statusLabel('UNKNOWN')) + '</span>' : '<span><b>' + up + '</b>/' + x.total + '대</span>') + '</div>' +
         '<span class="chevron ms" aria-hidden="true">chevron_right</span>' +
         (where ? '<div class="elev-row-stop" aria-hidden="true">멈춤: ' + escapeHtml(where) + '</div>' : '') +
         '</div>';
@@ -1572,6 +1639,7 @@
   }
 
   function runScenario(stationId) {
+    if (apiMode()) return;
     var es = ES();
     if (!stationId || !es || !es.setStationBroken) return;
     es.setStationBroken(stationId, true);
@@ -1581,6 +1649,7 @@
   }
 
   function resetDemo() {
+    if (apiMode()) return;
     var es = ES();
     if (es && es.reset) safe('ElevatorService.reset', function () { es.reset(); });
     mapCall('clearHighlights');
@@ -1611,6 +1680,13 @@
     }
     var reset = byId('demoReset');
     if (reset) reset.addEventListener('click', resetDemo);
+    // 실데이터 모드: 가상 고장 제어를 숨긴다. 대체 제어는 따로 설계한다
+    if (apiMode()) {
+      ['demoScenarioList', 'demoStation', 'demoReset'].forEach(function (i) {
+        var n = byId(i), box = n && (i === 'demoReset' ? n : (n.closest ? n.closest('.demo-section') : n));
+        if (box) box.style.display = 'none';
+      });
+    }
     var fs = byId('fullscreenToggle');
     if (fs) fs.addEventListener('click', toggleFullscreen);
     var demoBtn = byId('demoBtn');
@@ -2036,7 +2112,7 @@
     var es = ES();
     if (!es || !es.subscribe) return;
     es.subscribe(function () {
-      elevUpdatedAt = new Date(); // 상태가 바뀐 시각을 기준 시각으로 (REQ-ELV-003)
+      if (!apiMode()) elevUpdatedAt = new Date(); // 상태가 바뀐 시각을 기준 시각으로 (REQ-ELV-003). 실데이터 모드는 서버 시각
       safe('refreshSheet', refreshSheet);
       safe('renderElevatorTab', renderElevatorTab);
       safe('renderDemoPanelStation', renderDemoPanelStation);
@@ -2051,6 +2127,16 @@
   function lockPhoneScroll() {
     var phone = byId('phone');
     if (phone) phone.addEventListener('scroll', function () { if (phone.scrollTop || phone.scrollLeft) { phone.scrollTop = 0; phone.scrollLeft = 0; } });
+  }
+
+  // 목업 모드 표시(가상 데이터를 실제로 오해하지 않게). 실데이터 모드는 서버 상태를 불러온다
+  function initDataSource() {
+    var badge = byId('dataSourceBadge');
+    if (badge) badge.hidden = apiMode();
+    if (!apiMode()) return;
+    var es = ES();
+    if (es && es.startLive) es.startLive();
+    safe('renderElevatorTab', renderElevatorTab);
   }
 
   function init() {
@@ -2069,6 +2155,7 @@
     safe('loginTab', initLoginTab);
     safe('demo', initDemo);
     safe('subscriptions', initSubscriptions);
+    safe('dataSource', initDataSource);
   }
 
   window.App = {
