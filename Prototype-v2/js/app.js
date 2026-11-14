@@ -185,7 +185,7 @@
   // ---------------------------------------------------------------------------
   // 탭
   // ---------------------------------------------------------------------------
-  var TABS = ['map', 'elevator', 'time', 'chat'];
+  var TABS = ['map', 'elevator', 'time', 'chat', 'login'];
   var currentTab = 'map';
 
   function switchTab(name) {
@@ -1106,6 +1106,250 @@
   }
 
   // ---------------------------------------------------------------------------
+  // 글자 크기 설정 (로그인과 무관한 접근성 설정, localStorage 사용)
+  // ---------------------------------------------------------------------------
+  var FONTSIZE_KEY = 'elevSubway.fontSize.v1';
+  var FONTSIZE_LEVELS = ['normal', 'lg', 'xl', 'max'];
+
+  function applyFontSize(level) {
+    if (!level || level === 'normal') {
+      document.documentElement.removeAttribute('data-fontsize');
+    } else {
+      document.documentElement.setAttribute('data-fontsize', level);
+    }
+    try { localStorage.setItem(FONTSIZE_KEY, level); } catch (e) {}
+    updateFontSizeChips(level || 'normal');
+  }
+
+  function updateFontSizeChips(level) {
+    $all('.fontsize-chip[data-fontsize]').forEach(function (chip) {
+      chip.classList.toggle('active', chip.getAttribute('data-fontsize') === level);
+    });
+  }
+
+  function initFontSize() {
+    var stored = 'normal';
+    try { stored = localStorage.getItem(FONTSIZE_KEY) || 'normal'; } catch (e) {}
+    if (FONTSIZE_LEVELS.indexOf(stored) < 0) stored = 'normal';
+    updateFontSizeChips(stored);
+
+    document.addEventListener('click', function (e) {
+      var chip = e.target.closest('.fontsize-chip[data-fontsize]');
+      if (!chip) return;
+      applyFontSize(chip.getAttribute('data-fontsize'));
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // 즐겨찾기 (sessionStorage, 로그인 중에만 유효)
+  // ---------------------------------------------------------------------------
+  var FAV_KEY = 'elevSubway.demoFavorites.v1';
+
+  function loadFavs() {
+    try { var r = sessionStorage.getItem(FAV_KEY); return r ? JSON.parse(r) : []; } catch (e) { return []; }
+  }
+
+  function saveFavs(list) {
+    try { sessionStorage.setItem(FAV_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
+  function genFavId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function renderFavorites() {
+    var list = byId('favList');
+    var empty = byId('favEmptyMsg');
+    if (!list) return;
+    var favs = loadFavs();
+    if (empty) empty.hidden = favs.length > 0;
+    if (!favs.length) { list.innerHTML = ''; return; }
+    list.innerHTML = favs.map(function (fav) {
+      var display = escapeHtml(fav.alias || fav.placeName);
+      return '<li class="fav-item" data-fav-id="' + escapeHtml(fav.id) + '">' +
+        '<span class="fav-name">' + display + '</span>' +
+        '<div class="fav-actions">' +
+          '<button class="btn btn-sm btn-ghost" type="button" data-fav-rename="' + escapeHtml(fav.id) + '">이름 변경</button>' +
+          '<button class="btn btn-sm btn-ghost" type="button" data-fav-delete="' + escapeHtml(fav.id) + '">삭제</button>' +
+        '</div>' +
+        '</li>';
+    }).join('');
+  }
+
+  function startFavRename(favId) {
+    var item = document.querySelector('.fav-item[data-fav-id="' + favId + '"]');
+    if (!item) return;
+    var favs = loadFavs();
+    var fav = null;
+    for (var i = 0; i < favs.length; i++) { if (favs[i].id === favId) { fav = favs[i]; break; } }
+    if (!fav) return;
+    var nameEl = item.querySelector('.fav-name');
+    var actionsEl = item.querySelector('.fav-actions');
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'fav-rename-input';
+    input.value = fav.alias || fav.placeName;
+    input.maxLength = 20;
+    var confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'btn btn-sm btn-primary';
+    confirmBtn.textContent = '저장';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'btn btn-sm btn-ghost';
+    cancelBtn.textContent = '취소';
+
+    function commitRename() {
+      var val = input.value.trim();
+      if (!val) { toast('이름을 입력해 주세요'); input.focus(); return; }
+      var updated = loadFavs();
+      for (var j = 0; j < updated.length; j++) {
+        if (updated[j].id === favId) { updated[j].alias = val; break; }
+      }
+      saveFavs(updated);
+      renderFavorites();
+    }
+    function cancelRename() { renderFavorites(); }
+
+    confirmBtn.addEventListener('click', commitRename);
+    cancelBtn.addEventListener('click', cancelRename);
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+      if (e.key === 'Escape') cancelRename();
+    });
+
+    nameEl.style.display = 'none';
+    actionsEl.style.display = 'none';
+    item.insertBefore(input, nameEl);
+    item.insertBefore(confirmBtn, nameEl);
+    item.insertBefore(cancelBtn, nameEl);
+    input.focus();
+    input.select();
+  }
+
+  function initLoginTab() {
+    var auth = AUTH();
+    if (!auth) return;
+
+    var view = byId('view-login');
+    if (!view) return;
+
+    /* 즐겨찾기 추가 UI */
+    var favAddBtn     = byId('favAddBtn');
+    var favAddRow     = byId('favAddRow');
+    var favAddInput   = byId('favAddInput');
+    var favAddConfirm = byId('favAddConfirm');
+    var favAddCancel  = byId('favAddCancel');
+
+    function openFavAdd() {
+      if (favAddRow) favAddRow.hidden = false;
+      if (favAddInput) { favAddInput.value = ''; favAddInput.focus(); }
+    }
+    function closeFavAdd() {
+      if (favAddRow) favAddRow.hidden = true;
+      if (favAddInput) favAddInput.value = '';
+    }
+    function commitFavAdd() {
+      var val = favAddInput ? favAddInput.value.trim() : '';
+      if (!val) { toast('역 이름을 입력해 주세요'); if (favAddInput) favAddInput.focus(); return; }
+      var favs = loadFavs();
+      favs.push({ id: genFavId(), placeName: val, alias: '' });
+      saveFavs(favs);
+      closeFavAdd();
+      renderFavorites();
+      toast('"' + val + '" 즐겨찾기에 추가했어요');
+    }
+
+    if (favAddBtn) favAddBtn.addEventListener('click', openFavAdd);
+    if (favAddConfirm) favAddConfirm.addEventListener('click', commitFavAdd);
+    if (favAddCancel) favAddCancel.addEventListener('click', closeFavAdd);
+    if (favAddInput) {
+      favAddInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); commitFavAdd(); }
+        if (e.key === 'Escape') closeFavAdd();
+      });
+    }
+
+    /* 즐겨찾기 목록 이벤트 위임 */
+    var favList = byId('favList');
+    if (favList) {
+      favList.addEventListener('click', function (e) {
+        var renameBtn = e.target.closest('[data-fav-rename]');
+        if (renameBtn) { startFavRename(renameBtn.getAttribute('data-fav-rename')); return; }
+        var deleteBtn = e.target.closest('[data-fav-delete]');
+        if (deleteBtn) {
+          var fid = deleteBtn.getAttribute('data-fav-delete');
+          var favs = loadFavs();
+          var removed = null;
+          favs = favs.filter(function (f) { if (f.id === fid) { removed = f; return false; } return true; });
+          saveFavs(favs);
+          renderFavorites();
+          if (removed) toast('"' + (removed.alias || removed.placeName) + '" 즐겨찾기에서 삭제했어요');
+          return;
+        }
+      });
+    }
+
+    /* 이벤트 위임: 로그인/로그아웃 */
+    view.addEventListener('click', function (e) {
+      var provBtn = e.target.closest('[data-provider]');
+      if (provBtn) { auth.login(provBtn.getAttribute('data-provider')); return; }
+      if (e.target.closest('[data-auth="signout"]')) {
+        auth.logout().then(function () { toast('로그아웃했습니다'); });
+        return;
+      }
+    });
+
+    /* 세션 변경 구독 → 뷰 갱신 */
+    auth.subscribe(renderLoginTab);
+
+    /* 초기 렌더 */
+    renderLoginTab(auth.getSession());
+  }
+
+  /**
+   * 로그인 뷰 렌더링.
+   * session: null(확인 중) | false(비로그인) | object(로그인)
+   */
+  function renderLoginTab(session) {
+    var loadingEl = byId('authLoading');
+    var guestEl   = byId('authGuest');
+    var userEl    = byId('authUser');
+    if (!guestEl || !userEl) return;
+
+    var checking = session === null;
+    var signedIn = !!(session && typeof session === 'object');
+
+    if (loadingEl) loadingEl.hidden = !checking;
+    guestEl.hidden = checking || signedIn;
+    userEl.hidden  = checking || !signedIn;
+
+    /* 프로필 채우기 */
+    if (signedIn) {
+      var nameEl   = byId('authProfileName');
+      var badgeEl  = byId('authProviderBadge');
+      var avatarEl = byId('authProfileAvatar');
+      var provLabels = { google: 'Google', kakao: '카카오' };
+
+      if (nameEl)   nameEl.textContent  = session.name  || '게스트 사용자';
+      if (badgeEl) {
+        badgeEl.textContent = provLabels[session.provider] || session.provider || '';
+        badgeEl.setAttribute('data-provider', session.provider || '');
+      }
+      if (avatarEl) {
+        var provInitials = { google: 'G', kakao: 'K' };
+        avatarEl.textContent = provInitials[session.provider] || '?';
+        avatarEl.setAttribute('data-provider', session.provider || '');
+      }
+      renderFavorites();
+    }
+
+    /* 탭 이름 */
+    var loginTabLabel = document.querySelector('.tab[data-tab="login"] span:last-child');
+    if (loginTabLabel) loginTabLabel.textContent = signedIn ? '마이페이지' : '로그인';
+  }
+
+  // ---------------------------------------------------------------------------
   // 상태 변경 구독
   // ---------------------------------------------------------------------------
   function initSubscriptions() {
@@ -1120,8 +1364,11 @@
   // ---------------------------------------------------------------------------
   // 초기화
   // ---------------------------------------------------------------------------
+  function AUTH() { return window.AuthService; }
+
   function init() {
     safe('clock', initClock);
+    safe('fontSize', initFontSize);
     safe('tabs', initTabs);
     safe('map', initMap);
     safe('lineFilter', initLineFilter);
@@ -1130,6 +1377,7 @@
     safe('elevatorTab', initElevatorTab);
     safe('timeTab', initTimeTab);
     safe('chat', initChat);
+    safe('loginTab', initLoginTab);
     safe('demo', initDemo);
     safe('subscriptions', initSubscriptions);
   }

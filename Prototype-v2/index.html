@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/map.css" />
+  <!-- 글자 크기 설정 즉시 적용 (FOUC 방지). 로그인과 무관한 접근성 설정. -->
+  <script>try { var _fs = localStorage.getItem('elevSubway.fontSize.v1'); if (_fs && _fs !== 'normal') document.documentElement.setAttribute('data-fontsize', _fs); } catch(e){}</script>
 </head>
 <body>
   <div class="desktop-stage">
@@ -117,6 +119,90 @@
             </form>
           </div>
         </section>
+
+        <!-- 로그인 / 마이페이지 -->
+        <section id="view-login" class="view" data-view="login">
+          <div class="view-scroll">
+
+            <!-- ① 비로그인 상태 -->
+            <div id="authGuest" class="auth-state" hidden>
+              <h2 class="view-title">로그인</h2>
+              <div class="card auth-card">
+                <p class="card-title">계정으로 시작하기</p>
+                <p class="card-sub">집·회사 위치와 즐겨찾기를 저장할 수 있습니다.</p>
+                <div class="auth-buttons">
+                  <button class="auth-btn auth-google" type="button" data-provider="google">
+                    <span class="auth-btn-logo auth-google-logo" aria-hidden="true">G</span>
+                    Google로 시작하기
+                  </button>
+                  <button class="auth-btn auth-kakao" type="button" data-provider="kakao">
+                    <span class="auth-btn-logo auth-kakao-logo" aria-hidden="true">K</span>
+                    카카오로 시작하기
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ② 로그인됨: 마이페이지 -->
+            <div id="authUser" class="auth-state" hidden>
+              <h2 class="view-title">마이페이지</h2>
+
+              <!-- 프로필 -->
+              <div class="card auth-card auth-profile-card">
+                <div class="auth-profile">
+                  <div id="authProfileAvatar" class="auth-avatar" aria-hidden="true">G</div>
+                  <div class="auth-profile-info">
+                    <p id="authProfileName" class="auth-profile-name">게스트 사용자</p>
+                    <p class="auth-provider-sub">
+                      <span id="authProviderBadge" class="auth-provider-badge"></span>
+                      <span>계정으로 로그인됨</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 즐겨찾기 역 -->
+              <div id="favSection" class="card mypage-section">
+                <div class="mypage-section-header">
+                  <span class="mypage-section-icon" aria-hidden="true">⭐</span>
+                  <span class="mypage-section-title">즐겨찾기 역</span>
+                  <button id="favAddBtn" class="btn btn-sm btn-ghost fav-add-open-btn" type="button">＋ 추가</button>
+                </div>
+                <!-- 추가 입력 행 (기본 숨김) -->
+                <div id="favAddRow" class="fav-add-row" hidden>
+                  <input id="favAddInput" type="text" class="fav-rename-input" placeholder="역 이름 입력" autocomplete="off" maxlength="20" />
+                  <button id="favAddConfirm" class="btn btn-sm btn-primary" type="button">추가</button>
+                  <button id="favAddCancel" class="btn btn-sm btn-ghost" type="button">취소</button>
+                </div>
+                <ul id="favList" class="fav-list"></ul>
+                <p id="favEmptyMsg" class="mypage-empty-hint">즐겨찾기한 역이 없습니다.</p>
+              </div>
+
+              <!-- 글자 크기 설정 -->
+              <div class="card mypage-section">
+                <div class="mypage-section-header">
+                  <span class="mypage-section-icon" aria-hidden="true">🔤</span>
+                  <span class="mypage-section-title">글자 크기</span>
+                </div>
+                <div class="fontsize-chips">
+                  <button class="fontsize-chip" type="button" data-fontsize="normal">보통</button>
+                  <button class="fontsize-chip" type="button" data-fontsize="lg">크게</button>
+                  <button class="fontsize-chip" type="button" data-fontsize="xl">아주 크게</button>
+                  <button class="fontsize-chip" type="button" data-fontsize="max">최대</button>
+                </div>
+              </div>
+
+              <!-- 로그아웃 -->
+              <button class="btn btn-ghost btn-block auth-signout-btn" type="button" data-auth="signout">로그아웃</button>
+            </div>
+
+            <!-- ③ 세션 확인 중 (real 모드 초기) -->
+            <div id="authLoading" class="auth-loading" hidden>
+              <span class="auth-loading-dot"></span>
+            </div>
+
+          </div>
+        </section>
       </main>
 
       <!-- 바텀 시트 -->
@@ -132,6 +218,7 @@
         <button class="tab" data-tab="elevator" type="button"><span class="tab-icon">🛗</span><span>엘리베이터</span></button>
         <button class="tab" data-tab="time" type="button"><span class="tab-icon">⏱️</span><span>출발계산</span></button>
         <button class="tab" data-tab="chat" type="button"><span class="tab-icon">🤖</span><span>AI 챗봇</span></button>
+        <button class="tab" data-tab="login" type="button"><span class="tab-icon">👤</span><span>로그인</span></button>
       </nav>
 
       <div id="toast" class="toast"></div>
@@ -143,6 +230,19 @@
   <script src="js/time-calculator.js"></script>
   <script src="js/metro-map.js"></script>
   <script src="js/ai-agent.js"></script>
+  <!-- 환경별 API 주소 설정.
+       로컬 개발: window.APP_CONFIG = { apiBase: 'http://localhost:8000' };
+       배포:      window.APP_CONFIG = { apiBase: 'https://api.example.com' };
+       같은 오리진(기본값): apiBase를 '' 으로 두면 된다. API 키·Secret은 여기에 넣지 않는다. -->
+  <script>
+    /* 환경 설정. API 키·OAuth Secret은 여기에 넣지 않는다.
+     * authMode: 'demo'  — 데모 로그인 (기본값, 프로토타입용)
+     *           'real'  — FastAPI 백엔드 연동 (배포 시 변경)
+     * apiBase:  ''      — 같은 오리진 (기본값)
+     *           'http://localhost:8000' 등으로 변경 가능 */
+    window.APP_CONFIG = { authMode: 'demo', apiBase: '' };
+  </script>
+  <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -34,6 +34,11 @@
   --river: #DBEAFE;
   --river-edge: #BFDBFE;
   --river-label: #93C5FD;
+  --google-bg: #FFFFFF;
+  --google-text: #1F1F1F;
+  --google-border: #747775;
+  --kakao: #FEE500;
+  --kakao-text: rgba(0, 0, 0, .85);
   --radius: 16px;
   --radius-sm: 12px;
   --radius-lg: 24px;
@@ -1242,6 +1247,271 @@ button.summary-card:active { transform: scale(.97); }
 @keyframes typingDot {
   0%, 60%, 100% { transform: translateY(0); opacity: .45; }
   30% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   20. 로그인 / 마이페이지 탭
+   -------------------------------------------------------------------------- */
+
+/* ── 공통 ─────────────────────────────────────────── */
+.auth-state[hidden]  { display: none; }
+.auth-loading[hidden]{ display: none; }
+
+/* ── 세션 확인 중 로딩 (real 모드) ───────────────── */
+.auth-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+.auth-loading-dot {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 로그인 버튼 ──────────────────────────────────── */
+.auth-card .card-sub { margin-bottom: 16px; }
+.auth-buttons { display: flex; flex-direction: column; gap: 10px; }
+.auth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  transition: transform .15s var(--ease), filter .15s var(--ease);
+}
+.auth-btn:active { transform: scale(.98); }
+.auth-btn:hover  { filter: brightness(.97); }
+.auth-google { color: var(--google-text); background: var(--google-bg); border: 1px solid var(--google-border); }
+.auth-kakao  { color: var(--kakao-text);  background: var(--kakao); }
+
+/* 버튼 로고 뱃지 (G / K 이니셜) */
+.auth-btn-logo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+.auth-google-logo { background: #fff; color: #4285F4; border: 1px solid #DADCE0; }
+.auth-kakao-logo  { background: rgba(0,0,0,.12); color: var(--kakao-text); }
+
+/* ── 프로필 카드 ──────────────────────────────────── */
+.auth-profile-card { margin-bottom: 0; }
+.auth-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.auth-avatar {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 800;
+  border-radius: 50%;
+  background: var(--primary-tint);
+  color: var(--primary);
+  flex: none;
+}
+.auth-avatar[data-provider="google"] { background: #E8F0FE; color: #1A73E8; }
+.auth-avatar[data-provider="kakao"]  { background: var(--kakao); color: var(--kakao-text); }
+.auth-profile-info { min-width: 0; }
+.auth-profile-name {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.auth-provider-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.auth-provider-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.auth-provider-badge[data-provider="google"] { background: #E8F0FE; color: #1A73E8; border-color: rgba(26,115,232,.2); }
+.auth-provider-badge[data-provider="kakao"]  { background: var(--kakao); color: var(--kakao-text); border-color: rgba(0,0,0,.08); }
+
+/* ── 마이페이지 섹션 카드 ─────────────────────────── */
+.mypage-section { margin-top: 12px; }
+.mypage-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.mypage-section-icon { font-size: 18px; line-height: 1; flex: none; }
+.mypage-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+/* "준비 중" 뱃지 */
+.mypage-ready-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* 빈 상태 힌트 */
+.mypage-empty-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── 즐겨찾기 역 ─────────────────────────────────── */
+.fav-add-open-btn { margin-left: auto; flex: none; }
+
+.fav-add-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.fav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.fav-item:first-child { border-top: none; }
+
+.fav-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-rename-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color .15s;
+}
+.fav-rename-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
+}
+.fav-rename-input::placeholder { color: var(--muted-2); }
+
+.fav-actions {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+/* ── 글자 크기 설정 ──────────────────────────────── */
+.fontsize-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fontsize-chip {
+  flex: 1;
+  min-width: 60px;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.fontsize-chip:hover { border-color: var(--primary); color: var(--primary); }
+.fontsize-chip:active { opacity: .7; }
+.fontsize-chip.active {
+  border-color: var(--primary);
+  background: var(--primary-tint);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ── 로그아웃 버튼 ────────────────────────────────── */
+.auth-signout-btn { margin-top: 16px; }
+
+/* ── 글자 크기 스케일 ─────────────────────────────── */
+:root { --fs-scale: 1; }
+html[data-fontsize="lg"]  { --fs-scale: 1.125; }
+html[data-fontsize="xl"]  { --fs-scale: 1.25; }
+html[data-fontsize="max"] { --fs-scale: 1.5; }
+
+html[data-fontsize] .view-title,
+html[data-fontsize] .card-title,
+html[data-fontsize] .bubble,
+html[data-fontsize] .station-row-name,
+html[data-fontsize] .sheet-title,
+html[data-fontsize] .auth-profile-name,
+html[data-fontsize] .mypage-section-title,
+html[data-fontsize] .fav-name,
+html[data-fontsize] .timeline-label,
+html[data-fontsize] .route-leg {
+  font-size: calc(1em * var(--fs-scale));
 }
 
 @media (prefers-reduced-motion: reduce) {
