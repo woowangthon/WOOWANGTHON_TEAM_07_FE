@@ -810,8 +810,8 @@
     ];
     el.innerHTML = cards.map(function (c) {
       return '<div class="summary-card ' + c.cls + '">' +
-        '<div class="summary-head"><span class="summary-icon">' + SUMMARY_ICONS[c.cls] + '</span>' +
-          '<span class="summary-label">' + escapeHtml(c.label) + '</span></div>' +
+        '<span class="summary-icon">' + SUMMARY_ICONS[c.cls] + '</span>' +
+        '<span class="summary-label">' + escapeHtml(c.label) + '</span>' +
         '<div class="summary-body"><div class="summary-num">' + counts[c.key] + '<span class="summary-unit">역</span></div></div>' +
         '</div>';
     }).join('');
