@@ -131,20 +131,24 @@
 
   function koCompare(a, b) { return String(a).localeCompare(String(b), 'ko'); }
 
-  function accessibleRouteHtml(stationId, originId, destinationId) {
-    var context = { affectedStationId: stationId, stationName: yeok(stationId) };
-    if (originId !== undefined) context.originStationId = originId;
-    if (destinationId !== undefined) context.destinationStationId = destinationId;
-    // 현재 서비스는 역별 데모 상태만 보유한다. 경로 근거가 없으면 확인 필요로 표시한다.
+  function findAlternative(id) {
     var es = ES();
-    var snapshot = es && es.getAccessibleRouteSnapshot ? es.getAccessibleRouteSnapshot(context) : null;
-    return window.AccessibleRouteView.render(snapshot, context);
+    if (!es || !es.findAlternativeStation) return null;
+    return safe('findAlternativeStation', function () { return es.findAlternativeStation(id); }) || null;
   }
 
   function isDown(elev) { return elev && elev.status !== 'AVAILABLE'; }
 
   var ELEV_STATUS_TEXT = { AVAILABLE: '정상', UNAVAILABLE: '고장', MAINTENANCE: '점검 중' };
   var ELEV_TYPE_TEXT = { exit: '출구', platform: '승강장', transfer: '환승' };
+
+  function altSummary(alt) {
+    if (!alt || !alt.station) return '';
+    var parts = [];
+    if (typeof alt.stops === 'number') parts.push(alt.stops + '개역');
+    if (typeof alt.walkMinutes === 'number') parts.push('도보 약 ' + alt.walkMinutes + '분');
+    return escapeHtml(yeok(alt.station)) + (parts.length ? ' (' + parts.join(' · ') + ')' : '');
+  }
 
   function nowHHMM(d) {
     d = d || new Date();
@@ -181,7 +185,7 @@
   // ---------------------------------------------------------------------------
   // 탭
   // ---------------------------------------------------------------------------
-  var TABS = ['map', 'elevator', 'time', 'chat', 'login'];
+  var TABS = ['map', 'elevator', 'time', 'chat'];
   var currentTab = 'map';
 
   function switchTab(name) {
@@ -193,8 +197,6 @@
     $all('.view[data-view]').forEach(function (v) {
       v.classList.toggle('active', v.getAttribute('data-view') === name);
     });
-    var hdr = document.querySelector('.app-header');
-    if (hdr) hdr.hidden = (name === 'time' || name === 'chat' || name === 'login');
     if (name !== 'map' && sheet.open) closeSheet();
     hideSearch();
     if (name === 'chat') scrollChat();
@@ -346,8 +348,6 @@
     var bs = byId('bottomSheet'), bd = byId('sheetBackdrop');
     if (bs) { bs.classList.remove('open'); bs.style.transform = ''; bs.style.transition = ''; }
     if (bd) bd.classList.remove('show');
-    var demoAnim = byId('subwayDemoAnim');
-    if (demoAnim) demoAnim.classList.remove('running');
     sheet.open = false;
     sheet.mode = null;
     sheet.stationId = null;
@@ -372,56 +372,8 @@
     mapCall('focusStation', id, {});
     sheet.mode = 'station';
     sheet.stationId = id;
-    lastStationId = id;
     renderStationSheet(false);
-    renderDemoStation();
     openSheetShell();
-  }
-
-  var lastStationId = null;
-
-  function renderDemoStation() {
-    var nameEl = byId('demoStationName');
-    var controls = byId('demoStationControls');
-    var list = byId('demoElevList');
-    if (!nameEl || !controls || !list) return;
-    if (!lastStationId || !getStation(lastStationId)) {
-      nameEl.textContent = '지도에서 역을 선택하세요';
-      controls.hidden = true;
-      list.innerHTML = '';
-      return;
-    }
-    nameEl.textContent = yeok(lastStationId);
-    controls.hidden = false;
-    var elevs = getElevators(lastStationId);
-    list.innerHTML = elevs.length ? elevs.map(function (e) {
-      var down = isDown(e);
-      return '<div class="demo-elev-item">' +
-        '<span class="demo-elev-loc">' + escapeHtml(e.location) + '</span>' +
-        '<span class="demo-elev-status ' + (down ? 'bad' : 'ok') + '">' + escapeHtml(ELEV_STATUS_TEXT[e.status] || e.status) + '</span>' +
-        '<button type="button" class="btn btn-sm ' + (down ? 'btn-primary' : 'btn-ghost') +
-          '" data-demo-elev="' + escapeHtml(e.id) + '">' + (down ? '복구' : '고장') + '</button>' +
-        '</div>';
-    }).join('') : '<div class="muted">엘리베이터 데이터가 없어요</div>';
-  }
-
-  function demoSetStationBroken(broken) {
-    var es = ES();
-    if (!lastStationId || !es || !es.setStationBroken) return;
-    var sid = lastStationId;
-    es.setStationBroken(sid, broken);
-    toast(yeok(sid) + ' 엘리베이터가 ' + (broken ? '모두 고장 상태로 전환되었어요' : '모두 복구되었어요'));
-    mapCall('clearHighlights');
-  }
-
-  function demoToggleElevator(eid) {
-    var es = ES();
-    if (!lastStationId || !es || !es.toggleElevator) return;
-    es.toggleElevator(lastStationId, eid);
-    var el = getElevators(lastStationId).filter(function (x) { return x.id === eid; })[0];
-    var loc = el ? ' ' + el.location : '';
-    toast(yeok(lastStationId) + loc + ' 엘리베이터가 ' +
-      (el && isDown(el) ? '고장 상태로 전환되었어요' : '복구되었어요'));
   }
 
   function renderStationSheet(keepScroll) {
@@ -459,8 +411,13 @@
             '<div class="elev-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' +
             (down && e.reason ? '<div class="elev-reason">' + escapeHtml(e.reason) + '</div>' : '') +
           '</div>' +
+          '<button type="button" class="btn btn-sm ' + (down ? 'btn-primary' : 'btn-ghost') +
+            '" data-act="toggle-elev" data-elev="' + escapeHtml(e.id) + '">' + (down ? '복구' : '고장 전환') + '</button>' +
           '</div>';
       }).join('') + '</div>';
+      var allDown = status === 'UNAVAILABLE';
+      html += '<div style="margin-top:10px"><button type="button" class="btn btn-danger btn-block" data-act="station-broken" data-broken="' +
+        (allDown ? '0' : '1') + '">' + (allDown ? '역 전체 복구' : '역 전체 고장 전환 (시연)') + '</button></div>';
     } else {
       html += '<div class="empty">이 역은 엘리베이터 데이터가 아직 없어요</div>';
     }
@@ -468,12 +425,26 @@
     var elevSection = html.slice(elevStart);
     html = html.slice(0, elevStart);
 
-    // 역별 설비 상태와 전체 경로 접근성을 구분한다.
+    // 대체역 (이용 불가일 때 헤더 바로 아래에 보여준다)
     sheet.alt = null;
-    if (status !== 'AVAILABLE') {
-      html += '<div class="sheet-section">' + accessibleRouteHtml(id) + '</div>';
-    } else {
-      html += '<p class="sheet-sub">역별 설비 상태예요. 승강장·환승·출구까지 계단 없는 경로가 확인된 것은 아니에요.</p>';
+    if (status === 'PARTIAL' || status === 'UNAVAILABLE' || status === 'UNKNOWN') {
+      var alt = findAlternative(id);
+      sheet.alt = alt;
+      if (alt && alt.station) {
+        var title = status === 'UNKNOWN'
+          ? '정보가 확인된 가까운 역: ' + altSummary(alt)
+          : '추천 대체역: ' + altSummary(alt);
+        html += '<div class="sheet-section"><div class="alt-box">' +
+          '<div class="alt-title">' + (status === 'UNKNOWN' ? 'ℹ️ ' : '⚠️ ') + title + '</div>' +
+          (alt.tip ? '<div class="alt-tip">' + escapeHtml(alt.tip) + '</div>' : '') +
+          '<div class="msg-actions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
+            '<button type="button" class="btn btn-sm btn-primary" data-act="detour">지도에서 우회 경로 보기</button>' +
+            '<button type="button" class="btn btn-sm btn-ghost" data-act="open-station" data-id="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' +
+          '</div></div></div>';
+      } else if (status !== 'UNKNOWN') {
+        html += '<div class="sheet-section"><div class="alt-box"><div class="alt-title">⚠️ 주변에 이용 가능한 대체역을 찾지 못했어요</div>' +
+          '<div class="alt-tip">역무원 호출 또는 다산콜센터(120)에 문의해 주세요.</div></div></div>';
+      }
     }
 
     html += elevSection;
@@ -523,16 +494,46 @@
     if (!btn) return;
     var act = btn.getAttribute('data-act');
     var sid = sheet.stationId;
+    var es = ES();
     switch (act) {
-      case 'detour':
-        mapCall('clearHighlights');
-        toast('접근성이 검증된 경로 데이터가 필요해요');
+      case 'toggle-elev': {
+        var eid = btn.getAttribute('data-elev');
+        if (!es || !es.toggleElevator) return;
+        es.toggleElevator(sid, eid);
+        var el = getElevators(sid).filter(function (x) { return x.id === eid; })[0];
+        var loc = el ? ' ' + el.location : '';
+        toast(yeok(sid) + loc + ' 엘리베이터가 ' +
+          (el && isDown(el) ? '고장 상태로 전환되었어요' : '복구되었어요'));
+        refreshSheet();
         break;
+      }
+      case 'station-broken': {
+        if (!es || !es.setStationBroken) return;
+        var broken = btn.getAttribute('data-broken') === '1';
+        es.setStationBroken(sid, broken);
+        toast(yeok(sid) + ' 엘리베이터가 ' + (broken ? '고장 상태로 전환되었어요' : '모두 복구되었어요'));
+        refreshSheet();
+        if (broken) {
+          var alt = findAlternative(sid);
+          if (alt && alt.station) {
+            setTimeout(function () { mapCall('highlightAlternative', sid, alt.station.id, alt.path); }, 300);
+          }
+        } else {
+          mapCall('clearHighlights');
+        }
+        break;
+      }
+      case 'detour': {
+        var a = sheet.alt;
+        if (a && a.station) mapCall('highlightAlternative', sid, a.station.id, a.path);
+        break;
+      }
       case 'open-station':
         openStation(btn.getAttribute('data-id'));
         break;
       case 'calc-time': {
-        var origin = originComboCtrl ? originComboCtrl.getId() : '';
+        var originSel = byId('originSelect');
+        var origin = originSel ? originSel.value : '';
         var opts = { destId: sid };
         if (!origin || origin === sid) opts.originId = sid === 'sindorim' ? 'gangnam' : 'sindorim';
         openTime(opts);
@@ -553,9 +554,6 @@
         break;
       case 'demo-fullscreen':
         toggleFullscreen();
-        break;
-      case 'close-sheet':
-        closeSheet();
         break;
       default:
         break;
@@ -606,129 +604,21 @@
   // ---------------------------------------------------------------------------
   var elevFilter = 'all';
   var ELEV_FILTERS = [
-    { id: 'all', label: '전체', title: '모든 역 표시' },
-    { id: 'problem', label: '일부 불가', title: '일부 불가·이용 불가 역만 표시' }
+    { id: 'all', label: '전체' },
+    { id: 'problem', label: '이용 불가·점검' },
+    { id: 'line2', label: '2호선' },
+    { id: 'transfer', label: '환승역' }
   ];
-  var CUSTOM_FILTER_KEY = 'elevSubway.elevFilters.v1';
-  var elevCustomFilters = [];
   var STATUS_RANK = { UNAVAILABLE: 0, PARTIAL: 1, AVAILABLE: 2, UNKNOWN: 3 };
-
-  function loadElevCustomFilters() {
-    try { return JSON.parse(sessionStorage.getItem(CUSTOM_FILTER_KEY) || '[]'); } catch (e) { return []; }
-  }
-
-  function saveElevCustomFilters(filters) {
-    try { sessionStorage.setItem(CUSTOM_FILTER_KEY, JSON.stringify(filters)); } catch (e) {}
-  }
-
-  function renderCustomFilterChips() {
-    var slot = byId('customFilterSlot');
-    if (!slot) return;
-    var addButton = byId('addFilterBtn');
-    var auth = AUTH();
-    var session = auth ? auth.getSession() : null;
-    if (!session) {
-      var hadFilters = elevCustomFilters.length > 0;
-      elevCustomFilters = [];
-      if (hadFilters) { saveElevCustomFilters([]); renderElevatorList(); }
-      slot.hidden = true;
-      slot.innerHTML = '';
-      if (addButton) addButton.hidden = true;
-      requestAnimationFrame(updateFilterOverflow);
-      return;
-    }
-    elevCustomFilters = loadElevCustomFilters();
-    slot.hidden = false;
-    if (addButton) addButton.hidden = false;
-    slot.innerHTML = elevCustomFilters.map(function (lineId) {
-        var l = getLine(lineId);
-        return '<span class="custom-filter-chip" tabindex="0" data-custom-filter="' + escapeHtml(lineId) + '" ' +
-          'style="--line-color:' + escapeHtml(l.color) + '">' +
-          '<span class="custom-filter-dot" aria-hidden="true"></span>' +
-          escapeHtml(l.name) +
-          '<button type="button" class="chip-x" data-remove-filter="' + escapeHtml(lineId) + '" aria-label="' + escapeHtml(l.name) + ' 필터 제거">×</button>' +
-          '</span>';
-      }).join('');
-    requestAnimationFrame(updateFilterOverflow);
-  }
-
-  function updateFilterOverflow() {
-    var scroller = byId('elevatorFilterScroll');
-    var fade = byId('elevatorFilterFade');
-    if (!scroller || !fade) return;
-    var remaining = scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft;
-    fade.hidden = remaining <= 1;
-  }
-
-  function openFilterPicker() {
-    var lines = MOCKDATA().lines || {};
-    var lineIds = Object.keys(lines);
-    var html = '<div id="filterPicker"><div class="sheet-header">' +
-      '<div class="sheet-title">노선 필터 추가</div>' +
-      '<div class="card-sub">노선을 선택하면 해당 노선 역만 표시됩니다</div>' +
-      '</div>' +
-      '<div class="sheet-section">' +
-      '<div class="filter-picker-grid">' +
-      lineIds.map(function (id) {
-        var l = getLine(id);
-        var sel = elevCustomFilters.indexOf(id) >= 0;
-        return '<button type="button" class="filter-picker-chip' + (sel ? ' selected' : '') + '" ' +
-          'data-pick-line="' + escapeHtml(id) + '" style="--line-color:' + escapeHtml(l.color) + '">' +
-          '<span class="filter-picker-dot"></span>' + escapeHtml(l.name) + '</button>';
-      }).join('') +
-      '</div></div>' +
-      '<div class="sheet-section">' +
-      '<button type="button" class="btn btn-primary btn-block" id="filterPickerDone">적용</button>' +
-      '</div></div>';
-    setSheetHtml(html, false);
-    openSheetShell();
-    var content = byId('filterPicker');
-    if (content) {
-      content.addEventListener('click', function (e) {
-        var chip = e.target.closest('[data-pick-line]');
-        if (chip) {
-          chip.classList.toggle('selected');
-          return;
-        }
-        if (e.target.closest('#filterPickerDone')) {
-          var selected = $all('.filter-picker-chip.selected', content).map(function (el) {
-            return el.getAttribute('data-pick-line');
-          });
-          elevCustomFilters = selected;
-          saveElevCustomFilters(elevCustomFilters);
-          closeSheet();
-          renderCustomFilterChips();
-          renderElevatorList();
-        }
-      });
-    }
-  }
 
   function initElevatorTab() {
     var f = byId('elevatorFilter');
     if (f) {
-      f.innerHTML = '<div id="elevatorFilterScroll" class="elevator-filter-scroll" tabindex="0" role="region" aria-label="엘리베이터 필터 좌우 스크롤">' + ELEV_FILTERS.map(function (x) {
-        return '<button type="button" class="chip' + (x.id === elevFilter ? ' active' : '') + '" data-filter="' + x.id + '"' +
-          (x.title ? ' title="' + escapeHtml(x.title) + '"' : '') + '>' +
+      f.innerHTML = ELEV_FILTERS.map(function (x) {
+        return '<button type="button" class="chip' + (x.id === elevFilter ? ' active' : '') + '" data-filter="' + x.id + '">' +
           escapeHtml(x.label) + '</button>';
-      }).join('') + '<span id="customFilterSlot" class="custom-filter-slot" hidden></span></div>' +
-        '<span id="elevatorFilterFade" class="filter-fade" aria-hidden="true" hidden></span>' +
-        '<button type="button" class="chip-add-btn" id="addFilterBtn" hidden>＋ 노선</button>';
-      byId('elevatorFilterScroll').addEventListener('scroll', updateFilterOverflow, { passive: true });
-      if (typeof ResizeObserver !== 'undefined') {
-        new ResizeObserver(updateFilterOverflow).observe(byId('elevatorFilterScroll'));
-      }
+      }).join('');
       f.addEventListener('click', function (e) {
-        var rmBtn = e.target.closest('[data-remove-filter]');
-        if (rmBtn) {
-          var lineId = rmBtn.getAttribute('data-remove-filter');
-          elevCustomFilters = elevCustomFilters.filter(function (x) { return x !== lineId; });
-          saveElevCustomFilters(elevCustomFilters);
-          renderCustomFilterChips();
-          renderElevatorList();
-          return;
-        }
-        if (e.target.closest('#addFilterBtn')) { openFilterPicker(); return; }
         var chip = e.target.closest('.chip[data-filter]');
         if (!chip) return;
         elevFilter = chip.getAttribute('data-filter');
@@ -750,7 +640,6 @@
         if (row) { e.preventDefault(); openStation(row.getAttribute('data-id')); }
       });
     }
-    renderCustomFilterChips();
     renderElevatorTab();
   }
 
@@ -772,22 +661,16 @@
     var items = dataStations();
     var counts = { AVAILABLE: 0, PARTIAL: 0, UNAVAILABLE: 0 };
     items.forEach(function (x) { if (counts[x.status] !== undefined) counts[x.status]++; });
-    var SUMMARY_ICONS = {
-      ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M8 12.5l2.5 2.5L16 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-      warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.2v.1" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
-      bad: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
-    };
     var cards = [
-      { key: 'AVAILABLE', cls: 'ok', label: '정상' },
-      { key: 'PARTIAL', cls: 'warn', label: '일부 운행' },
-      { key: 'UNAVAILABLE', cls: 'bad', label: '이용 불가' }
+      { key: 'AVAILABLE', cls: 'ok', label: '정상 역 수', color: 'var(--ok)' },
+      { key: 'PARTIAL', cls: 'warn', label: '일부 불가', color: 'var(--warn)' },
+      { key: 'UNAVAILABLE', cls: 'bad', label: '이용 불가', color: 'var(--bad)' }
     ];
     el.innerHTML = cards.map(function (c) {
-      return '<div class="summary-card ' + c.cls + '">' +
-        '<span class="summary-icon">' + SUMMARY_ICONS[c.cls] + '</span>' +
-        '<span class="summary-label">' + escapeHtml(c.label) + '</span>' +
-        '<div class="summary-body"><div class="summary-num">' + counts[c.key] + '<span class="summary-unit">역</span></div></div>' +
-        '</div>';
+      return '<div class="card summary-card ' + c.cls + '">' +
+        '<div class="summary-num" style="font-size:28px;font-weight:800;line-height:1.1;color:' + c.color + '">' +
+        counts[c.key] + '</div>' +
+        '<div class="card-sub">' + c.label + '</div></div>';
     }).join('');
   }
 
@@ -795,14 +678,12 @@
     var el = byId('elevatorList');
     if (!el) return;
     var items = dataStations().filter(function (x) {
-      var baseOk = elevFilter === 'problem'
-        ? (x.status === 'PARTIAL' || x.status === 'UNAVAILABLE')
-        : true;
-      if (!baseOk) return false;
-      if (elevCustomFilters.length === 0) return true;
-      return elevCustomFilters.some(function (lineId) {
-        return (x.station.lines || []).indexOf(lineId) >= 0;
-      });
+      switch (elevFilter) {
+        case 'problem': return x.status === 'PARTIAL' || x.status === 'UNAVAILABLE';
+        case 'line2': return (x.station.lines || []).indexOf('2') >= 0;
+        case 'transfer': return (x.station.lines || []).length > 1;
+        default: return true;
+      }
     });
     items.sort(function (a, b) {
       var r = (STATUS_RANK[a.status] || 0) - (STATUS_RANK[b.status] || 0);
@@ -849,91 +730,24 @@
     if (modeNow && arrive) arrive.disabled = !!modeNow.checked;
   }
 
-  function setComboValue(role, id) {
-    var hid = byId(role + 'Select');
-    var btn = byId(role + 'ComboBtn');
-    if (hid) hid.value = id || '';
-    if (btn) {
-      var s = id ? getStation(id) : null;
-      btn.textContent = s ? yeok(s) : '역 선택';
-    }
-  }
-
-  function renderPickerList(stations, currentId) {
-    if (!stations.length) return '<div class="empty">해당 역이 없습니다</div>';
-    return stations.map(function (s) {
-      return '<div class="station-picker-row' + (s.id === currentId ? ' active' : '') + '" ' +
-        'data-station-id="' + escapeHtml(s.id) + '" role="option" tabindex="0">' +
-        '<span class="station-picker-name">' + escapeHtml(yeok(s)) + '</span>' +
-        lineBadges(s) + '</div>';
-    }).join('');
-  }
-
-  function openStationPicker(role, labelText) {
-    var stations = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
-    var currentId = (byId(role + 'Select') || {}).value || '';
-
-    var html = '<div class="sheet-header">' +
-      '<div class="sheet-title">' + escapeHtml(labelText) + '</div>' +
-      '</div>' +
-      '<div class="sheet-section">' +
-      '<input type="search" id="stationPickerInput" class="station-picker-input" placeholder="역 이름 검색" autocomplete="off" />' +
-      '</div>' +
-      '<div id="stationPickerList" class="station-picker-list">' +
-      renderPickerList(stations, currentId) +
-      '</div>';
-    setSheetHtml(html, false);
-    openSheetShell();
-
-    var input = byId('stationPickerInput');
-    var listEl = byId('stationPickerList');
-
-    if (input) {
-      input.addEventListener('input', function () {
-        var q = normalizeName(input.value);
-        var filtered = !q ? stations : stations.filter(function (s) {
-          return normalizeName(s.name).indexOf(q) >= 0;
-        });
-        if (listEl) listEl.innerHTML = renderPickerList(filtered, currentId);
-      });
-      setTimeout(function () { try { input.focus(); } catch (e) {} }, 150);
-    }
-
-    if (listEl) {
-      listEl.addEventListener('click', function (e) {
-        var row = e.target.closest('[data-station-id]');
-        if (!row) return;
-        setComboValue(role, row.getAttribute('data-station-id'));
-        closeSheet();
-      });
-      listEl.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        var row = e.target.closest('[data-station-id]');
-        if (row) { e.preventDefault(); setComboValue(role, row.getAttribute('data-station-id')); closeSheet(); }
-      });
-    }
-  }
-
   function initTimeTab() {
-    originComboCtrl = initStationCombo('originSearch', 'originResults', 'originValue');
-    destComboCtrl   = initStationCombo('destSearch',   'destResults',   'destValue');
-
-    originComboCtrl.set('sindorim');
-    destComboCtrl.set('gangnam');
+    var o = byId('originSelect'), d = byId('destSelect');
+    var stations = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
+    var opts = stations.map(function (s) {
+      var shorts = (s.lines || []).map(function (l) { return getLine(l).short; }).join('·');
+      return '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(yeok(s)) +
+        (shorts ? ' (' + escapeHtml(shorts) + ')' : '') + '</option>';
+    }).join('');
+    if (o) { o.innerHTML = opts; if (hasOption(o, 'sindorim')) o.value = 'sindorim'; }
+    if (d) { d.innerHTML = opts; if (hasOption(d, 'gangnam')) d.value = 'gangnam'; }
 
     var arrive = byId('arriveBy');
     if (arrive) arrive.value = defaultArriveBy();
 
     var swap = byId('swapBtn');
-    if (swap) swap.addEventListener('click', function () {
-      var oId   = originComboCtrl.getId();
-      var oName = (byId('originSearch') || {}).value || '';
-      var dId   = destComboCtrl.getId();
-      var dName = (byId('destSearch') || {}).value || '';
-      originComboCtrl.setRaw(dId, dName);
-      destComboCtrl.setRaw(oId, oName);
+    if (swap && o && d) swap.addEventListener('click', function () {
+      var t = o.value; o.value = d.value; d.value = t;
     });
-
     var modeNow = byId('modeNow');
     if (modeNow) modeNow.addEventListener('change', syncTimeMode);
     syncTimeMode();
@@ -952,11 +766,10 @@
   }
 
   function submitTime() {
-    var arrive = byId('arriveBy'), modeNow = byId('modeNow');
+    var o = byId('originSelect'), d = byId('destSelect'), arrive = byId('arriveBy'), modeNow = byId('modeNow');
     var res = byId('timeResult');
-    if (!res) return;
-    var originId = originComboCtrl ? originComboCtrl.getIdSafe() : '';
-    var destId   = destComboCtrl   ? destComboCtrl.getIdSafe()   : '';
+    if (!res || !o || !d) return;
+    var originId = o.value, destId = d.value;
     if (!originId || !destId) { res.innerHTML = '<div class="empty">출발역과 도착역을 선택해 주세요.</div>'; return; }
     if (originId === destId) { res.innerHTML = '<div class="empty">출발역과 도착역이 같아요. 다른 역을 골라 주세요.</div>'; return; }
     var arriveBy = modeNow && modeNow.checked ? null : (arrive && arrive.value ? arrive.value : null);
@@ -997,12 +810,16 @@
       (info.length ? '<div class="card-row muted">' + info.join(' · ') + '</div>' : '') +
       '</div>';
 
-    // 접근성 근거가 없는 가까운 역을 추천하지 않는다.
+    // 엘리베이터 경고
     (r.elevatorWarnings || []).forEach(function (w) {
-      html += '<div class="card"><div class="card-title">⚠️ ' + escapeHtml(yeok(w.stationId)) +
-        ' 엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</div>' +
-        accessibleRouteHtml(w.stationId, originId, destId) +
-        '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(w.stationId) + '">역 정보 보기</button></div>';
+      var alt = w.alternative;
+      html += '<div class="alt-box">' +
+        '<div class="alt-title">⚠️ ' + escapeHtml(yeok(w.stationId)) + ' 엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</div>' +
+        (alt && alt.station ? '<div class="alt-tip">추천 대체역: ' + altSummary(alt) + (alt.tip ? '<br>' + escapeHtml(alt.tip) : '') + '</div>' : '') +
+        '<div class="msg-actions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
+          '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(w.stationId) + '">역 정보 보기</button>' +
+          (alt && alt.station ? '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' : '') +
+        '</div></div>';
     });
 
     // 경로
@@ -1015,9 +832,17 @@
         }).join('') + '</div></div>';
     }
 
-    // 출발부터 탑승까지의 안내 그래픽 (실제 열차 위치와 무관)
-    html += '<div class="card"><div class="card-title">출발부터 탑승까지</div>' +
-      window.DepartureGraphic.render({ departureTime: r.leaveAt, boardingTime: r.boardAt, stationName: yeok(originId) }) + '</div>';
+    // 타임라인
+    var tl = r.timeline || [];
+    if (tl.length) {
+      html += '<div class="card"><div class="card-title">타임라인</div><div class="timeline">' +
+        tl.map(function (t) {
+          return '<div class="timeline-item">' +
+            '<span class="timeline-time">' + escapeHtml(t.time) + '</span>' +
+            '<span class="timeline-icon">' + escapeHtml(t.icon || '•') + '</span>' +
+            '<span class="timeline-label">' + escapeHtml(t.label) + '</span></div>';
+        }).join('') + '</div></div>';
+    }
     return html;
   }
 
@@ -1025,9 +850,9 @@
     opts = opts || {};
     closeSheet();
     switchTab('time');
-    var arrive = byId('arriveBy'), modeNow = byId('modeNow');
-    if (opts.originId && originComboCtrl) originComboCtrl.set(opts.originId);
-    if (opts.destId   && destComboCtrl)   destComboCtrl.set(opts.destId);
+    var o = byId('originSelect'), d = byId('destSelect'), arrive = byId('arriveBy'), modeNow = byId('modeNow');
+    if (opts.originId && hasOption(o, opts.originId)) o.value = opts.originId;
+    if (opts.destId && hasOption(d, opts.destId)) d.value = opts.destId;
     if (Object.prototype.hasOwnProperty.call(opts, 'arriveBy')) {
       if (opts.arriveBy) {
         if (modeNow) modeNow.checked = false;
@@ -1105,10 +930,16 @@
         openStation(typeof p === 'object' && p ? (p.stationId || p.id) : p);
         break;
       case 'showAlternative':
-        // 오래된 챗봇 action의 임의 path도 접근성 근거가 되지 않는다.
-        mapCall('clearHighlights');
-        if (p && p.from) openStation(p.from);
-        toast('접근성 검증 상태를 먼저 확인해 주세요');
+        if (!p || !p.from) return;
+        openStation(p.from);
+        setTimeout(function () {
+          var path = p.path;
+          if (!path || !path.length) {
+            var alt = findAlternative(p.from);
+            if (alt && alt.station && alt.station.id === p.to) path = alt.path;
+          }
+          mapCall('highlightAlternative', p.from, p.to, path);
+        }, 400);
         break;
       case 'openTime':
         openTime(p || {});
@@ -1155,7 +986,7 @@
     var node = buildBotMsg(resp);
     if (replaceNode && replaceNode.parentNode === m) m.replaceChild(node, replaceNode);
     else m.appendChild(node);
-    // suggestion chips disabled (REQ-CHAT-xxx)
+    renderSuggestions(resp && resp.suggestions);
     scrollChat();
   }
 
@@ -1237,7 +1068,10 @@
     es.setStationBroken(stationId, true);
     openStation(stationId);
     toast(yeok(stationId) + ' 엘리베이터가 모두 고장 상태로 전환되었어요');
-    mapCall('clearHighlights');
+    setTimeout(function () {
+      var alt = findAlternative(stationId);
+      if (alt && alt.station) mapCall('highlightAlternative', stationId, alt.station.id, alt.path);
+    }, 500);
   }
 
   function resetDemo() {
@@ -1261,16 +1095,6 @@
         if (b) runScenario(b.getAttribute('data-scenario'));
       });
     }
-    var stationBreak = byId('demoStationBreak');
-    if (stationBreak) stationBreak.addEventListener('click', function () { demoSetStationBroken(true); });
-    var stationRestore = byId('demoStationRestore');
-    if (stationRestore) stationRestore.addEventListener('click', function () { demoSetStationBroken(false); });
-    var elevList = byId('demoElevList');
-    if (elevList) elevList.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-demo-elev]');
-      if (b) demoToggleElevator(b.getAttribute('data-demo-elev'));
-    });
-    renderDemoStation();
     var reset = byId('demoReset');
     if (reset) reset.addEventListener('click', resetDemo);
     var fs = byId('fullscreenToggle');
@@ -1282,521 +1106,6 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 출발 시각 계산 탭 — 역 선택 콤보박스
-  // ---------------------------------------------------------------------------
-  var originComboCtrl = null, destComboCtrl = null;
-
-  function initStationCombo(searchId, resultsId, valueId) {
-    var input   = byId(searchId);
-    var results = byId(resultsId);
-    var hidden  = byId(valueId);
-    var committed = false;
-    var current   = [];
-
-    function setAria(open) {
-      if (input) input.setAttribute('aria-expanded', open ? 'true' : 'false');
-    }
-
-    function render(q) {
-      if (q === undefined) q = input ? input.value.trim() : '';
-      if (!q) {
-        current = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
-      } else {
-        current = searchStations(q);
-      }
-      if (!current.length) {
-        results.innerHTML = '<div class="combo-empty">역을 찾지 못했어요</div>';
-      } else {
-        results.innerHTML = current.map(function (s) {
-          return '<div class="combo-item" data-id="' + escapeHtml(s.id) + '" role="option" tabindex="-1">' +
-            '<span class="combo-name">' + escapeHtml(yeok(s)) + '</span>' +
-            '<span class="combo-badges">' + lineBadges(s) + '</span>' +
-            '</div>';
-        }).join('');
-      }
-      results.hidden = false;
-      setAria(true);
-    }
-
-    function pick(id, displayName) {
-      if (hidden) hidden.value = id;
-      if (input)  input.value  = displayName;
-      committed = true;
-      results.hidden = true;
-      setAria(false);
-      current = [];
-    }
-
-    function clear() {
-      if (hidden) hidden.value = '';
-      committed = false;
-    }
-
-    if (input) {
-      input.addEventListener('focus', function () { input.select(); render(''); });
-      input.addEventListener('click', function () { if (results.hidden) render(committed ? '' : undefined); });
-      input.addEventListener('input', function () { clear(); render(); });
-      input.addEventListener('blur', function () { setTimeout(function () { results.hidden = true; setAria(false); }, 180); });
-      input.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { results.hidden = true; setAria(false); }
-        else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          var first = results.querySelector('.combo-item');
-          if (first) first.focus();
-        } else if (e.key === 'Enter') {
-          e.preventDefault();
-          if (!committed && current.length) pick(current[0].id, yeok(current[0]));
-        }
-      });
-    }
-
-    if (results) {
-      results.addEventListener('mousedown', function (e) { e.preventDefault(); });
-      results.addEventListener('click', function (e) {
-        var item = e.target.closest('.combo-item[data-id]');
-        if (item) {
-          var id = item.getAttribute('data-id');
-          var st = getStation(id);
-          pick(id, st ? yeok(st) : id);
-          if (input) input.focus();
-        }
-      });
-      results.addEventListener('keydown', function (e) {
-        var item = e.target.closest('.combo-item');
-        if (!item) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          var id = item.getAttribute('data-id');
-          var st = getStation(id);
-          pick(id, st ? yeok(st) : id);
-          if (input) input.focus();
-        } else if (e.key === 'ArrowDown') {
-          var next = item.nextElementSibling;
-          if (next) next.focus();
-          e.preventDefault();
-        } else if (e.key === 'ArrowUp') {
-          var prev = item.previousElementSibling;
-          if (prev) prev.focus(); else if (input) input.focus();
-          e.preventDefault();
-        } else if (e.key === 'Escape') {
-          results.hidden = true;
-          setAria(false);
-          if (input) input.focus();
-        }
-      });
-    }
-
-    function getId()     { return hidden ? hidden.value : ''; }
-    function getIdSafe() { return committed ? getId() : ''; }
-
-    function set(stationId) {
-      var st = getStation(stationId);
-      if (st) pick(stationId, yeok(st));
-    }
-    function setRaw(id, displayName) {
-      if (hidden) hidden.value = id;
-      if (input)  input.value  = displayName;
-      committed = !!id;
-      results.hidden = true;
-      setAria(false);
-    }
-
-    return { getId: getId, getIdSafe: getIdSafe, set: set, setRaw: setRaw };
-  }
-
-  // ---------------------------------------------------------------------------
-  // 글자 크기 설정 (로그인과 무관한 접근성 설정, localStorage 사용)
-  // ---------------------------------------------------------------------------
-  var FONTSIZE_KEY = 'elevSubway.fontSize.v1';
-  var FONTSIZE_LEVELS = ['normal', 'lg', 'xl', 'max'];
-
-  function applyFontSize(level) {
-    if (!level || level === 'normal') {
-      document.documentElement.removeAttribute('data-fontsize');
-    } else {
-      document.documentElement.setAttribute('data-fontsize', level);
-    }
-    try { localStorage.setItem(FONTSIZE_KEY, level); } catch (e) {}
-    updateFontSizeChips(level || 'normal');
-  }
-
-  function updateFontSizeChips(level) {
-    $all('.fontsize-chip[data-fontsize]').forEach(function (chip) {
-      chip.classList.toggle('active', chip.getAttribute('data-fontsize') === level);
-    });
-  }
-
-  function initFontSize() {
-    var stored = 'normal';
-    try { stored = localStorage.getItem(FONTSIZE_KEY) || 'normal'; } catch (e) {}
-    if (FONTSIZE_LEVELS.indexOf(stored) < 0) stored = 'normal';
-    updateFontSizeChips(stored);
-
-    document.addEventListener('click', function (e) {
-      var chip = e.target.closest('.fontsize-chip[data-fontsize]');
-      if (!chip) return;
-      applyFontSize(chip.getAttribute('data-fontsize'));
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // 즐겨찾기 (sessionStorage, 로그인 중에만 유효)
-  // ---------------------------------------------------------------------------
-  var FAV_KEY = 'elevSubway.demoFavorites.v1';
-  var favEditMode = false;
-
-  function loadFavs() {
-    try { var r = sessionStorage.getItem(FAV_KEY); return r ? JSON.parse(r) : []; } catch (e) { return []; }
-  }
-
-  function saveFavs(list) {
-    try { sessionStorage.setItem(FAV_KEY, JSON.stringify(list)); } catch (e) {}
-  }
-
-  function genFavId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  }
-
-  function renderFavorites() {
-    var list    = byId('favList');
-    var empty   = byId('favEmptyMsg');
-    var editBtn = byId('favEditBtn');
-    if (!list) return;
-    var favs = loadFavs();
-    if (empty) empty.hidden = favs.length > 0;
-    if (editBtn) editBtn.textContent = favEditMode ? '완료' : '수정';
-
-    if (!favs.length) { list.innerHTML = ''; return; }
-
-    list.innerHTML = favs.map(function (fav) {
-      var primary   = escapeHtml(fav.alias || fav.placeName);
-
-      var editButtons = favEditMode
-        ? '<div class="fav-edit-actions">' +
-            '<button class="btn btn-sm fav-rename-btn" type="button" data-fav-rename="' + escapeHtml(fav.id) + '">변경</button>' +
-            '<button class="btn btn-sm fav-delete-btn" type="button" data-fav-delete="' + escapeHtml(fav.id) + '">삭제</button>' +
-          '</div>'
-        : '';
-
-      var detailBtn = favEditMode
-        ? ''
-        : '<button class="fav-detail-btn" type="button" data-fav-open="' + escapeHtml(fav.id) + '" aria-label="장소 상세 보기">' +
-            '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-          '</button>';
-
-      return '<li class="fav-item' + (favEditMode ? ' editing' : '') + '" data-fav-id="' + escapeHtml(fav.id) + '">' +
-        '<div class="fav-info fav-name">' +
-          '<span class="fav-primary">' + primary + '</span>' +
-        '</div>' +
-        editButtons +
-        detailBtn +
-        '</li>';
-    }).join('');
-  }
-
-  /* 즐겨찾기 장소 상세 바텀시트 */
-  function openFavDetail(fav) {
-    sheet.mode = 'favDetail';
-    sheet.stationId = null;
-    var name = escapeHtml(fav.alias || fav.placeName);
-    var html =
-      '<div class="sheet-header">' +
-        '<div class="sheet-title">⭐ ' + name + '</div>' +
-        '<div class="card-sub">즐겨찾기 장소 상세</div>' +
-      '</div>' +
-      '<div class="sheet-section">' +
-        '<div class="section-label">주변 지하철역 정보</div>' +
-        '<div class="alt-box fav-detail-notice">' +
-          '<div class="alt-title">ℹ️ 위치 정보 미연결</div>' +
-          '<div class="alt-tip">실제 위치 정보가 연결되지 않아 정확한 주변 역 거리를 표시할 수 없습니다.<br>React 마이그레이션 및 위치 API 연동 후 실제 정보가 표시됩니다.</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="sheet-section">' +
-        '<div class="section-label">지하철 이동 (데모)</div>' +
-        '<div class="subway-demo-anim" id="subwayDemoAnim" aria-label="지하철 이동 데모">' +
-          '<div class="subway-track"><span class="subway-train" aria-hidden="true">🚇</span></div>' +
-          '<p class="subway-demo-label">시연용 애니메이션 · 실제 열차 위치가 아닙니다</p>' +
-          '<button type="button" class="btn btn-sm btn-ghost" id="subwayDemoPlay">▶ 데모 보기</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="sheet-section">' +
-        '<button type="button" class="btn btn-ghost btn-block" data-act="close-sheet">닫기</button>' +
-      '</div>';
-    setSheetHtml(html, false);
-    openSheetShell();
-    var playBtn = byId('subwayDemoPlay');
-    if (playBtn) playBtn.addEventListener('click', function () {
-      var anim = byId('subwayDemoAnim');
-      if (!anim) return;
-      anim.classList.remove('running');
-      void anim.offsetWidth;
-      anim.classList.add('running');
-      playBtn.disabled = true;
-      setTimeout(function () {
-        anim.classList.remove('running');
-        playBtn.disabled = false;
-      }, 3200);
-    });
-  }
-
-  /* renderFavStations stub — 위치 API 연동 후 구현 */
-  function renderFavStations(fav) { // eslint-disable-line no-unused-vars
-    // TODO: 실제 위치 좌표로 주변 역 목록을 렌더링
-  }
-
-  function startFavRename(favId) {
-    var item = document.querySelector('.fav-item[data-fav-id="' + favId + '"]');
-    if (!item) return;
-    var favs = loadFavs();
-    var fav = null;
-    for (var i = 0; i < favs.length; i++) { if (favs[i].id === favId) { fav = favs[i]; break; } }
-    if (!fav) return;
-    var nameBtn  = item.querySelector('.fav-name');
-    var editAct  = item.querySelector('.fav-edit-actions');
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'fav-rename-input';
-    input.value = fav.alias || fav.placeName;
-    input.maxLength = 20;
-    var confirmBtn = document.createElement('button');
-    confirmBtn.type = 'button';
-    confirmBtn.className = 'btn btn-sm btn-primary';
-    confirmBtn.textContent = '저장';
-    var cancelBtn = document.createElement('button');
-    cancelBtn.type = 'button';
-    cancelBtn.className = 'btn btn-sm btn-ghost';
-    cancelBtn.textContent = '취소';
-
-    function commitRename() {
-      var val = input.value.trim();
-      if (!val) { toast('이름을 입력해 주세요'); input.focus(); return; }
-      var updated = loadFavs();
-      for (var j = 0; j < updated.length; j++) {
-        if (updated[j].id === favId) { updated[j].alias = val; break; }
-      }
-      saveFavs(updated);
-      renderFavorites();
-    }
-    function cancelRename() { renderFavorites(); }
-
-    confirmBtn.addEventListener('click', commitRename);
-    cancelBtn.addEventListener('click', cancelRename);
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
-      if (e.key === 'Escape') cancelRename();
-    });
-
-    if (nameBtn) nameBtn.style.display = 'none';
-    if (editAct) editAct.style.display = 'none';
-    item.appendChild(input);
-    item.appendChild(confirmBtn);
-    item.appendChild(cancelBtn);
-    input.focus();
-    input.select();
-  }
-
-  function initLoginTab() {
-    var auth = AUTH();
-    if (!auth) return;
-
-    var view = byId('view-login');
-    if (!view) return;
-
-    /* 즐겨찾기 추가 UI */
-    var favAddBtn     = byId('favAddBtn');
-    var favAddRow     = byId('favAddRow');
-    var favAddInput   = byId('favAddInput');
-    var favAddConfirm = byId('favAddConfirm');
-    var favAddCancel  = byId('favAddCancel');
-
-    function openFavAdd() {
-      if (favAddRow) favAddRow.hidden = false;
-      if (favAddInput) { favAddInput.value = ''; favAddInput.focus(); }
-    }
-    function closeFavAdd() {
-      if (favAddRow) favAddRow.hidden = true;
-      if (favAddInput) favAddInput.value = '';
-    }
-    function commitFavAdd() {
-      var val = favAddInput ? favAddInput.value.trim() : '';
-      if (!val) { toast('장소 이름을 입력해 주세요'); if (favAddInput) favAddInput.focus(); return; }
-      var favs = loadFavs();
-      favs.push({ id: genFavId(), placeName: val, alias: '' });
-      saveFavs(favs);
-      closeFavAdd();
-      renderFavorites();
-      toast('"' + val + '" 즐겨찾기에 추가했어요');
-    }
-
-    if (favAddBtn) favAddBtn.addEventListener('click', openFavAdd);
-    if (favAddConfirm) favAddConfirm.addEventListener('click', commitFavAdd);
-    if (favAddCancel) favAddCancel.addEventListener('click', closeFavAdd);
-    if (favAddInput) {
-      favAddInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); commitFavAdd(); }
-        if (e.key === 'Escape') closeFavAdd();
-      });
-    }
-
-    /* 즐겨찾기 편집 모드 토글 */
-    var favEditBtn = byId('favEditBtn');
-    if (favEditBtn) {
-      favEditBtn.addEventListener('click', function () {
-        favEditMode = !favEditMode;
-        closeFavAdd();
-        renderFavorites();
-      });
-    }
-
-    /* 사용자 이름 편집 */
-    var editNameBtn     = byId('editNameBtn');
-    var nameEditRow     = byId('nameEditRow');
-    var nameEditInput   = byId('nameEditInput');
-    var nameEditConfirm = byId('nameEditConfirm');
-    var nameEditCancel  = byId('nameEditCancel');
-
-    function startNameEdit() {
-      var nameEl = byId('authProfileName');
-      if (nameEditInput) nameEditInput.value = nameEl ? nameEl.textContent : '';
-      if (nameEl)        nameEl.hidden = true;
-      if (nameEditRow)   nameEditRow.hidden = false;
-      if (editNameBtn)   editNameBtn.hidden = true;
-      if (nameEditInput) nameEditInput.focus();
-    }
-    function cancelNameEdit() {
-      var nameEl = byId('authProfileName');
-      if (nameEl)       nameEl.hidden = false;
-      if (nameEditRow)  nameEditRow.hidden = true;
-      if (editNameBtn)  editNameBtn.hidden = false;
-    }
-    function commitNameEdit() {
-      var val = nameEditInput ? nameEditInput.value.trim() : '';
-      if (!val) { toast('이름을 입력해 주세요'); if (nameEditInput) nameEditInput.focus(); return; }
-      var authSvc = AUTH();
-      var sess = authSvc ? authSvc.getSession() : null;
-      if (sess && sess.isDemoUser) {
-        // 데모 모드: sessionStorage 업데이트
-        sess.name = val;
-        try { sessionStorage.setItem('elevSubway.demoAuth.v1', JSON.stringify(sess)); } catch (e) {}
-        var nameEl   = byId('authProfileName');
-        var avatarEl = byId('authProfileAvatar');
-        if (nameEl)   nameEl.textContent = val;
-        if (avatarEl) avatarEl.textContent = val.charAt(0).toUpperCase();
-        cancelNameEdit();
-        toast('이름을 변경했어요');
-      } else if (sess && !sess.isDemoUser) {
-        // 실제 모드 stub: PATCH /api/auth/profile
-        console.warn('[Auth:real] 사용자 이름 변경은 아직 백엔드 API가 연결되지 않았습니다. PATCH /api/auth/profile { displayName } 구현 필요.');
-        toast('백엔드 연결 후 저장됩니다 (현재 데모)');
-        cancelNameEdit();
-      }
-    }
-
-    if (editNameBtn) editNameBtn.addEventListener('click', startNameEdit);
-    if (nameEditConfirm) nameEditConfirm.addEventListener('click', commitNameEdit);
-    if (nameEditCancel) nameEditCancel.addEventListener('click', cancelNameEdit);
-    if (nameEditInput) {
-      nameEditInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); commitNameEdit(); }
-        if (e.key === 'Escape') cancelNameEdit();
-      });
-    }
-
-    /* 즐겨찾기 목록 이벤트 위임 */
-    var favList = byId('favList');
-    if (favList) {
-      favList.addEventListener('click', function (e) {
-        /* 편집 모드: 변경/삭제 버튼 */
-        var renameBtn = e.target.closest('[data-fav-rename]');
-        if (renameBtn) { startFavRename(renameBtn.getAttribute('data-fav-rename')); return; }
-        var deleteBtn = e.target.closest('[data-fav-delete]');
-        if (deleteBtn) {
-          var fid = deleteBtn.getAttribute('data-fav-delete');
-          var favs = loadFavs();
-          var removed = null;
-          favs = favs.filter(function (f) { if (f.id === fid) { removed = f; return false; } return true; });
-          saveFavs(favs);
-          renderFavorites();
-          if (removed) toast('"' + (removed.alias || removed.placeName) + '" 즐겨찾기에서 삭제했어요');
-          return;
-        }
-        /* 일반 모드: 화살표 클릭 → 상세 */
-        var openBtn = e.target.closest('[data-fav-open]');
-        if (openBtn && !favEditMode) {
-          var favId = openBtn.getAttribute('data-fav-open');
-          var allFavs = loadFavs();
-          var target = null;
-          for (var i = 0; i < allFavs.length; i++) { if (allFavs[i].id === favId) { target = allFavs[i]; break; } }
-          if (target) openFavDetail(target);
-          return;
-        }
-      });
-    }
-
-    /* 이벤트 위임: 로그인/로그아웃 */
-    view.addEventListener('click', function (e) {
-      var provBtn = e.target.closest('[data-provider]');
-      if (provBtn) { auth.login(provBtn.getAttribute('data-provider')); return; }
-      if (e.target.closest('[data-auth="signout"]')) {
-        auth.logout().then(function () { toast('로그아웃했습니다'); });
-        return;
-      }
-    });
-
-    /* 세션 변경 구독 → 뷰 갱신 */
-    auth.subscribe(renderLoginTab);
-
-    /* 초기 렌더 */
-    renderLoginTab(auth.getSession());
-  }
-
-  /**
-   * 로그인 뷰 렌더링.
-   * session: null(확인 중) | false(비로그인) | object(로그인)
-   */
-  function renderLoginTab(session) {
-    var loadingEl = byId('authLoading');
-    var guestEl   = byId('authGuest');
-    var userEl    = byId('authUser');
-    if (!guestEl || !userEl) return;
-
-    var checking = session === null;
-    var signedIn = !!(session && typeof session === 'object');
-
-    if (loadingEl) loadingEl.hidden = !checking;
-    guestEl.hidden = checking || signedIn;
-    userEl.hidden  = checking || !signedIn;
-
-    /* 프로필 채우기 */
-    if (signedIn) {
-      var nameEl   = byId('authProfileName');
-      var badgeEl  = byId('authProviderBadge');
-      var avatarEl = byId('authProfileAvatar');
-      var provLabels = { google: 'Google', kakao: '카카오' };
-
-      if (nameEl)   nameEl.textContent  = session.name  || '게스트 사용자';
-      if (badgeEl) {
-        badgeEl.textContent = provLabels[session.provider] || session.provider || '';
-        badgeEl.setAttribute('data-provider', session.provider || '');
-      }
-      if (avatarEl) {
-        var displayName = session.name || '게스트 사용자';
-        avatarEl.textContent = displayName.charAt(0).toUpperCase() || '?';
-        avatarEl.setAttribute('data-provider', session.provider || '');
-      }
-      favEditMode = false;
-      renderFavorites();
-    }
-
-    /* 탭 이름 */
-    var loginTabLabel = document.querySelector('.tab[data-tab="login"] span:last-child');
-    if (loginTabLabel) loginTabLabel.textContent = signedIn ? '마이페이지' : '로그인';
-
-    /* 로그인 상태에 따라 커스텀 필터 행 갱신 */
-    renderCustomFilterChips();
-  }
-
-  // ---------------------------------------------------------------------------
   // 상태 변경 구독
   // ---------------------------------------------------------------------------
   function initSubscriptions() {
@@ -1805,18 +1114,14 @@
     es.subscribe(function () {
       safe('refreshSheet', refreshSheet);
       safe('renderElevatorTab', renderElevatorTab);
-      safe('renderDemoStation', renderDemoStation);
     });
   }
 
   // ---------------------------------------------------------------------------
   // 초기화
   // ---------------------------------------------------------------------------
-  function AUTH() { return window.AuthService; }
-
   function init() {
     safe('clock', initClock);
-    safe('fontSize', initFontSize);
     safe('tabs', initTabs);
     safe('map', initMap);
     safe('lineFilter', initLineFilter);
@@ -1825,7 +1130,6 @@
     safe('elevatorTab', initElevatorTab);
     safe('timeTab', initTimeTab);
     safe('chat', initChat);
-    safe('loginTab', initLoginTab);
     safe('demo', initDemo);
     safe('subscriptions', initSubscriptions);
   }

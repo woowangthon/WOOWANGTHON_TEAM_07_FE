@@ -1,7 +1,5 @@
 # AI 챗봇 화면
 
-> 2026-11-15 우선 정책: 대체역·우회 버튼/도구 관련 과거 제안은 [REQ-ELV-007](elevator.md#req-elv-007-접근성-검증-기반-지하철-우회-안내)의 검증 지하철 우선·미확인 추천 금지 기준을 적용한다. 역별 정상 상태나 가까운 역 탐색만으로 지도 우회를 제안하지 않는다. 기존 미구현 요구사항의 상태를 이번 작업으로 완료 처리하지 않는다.
-
 - 영역 코드: `CHAT`
 - 범위: `#view-chat` / 관련 파일 `Prototype-v2/js/ai-agent.js`, `Prototype-v2/js/app.js`(챗봇 탭 섹션), `Prototype-v2/css/style.css`
 - 기준 프로토타입: `Prototype-v2/` (v1 `Prototype/`은 수정하지 않음)
