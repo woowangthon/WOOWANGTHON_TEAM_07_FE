@@ -214,7 +214,7 @@ html:not(.ms-ready) .metro-svg .st-icon { fill: transparent; }
 .metro-svg .select-ring {
   display: none;
   fill: var(--primary-glow);
-  stroke: var(--on-primary);
+  stroke: var(--primary);
   stroke-width: 3;
   pointer-events: none;
   transform-box: fill-box;
@@ -235,7 +235,7 @@ html:not(.ms-ready) .metro-svg .st-icon { fill: transparent; }
 }
 .metro-svg .alt-route {
   fill: none;
-  stroke: var(--on-primary);
+  stroke: var(--primary);
   stroke-linecap: round;
   stroke-linejoin: round;
   animation: mm-dash .8s linear infinite;

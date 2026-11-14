@@ -38,7 +38,7 @@ const near = (actual, expected, label, tolerance = 0.6) => assert.ok(Math.abs(ac
   };
   try {
     await fresh();
-    await check('yellow/charcoal/orange design tokens and Material fallback', async () => {
+    await check('blue/white/orange design tokens and Material fallback', async () => {
       const actual = await page.evaluate(() => {
         const css = getComputedStyle(document.documentElement);
         const icon = document.querySelector('.tab.active .ms');
@@ -54,9 +54,9 @@ const near = (actual, expected, label, tolerance = 0.6) => assert.ok(Math.abs(ac
           fill: getComputedStyle(icon).getPropertyValue('--ms-fill').trim()
         };
       });
-      assert.equal(actual.primary, '#FFD400'); assert.equal(actual.ink, '#111827'); assert.equal(actual.warn, '#EA580C');
+      assert.equal(actual.primary, '#2563EB'); assert.equal(actual.ink, '#FFFFFF'); assert.equal(actual.warn, '#EA580C');
       assert.match(actual.font, /Material Symbols Rounded/); assert.ok(actual.fallback, 'unloaded font must hide icon names');
-      assert.equal(actual.background, 'rgb(255, 212, 0)'); assert.equal(actual.color, 'rgb(17, 24, 39)');
+      assert.equal(actual.background, 'rgb(37, 99, 235)'); assert.equal(actual.color, 'rgb(255, 255, 255)');
       assert.equal(actual.fill, '1');
     });
     await check('map status shapes and 44px station hit areas', async () => {

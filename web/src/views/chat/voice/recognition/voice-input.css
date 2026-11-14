@@ -1,0 +1,10 @@
+.voice-input { position: relative; flex: 0 0 auto; }
+.voice-input-button { min-width: var(--tap-min); min-height: var(--tap-min); display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; }
+.voice-input-button[aria-pressed="true"] { background: var(--bad-tint); color: var(--bad-text); border-color: var(--bad); }
+.voice-input-button:disabled { cursor: default; color: var(--muted); }
+.voice-input button:focus-visible { outline: var(--sp-1) solid var(--focus); outline-offset: var(--sp-1); }
+.voice-input-notice, .voice-input-status:not(:empty) { position: absolute; z-index: 2; bottom: calc(100% + var(--sp-2)); right: 0; width: max-content; max-width: min(72vw, calc(var(--tap-min) * 7)); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: var(--sp-3); background: var(--surface); color: var(--text); font-size: var(--fs-label); line-height: var(--lh-body); box-shadow: var(--shadow); }
+.voice-input-notice p { margin: 0 0 var(--sp-3); }
+.voice-input-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.voice-input-actions button { min-height: var(--tap-min); padding: var(--sp-2) var(--sp-3); font: inherit; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); }
+.voice-input-actions button:first-child { background: var(--primary); color: var(--on-primary); }
