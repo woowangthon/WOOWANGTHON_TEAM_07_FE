@@ -131,17 +131,18 @@ React 마이그레이션 시 Tailwind CSS 변수 또는 CSS Modules로 옮깁니
 
 - 로그인 사용자 전용 (`AuthService.getSession()` 확인)
 - 기본 필터 (전체/일부 불가) AND 커스텀 노선 필터 (OR 로직)
-- 같은 줄에 `전체` → `일부 불가` → `＋ 노선`(`#addFilterBtn`) → 사용자 추가 칩 순서로 배치 (`#customFilterSlot`). `＋ 노선`은 노선 선택 바텀 시트를 연다
+- 같은 줄의 스크롤 구역은 `전체` → `일부 불가` → 사용자 추가 칩(`#customFilterSlot`) 순서다. `＋ 노선`(`#addFilterBtn`)은 스크롤 바깥의 오른쪽 끝에 고정하며 노선 선택 바텀 시트를 연다. 칩은 줄바꿈/축소하지 않고, 넘칠 때만 가로 스크롤과 끝 방향 힌트를 제공한다.
 - 로그아웃하면 사용자 필터를 메모리와 sessionStorage에서 모두 지운다. 로그인 상태가 아니면 필터를 적용하지 않는다
 - React 마이그레이션 시 sessionStorage → 사용자 설정 API로 대체
 
 ## 출발 시각 계산 — 역 선택 콤보박스
 
-- 기존 `<select>` 를 `<button class="combobox-btn">` + `<input type="hidden">` 으로 교체
-- 클릭 시 `openStationPicker(role, label)` → 바텀 시트 (검색 + 역 목록)
-- 선택 시 `setComboValue(role, id)` → 버튼 텍스트 + hidden input 값 갱신
-- `#originComboBtn` / `#originSelect` (hidden), `#destComboBtn` / `#destSelect` (hidden)
-- React에서는 `<Select>` 컴포넌트 (react-select 또는 직접 구현) + controlled input으로 대체
+- 현재 구조는 검색 입력 + 결과 목록 + 숨은 station_id다. 이전 `originComboBtn`/`originSelect` 기반 바텀시트 방식은 사용하지 않는다.
+- `#originSearch`/`#originResults`/`#originValue`, `#destSearch`/`#destResults`/`#destValue`를 `initStationCombo`로 연결한다.
+- `.station-pair`는 출발역 → 44px `⇄` 교환 버튼 → 도착역의 3열 그리드다. 375px·글자 150%에서도 두 입력창 크기를 같게 유지한다.
+- 도착 희망 시각은 기존 native `input type=time`을 유지한다. `.time-options-row`는 글자가 커져 좁아질 때만 시각 입력과 지금 출발 스위치를 줄바꿈하여 시각이 잘리지 않게 한다.
+- 결과 목록은 `--station-combo-results-min-width`를 쓰며 화면 안으로 폭을 제한한다. 출발역은 왼쪽, 도착역은 오른쪽 기준이다.
+- React에서는 `<StationCombobox value onChange />`로 옮긴다. 포커스 전체 목록·부분 검색·실제 선택 여부·ID와 이름 교환을 유지한다.
 
 ## 지하철 이동 애니메이션 (즐겨찾기 상세)
 
@@ -156,7 +157,7 @@ React 마이그레이션 시 Tailwind CSS 변수 또는 CSS Modules로 옮깁니
 ## 편집 상태와 UX 규칙 (2026-11-14)
 
 - **이름 편집 (인라인)**: 편집을 누르면 이름 텍스트가 있던 자리가 입력창으로 바뀐다. 별도 위치에 입력창을 두지 않는다. 입력창에는 기존 이름이 들어 있고 포커스가 간다. 저장·취소 버튼은 입력창 옆에 있다. 공백만 있는 이름은 저장하지 않는다. 저장하면 이름과 아바타 이니셜이 바뀐다. React에서는 `{ editing, draft }` 로컬 상태로 두고, 저장 시 `PATCH /api/auth/profile`을 호출한다.
-- **즐겨찾기 카드**: 장소마다 독립 카드. 이름은 읽기 전용 텍스트다. 오른쪽 화살표(`›`, `aria-label="장소 상세 보기"`)만 상세 바텀 시트를 연다. 이름을 눌러도 상세가 열리지 않는다. 별칭이 있으면 별칭을 크게, 원래 이름이 다를 때만 보조 텍스트로 보인다.
+- **즐겨찾기 카드**: 장소마다 독립 카드. 이름은 읽기 전용 텍스트다. 오른쪽 화살표(`›`, `aria-label="장소 상세 보기"`)만 상세 바텀 시트를 연다. 이름을 눌러도 상세가 열리지 않는다. 현재 표시 이름(`alias || placeName`) 하나만 출력하고 원래 이름/이전 이름 보조 텍스트는 출력하지 않는다(2026-11-14 최신 요청). `placeName`, `id`, 좌표 등 원본 식별 데이터는 유지한다. 장문은 일반/편집 모드 모두 줄바꿈하여 큰 글자에서도 잘리지 않게 한다.
 - **즐겨찾기 편집 모드**: `favEditMode`(기본 `false`)를 목록 컴포넌트가 가진다. 상단 `수정`/`완료` 버튼으로 전환한다. 편집 모드에서만 항목별 `변경`(파랑)·`삭제`(빨강)를 보이고, 화살표는 숨긴다.
 - **이름 변경은 한 번에 한 항목**: 변경 입력창은 편집 중인 항목 하나만 연다. React에서는 `editingId` 하나로 관리한다.
 - **추가 행은 조건부 렌더링으로**: 프로토타입은 `hidden` 속성을 쓰는데, `display:flex`를 준 행에서는 `hidden`이 적용되지 않는 문제가 있었다. 전역 `[hidden]{display:none !important}`로 고쳤다. React에서는 조건부 렌더링을 쓰므로 이 문제가 없다.
