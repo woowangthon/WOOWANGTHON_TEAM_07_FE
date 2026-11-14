@@ -11,7 +11,9 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:legacy": "node --test ../tests/*.test.cjs",
-    "test:browser": "node scripts/run-browser-tests.mjs"
+    "test:browser": "node scripts/run-browser-tests.mjs",
+    "test:visual": "node scripts/compare-prototype.mjs",
+    "test:live": "node scripts/verify-live.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

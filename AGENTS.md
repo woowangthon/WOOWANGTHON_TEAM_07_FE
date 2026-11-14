@@ -129,3 +129,7 @@ UI를 바꿨으면 `Prototype-v2/index.html`을 브라우저로 열어 직접 �
 - API 모드 시연 패널 자리에 넣을 요소, 출발 계산의 대체역 표시 방식. BE 계약 리뷰(#14)·FE 호출 확인(#43)은 이 연결로 확인할 수 있게 됐다.
 - 접근성 우회 경로 API(`docs/accessible-route-api-proposal.md`)의 계약.
 - 시연에서 합성·Mock 데이터를 어디까지 보여 줄지(대회 규칙: 시연·서비스에서 Mock 금지).
+
+## React 이전 복구 검증 (2026-11-15)
+
+feat/react-migration-recovery에서 다섯 화면 통합을 검증했다. 구조·한계·재현 명령은 docs/react-migration-recovery-2026-11-15.md를 참고한다. web에서 npm test(31개), npm run test:legacy(84개), npm run build, npm run lint를 실행한다. npm run build:mock 후 npm run test:browser(기존 5개), npm run test:visual(18쌍)을 실행한다. npm run test:live는 운영 DB 복사본과 별도 서버 포트를 쓰며 외부 LLM을 비활성화한다. main·배포 전환 전까지 Prototype-v2를 비교 기준으로 유지한다.

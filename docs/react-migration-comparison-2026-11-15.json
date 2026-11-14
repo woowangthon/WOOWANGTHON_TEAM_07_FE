@@ -1,0 +1,92 @@
+[
+  {
+    "width": 390,
+    "state": "map",
+    "changedPercent": 0
+  },
+  {
+    "width": 390,
+    "state": "sheet-peek",
+    "changedPercent": 0
+  },
+  {
+    "width": 390,
+    "state": "sheet-full",
+    "changedPercent": 0
+  },
+  {
+    "width": 390,
+    "state": "elevator",
+    "changedPercent": 0.032
+  },
+  {
+    "width": 390,
+    "state": "time",
+    "changedPercent": 0.029
+  },
+  {
+    "width": 390,
+    "state": "time-result",
+    "changedPercent": 0.029
+  },
+  {
+    "width": 390,
+    "state": "time-graphic",
+    "changedPercent": 0
+  },
+  {
+    "width": 390,
+    "state": "chat",
+    "changedPercent": 0
+  },
+  {
+    "width": 390,
+    "state": "account",
+    "changedPercent": 0
+  },
+  {
+    "width": 1440,
+    "state": "map",
+    "changedPercent": 0
+  },
+  {
+    "width": 1440,
+    "state": "sheet-peek",
+    "changedPercent": 0.002
+  },
+  {
+    "width": 1440,
+    "state": "sheet-full",
+    "changedPercent": 0.002
+  },
+  {
+    "width": 1440,
+    "state": "elevator",
+    "changedPercent": 0.008
+  },
+  {
+    "width": 1440,
+    "state": "time",
+    "changedPercent": 0.009
+  },
+  {
+    "width": 1440,
+    "state": "time-result",
+    "changedPercent": 0.009
+  },
+  {
+    "width": 1440,
+    "state": "time-graphic",
+    "changedPercent": 0.002
+  },
+  {
+    "width": 1440,
+    "state": "chat",
+    "changedPercent": 0.002
+  },
+  {
+    "width": 1440,
+    "state": "account",
+    "changedPercent": 0.002
+  }
+]

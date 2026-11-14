@@ -51,6 +51,12 @@ export interface TimeRequest {
   arriveBy?: string | null
 }
 
+/**
+ * askChat()이 남기는 "챗 탭이 보낼 질문". 챗 탭 컴포넌트가 pendingChat을 보고 sendChat(text)(원본 sendChat: 사용자 말풍선 추가 + AI 호출)를
+ * 부른 뒤 clearPendingChat(id)를 부른다. id는 요청마다 증가한다. (역 시트 "AI에게 물어보기"가 사용)
+ */
+export interface ChatRequest { id: number; text: string }
+
 /** 렌더와 무관하게 항상 같은 참조인 함수들. useEffect 의존성에 넣어도 다시 실행되지 않는다. */
 export interface AppApi {
   switchTab(name: string): void
@@ -67,6 +73,9 @@ export interface AppApi {
   openStation(id: string, opts?: OpenStationOptions): void
   openTime(opts?: OpenTimeOptions): void
   clearPendingTime(id: number): void
+  /** 시트를 닫고 챗 탭으로 가서 text를 보내게 한다(원본: closeSheet(); switchTab('chat'); sendChat(text)). */
+  askChat(text: string): void
+  clearPendingChat(id: number): void
   selectDemoStation(id: string | null): void
   setLoginTabLabel(label: string): void
 }
@@ -79,6 +88,7 @@ export interface AppState {
   /** 시연 제어판에서 조작할 역(마지막으로 연 역). */
   demoStationId: string | null
   pendingTime: TimeRequest | null
+  pendingChat: ChatRequest | null
   /** 탭바 마지막 탭 이름. 로그인 상태에 따라 '로그인'/'마이페이지'. */
   loginTabLabel: string
 }

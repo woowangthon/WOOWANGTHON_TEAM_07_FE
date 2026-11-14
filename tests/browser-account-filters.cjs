@@ -43,6 +43,7 @@ const puppeteer=require(process.env.PUPPETEER_MODULE||'puppeteer');
  check(await p.evaluate(()=>JSON.parse(sessionStorage.getItem('elevSubway.elevFilters.v1')).length===0),'logout clears filter state');
  check(await p.evaluate(()=>JSON.parse(sessionStorage.getItem('elevSubway.demoFavorites.v1')).length===0),'logout clears favorites');
  await p.click('[data-provider="kakao"]');await p.waitForSelector('#authUser:not([hidden])');check(await p.$eval('#authProviderBadge',e=>e.textContent==='카카오'),'second provider demo');
+ const appOrigin=/^https?:/.test(url)?new URL(url).origin:null;
  const q=await b.newPage();await q.setViewport({width:375,height:812});q.on('pageerror',e=>errors.push(e.message));
  await q.evaluateOnNewDocument(()=>{
   sessionStorage.setItem('elevSubway.elevFilters.v1','["2"]');
@@ -50,8 +51,8 @@ const puppeteer=require(process.env.PUPPETEER_MODULE||'puppeteer');
  });
  await q.setRequestInterception(true);
  q.on('request',request=>{
-  if(request.url().startsWith('https://auth-check.invalid/'))setTimeout(()=>request.respond({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'null','Access-Control-Allow-Credentials':'true'},body:JSON.stringify({id:'restored',name:'복구 사용자',provider:'google'})}),500);
-  else if(/^https?:/.test(request.url()))request.abort();else request.continue();
+  if(request.url().startsWith('https://auth-check.invalid/'))setTimeout(()=>request.respond({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':appOrigin||'null','Access-Control-Allow-Credentials':'true'},body:JSON.stringify({id:'restored',name:'복구 사용자',provider:'google'})}),500);
+  else if(/^https?:/.test(request.url())&&!(appOrigin&&request.url().startsWith(appOrigin+'/')))request.abort();else request.continue();
  });
  await q.goto(url,{waitUntil:'domcontentloaded'});await q.waitForSelector('#authUser:not([hidden])');
  check(await q.evaluate(()=>[...document.querySelectorAll('#elevatorList .station-row')].length>0&&[...document.querySelectorAll('#elevatorList .station-row')].every(e=>ElevatorService.getStation(e.dataset.id).lines.includes('2'))),'async authenticated restore applies saved filters');
