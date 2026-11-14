@@ -431,6 +431,7 @@
     return kstIso(k.y, k.mo, k.d, arrMin);
   }
 
+  var LIMIT_EXTERNAL_TRAVEL = '예상 이동 시간은 외부에서 입력한 값이며 경로 탐색으로 검증되지 않음';
   var LIVE_ICONS = { WALK_TO_STATION: 'accessible', STATION_ENTRY: 'elevator', BUFFER: 'schedule', RIDE: 'subway', EXIT_WALK: 'door_front' };
 
   function adaptLive(route, dep, map, now) {
@@ -488,7 +489,8 @@
       elevatorWarnings: items,
       warningStatus: ew.status || 'UNCONFIRMED',
       warningMessage: ew.message || '',
-      limitations: dep.limitations || [],
+      // travel_minutes는 BE 경로 탐색의 total_minutes라 "외부 입력·검증 안 됨" 문구는 사실이 아니다(AI trip.py와 같은 처리).
+      limitations: (dep.limitations || []).filter(function (l) { return l !== LIMIT_EXTERNAL_TRAVEL; }),
       selectedTrain: train ? {
         trainNo: train.train_no,
         boardingAt: hhmmOfIso(train.boarding_at || train.boarding_time),

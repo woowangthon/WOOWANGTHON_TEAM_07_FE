@@ -86,7 +86,9 @@ test('transfer route: estimate (no train), transfers and legs from BE',async()=>
  const transfer=route.timeline.filter(t=>t.kind==='TRANSFER').reduce((a,t)=>a+t.minutes,0);
  assert.equal(r.breakdown.transfer,transfer);
  assert.equal(r.breakdown.ride+r.breakdown.transfer,F.d207.response.inputs.travel_minutes);
- assert.deepEqual(Array.from(r.limitations),F.d207.response.limitations);
+ const EXTERNAL='예상 이동 시간은 외부에서 입력한 값이며 경로 탐색으로 검증되지 않음';
+ assert(F.d207.response.limitations.includes(EXTERNAL)); // 실제 BE 응답에는 있다
+ assert.deepEqual(Array.from(r.limitations),F.d207.response.limitations.filter(l=>l!==EXTERNAL)); // travel_minutes가 BE 경로 값이라 뺀다
 });
 
 test('errors: route 404, same-station 422, network, no mock fallback',async()=>{
