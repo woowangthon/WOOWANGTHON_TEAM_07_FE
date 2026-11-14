@@ -13,7 +13,9 @@
     "test:legacy": "node --test ../tests/*.test.cjs",
     "test:browser": "node scripts/run-browser-tests.mjs",
     "test:visual": "node scripts/compare-prototype.mjs",
-    "test:live": "node scripts/verify-live.mjs"
+    "test:live": "node scripts/verify-live.mjs",
+    "test:llm:live": "node scripts/verify-external-llm.mjs",
+    "test:llm:checks": "node --test scripts/llm-quality.test.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",
