@@ -35,7 +35,7 @@
 | [REQ-MAP-006](requirements/map.md#req-map-006-지도-위-역-이름을-화면-기준-13px-이상으로) | 지도 위 역 이름을 화면 기준 13px 이상으로 | P1 | 대기 | 2026-11-11 |
 | [REQ-MAP-007](requirements/map.md#req-map-007-고장점검-역을-한눈에-보여-주는-버튼-추가) | 고장·점검 역을 한눈에 보여 주는 버튼 추가 | P1 | 대기 | 2026-11-11 |
 | [REQ-ELV-001](requirements/elevator.md#req-elv-001-상단-고정-필터-바로-역-목록-개편) | 상단 고정 필터 바로 역 목록 개편 | P1 | 대기 | 2026-11-11 |
-| [REQ-ELV-002](requirements/elevator.md#req-elv-002-요약-카드-높이-어긋남-고치기와-이름-정리) | 요약 카드 높이 어긋남 고치기와 이름 정리 | P0 | 대기 | 2026-11-11 |
+| [REQ-ELV-002](requirements/elevator.md#req-elv-002-요약-카드-높이-어긋남-고치기와-이름-정리) | 요약 카드 높이 어긋남 고치기와 이름 정리 | P0 | 완료 | 2026-11-11 |
 | [REQ-ELV-003](requirements/elevator.md#req-elv-003-엘리베이터-정보-기준-시각을-작게-표시) | 엘리베이터 정보 기준 시각을 작게 표시 | P2 | 대기 | 2026-11-11 |
 | [REQ-ELV-004](requirements/elevator.md#req-elv-004-역-목록-한-줄을-운행-대수--멈춘-위치로-정리) | 역 목록 한 줄을 "운행 대수 + 멈춘 위치"로 정리 | P1 | 대기 | 2026-11-11 |
 | [REQ-TIME-001](requirements/time.md#req-time-001-출발역도착역을-검색해서-고르기) | 출발역·도착역을 검색해서 고르기 | P1 | 대기 | 2026-11-11 |
@@ -53,7 +53,7 @@
 | [REQ-DS-009](design-system.md#req-ds-009-화면의-시각-표기를-오전오후-hmm으로-통일) | 화면의 시각 표기를 "오전/오후 h:mm"으로 통일 | P1 | 대기 | 2026-11-11 |
 | [REQ-COM-001](requirements/common.md#req-com-001-️-버튼을-설정정보-화면으로-변경) | ⚙️ 버튼을 "설정·정보" 화면으로 변경 | P1 | 대기 | 2026-11-11 |
 | [REQ-COM-002](requirements/common.md#req-com-002-노선도-출처공공누리-제1유형-표시) | 노선도 출처(공공누리 제1유형) 표시 | P0 | 대기 | 2026-11-11 |
-| [REQ-COM-003](requirements/common.md#req-com-003-역-상세-바텀시트에서-시연용-고장-조작-버튼-빼기) | 역 상세 바텀시트에서 시연용 고장 조작 버튼 빼기 | P0 | 대기 | 2026-11-11 |
+| [REQ-COM-003](requirements/common.md#req-com-003-역-상세-바텀시트에서-시연용-고장-조작-버튼-빼기) | 역 상세 바텀시트에서 시연용 고장 조작 버튼 빼기 | P0 | 완료 | 2026-11-11 |
 | [REQ-COM-004](requirements/common.md#req-com-004-역-상세-시트를-요약--펼침-두-단계로-지도와-함께-쓰기) | 역 상세 시트를 "요약 → 펼침" 두 단계로, 지도와 함께 쓰기 | P1 | 대기 | 2026-11-11 |
 | [REQ-COM-005](requirements/common.md#req-com-005-역-상세의-엘리베이터-목록에서-이용-불가를-맨-위로) | 역 상세의 엘리베이터 목록에서 이용 불가를 맨 위로 | P1 | 대기 | 2026-11-11 |
 | [REQ-COM-006](requirements/common.md#req-com-006-바텀시트-하나에-강조-버튼은-하나만) | 바텀시트 하나에 강조 버튼은 하나만 | P1 | 대기 | 2026-11-11 |
@@ -66,6 +66,5 @@
 | [#49](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/49) | 마이페이지 사용자 이름 변경 기능 | P1 | 완료 | 2026-11-14 |
 | [#50](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/50) | 즐겨찾기 장소 상세 바텀시트 | P1 | 완료 | 2026-11-14 |
 | [#51](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/51) | 지하철 이동 애니메이션 (데모) | P2 | 완료 | 2026-11-14 |
-| REQ-ELV-002 (부분) | 요약 카드 inline style 제거 | P0 | 완료 | 2026-11-14 |
 | REQ-TIME-001 (부분) | 출발역·도착역 콤보박스 (역 선택 피커) | P1 | 완료 | 2026-11-14 |
 | REQ-ELV-001 (부분) | 엘리베이터 필터 2개로 축소 + 커스텀 노선 필터 (로그인) | P1 | 완료 | 2026-11-14 |

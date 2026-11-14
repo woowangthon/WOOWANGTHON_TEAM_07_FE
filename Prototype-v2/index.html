@@ -26,6 +26,17 @@
         <div class="section-label">시연 시나리오</div>
         <div id="demoScenarioList" class="demo-list"></div>
       </div>
+      <div class="demo-section" id="demoStationSection">
+        <div class="section-label">선택한 역</div>
+        <p id="demoStationName" class="demo-station-name">지도에서 역을 선택하세요</p>
+        <div id="demoStationControls" class="demo-station-controls" hidden>
+          <div class="demo-station-buttons">
+            <button id="demoStationBreak" class="btn btn-danger btn-block" type="button">이 역 전체 고장</button>
+            <button id="demoStationRestore" class="btn btn-ghost btn-block" type="button">이 역 전체 복구</button>
+          </div>
+          <div id="demoElevList" class="demo-elev-list"></div>
+        </div>
+      </div>
       <div class="demo-section">
         <button id="demoReset" class="btn btn-ghost btn-block" type="button">↺ 전체 상태 초기화</button>
         <button id="fullscreenToggle" class="btn btn-ghost btn-block" type="button">⛶ 전체화면 모드</button>
