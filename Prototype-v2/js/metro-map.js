@@ -14,14 +14,15 @@
   var MIN_ZOOM = 0.5;
   var MAX_ZOOM = 6;
   var TAP_SLOP = 6;          // px — 이 이하로 움직이면 탭
+  var HIT_PX = 22;           // 역을 누르는 영역 반지름 (화면 px). 지름 44px = --tap-min (REQ-MAP-004)
   var LABEL_K = 0.45;        // 배율(px/지도 단위)이 이보다 작으면 일반역 라벨 숨김 (홈 뷰에서는 환승역 라벨만)
   var LABEL_RELAYOUT = 0.04; // 배율이 이 비율(로그) 이상 바뀌면 라벨 겹침 재계산
   var FOCUS_ZOOM = 2.4;
-  var FOCUS_Y = 0.27;        // 바텀시트(최대 높이 52%)를 피해 상단 27% 지점에 역을 둔다
-  var SHEET_TOP = 0.44;      // 하이라이트 fit 시 사용할 컨테이너 상단 영역 비율
+  var FOCUS_Y = 0.38;        // 역 상세 시트 요약(화면 아래 약 1/4)을 피해, 남은 지도 영역 가운데쯤에 역을 둔다 (REQ-COM-004)
+  var SHEET_TOP = 0.7;       // 우회 경로 맞춤 때 쓰는 지도 위쪽 영역 비율 (시트 요약 위, REQ-COM-004)
   var FILTER_H = 52;         // 상단 노선 필터 칩 높이(px)
   var ANIM_MS = 350;
-  var LABEL_PX = 11;
+  var LABEL_PX = 13;         // 역 이름 화면 크기 (px). --fs-caption과 같은 13px (REQ-MAP-006)
   var CORNER = 22;           // 노선 모서리 라운딩(지도 단위)
 
   var S = null;              // 런타임 상태 (init 후 생성)
@@ -67,7 +68,15 @@
       return typeof s.getStationStatus === 'function' ? (s.getStationStatus(id) || 'UNKNOWN') : 'UNKNOWN';
     } catch (e) { return 'UNKNOWN'; }
   }
-  var STATUS_CLASS = { AVAILABLE: 'ok', PARTIAL: 'warn', UNAVAILABLE: 'bad' };
+  // 역 노드 모양으로 상태를 보여 준다 (REQ-MAP-003)
+  // 일부 운행·이용 불가는 커진 원 + 흰 아이콘. 반지름 14.5 × 최소 배율 0.7 × 2 = 지름 20px 이상
+  var R_ALERT = 14.5;
+  var ICON_PX = 26;
+  function statusIcon(status) {
+    var s = svc();
+    try { if (s && typeof s.getStatusIcon === 'function') return s.getStatusIcon(status); } catch (e) { /* ignore */ }
+    return { PARTIAL: 'error', UNAVAILABLE: 'cancel' }[status] || '';
+  }
 
   // 줌에 따른 심볼 크기 배율 (화면 px 기준). 줌 1 → .75, 2.4 → ~1.03, 상한 1.25
   function sizeFactor(zoom) { return clamp(0.55 + 0.2 * zoom, 0.7, 1.25); }
@@ -201,6 +210,11 @@
       var fs = r5(LABEL_PX / f);
       S.layers.stations.setAttribute('font-size', fs);
       S.layers.markers.setAttribute('font-size', fs);
+      // 누르는 원은 배율과 상관없이 화면 기준 지름 44px (보이지 않음)
+      var hr = r5(HIT_PX / f);
+      for (var hid in S.nodes) {
+        if (Object.prototype.hasOwnProperty.call(S.nodes, hid)) S.nodes[hid].hit.setAttribute('r', hr);
+      }
     }
   }
 
@@ -336,11 +350,11 @@
   function labelCandidates(vecs, r) {
     var g = r + 5;
     var c = [
-      { v: [1, 0], x: g, y: 4, a: 'start', b: 0 },
-      { v: [0, 1], x: 0, y: r + 13, a: 'middle', b: 0.06 },
-      { v: [-1, 0], x: -g, y: 4, a: 'end', b: 0.1 },
-      { v: [0.7071, 0.7071], x: r + 2, y: r + 11, a: 'start', b: 0.14 },
-      { v: [-0.7071, 0.7071], x: -(r + 2), y: r + 11, a: 'end', b: 0.18 },
+      { v: [1, 0], x: g, y: 5, a: 'start', b: 0 },
+      { v: [0, 1], x: 0, y: r + 15, a: 'middle', b: 0.06 },
+      { v: [-1, 0], x: -g, y: 5, a: 'end', b: 0.1 },
+      { v: [0.7071, 0.7071], x: r + 2, y: r + 13, a: 'start', b: 0.14 },
+      { v: [-0.7071, 0.7071], x: -(r + 2), y: r + 13, a: 'end', b: 0.18 },
       { v: [0, -1], x: 0, y: -(r + 7), a: 'middle', b: 0.2 },
       { v: [-0.7071, -0.7071], x: -(r + 2), y: -(r + 4), a: 'end', b: 0.26 },
       { v: [0.7071, -0.7071], x: r + 6, y: -(r + 4), a: 'start', b: 0.3 }
@@ -396,6 +410,13 @@
       var rr = n.r * f + 1, cx = n.st.x * k, cy = n.st.y * k;
       add({ x0: cx - rr, y0: cy - rr, x1: cx + rr, y1: cy + rr, owner: n.st.id });
     }
+    // 우회 경로 역 위의 고장·대체역 꼬리표(makeTag: 폭 최대 47, 높이 20, 노드 위 r+22)도 장애물 (REQ-MAP-006)
+    for (i = 0; i < S.emph.length; i++) {
+      n = S.nodes[S.emph[i]];
+      if (!n) continue;
+      var tx = n.st.x * k, ty = n.st.y * k - (n.r + 22) * f;
+      add({ x0: tx - 24 * f, y0: ty - 10 * f, x1: tx + 24 * f, y1: ty + 10 * f, owner: 'tag-' + n.st.id });
+    }
     function prio(nd) {
       var id = nd.st.id;
       if (id === S.selected) return 1000;
@@ -411,14 +432,18 @@
       var pr = prio(n), must = pr >= 900;
       var chosen = null;
       if (must || !(small && !n.transfer)) {
-        var sx = n.st.x * k, sy = n.st.y * k;
+        var sx = n.st.x * k, sy = n.st.y * k, fallback = null;
+        // 우회 경로 역은 노드 위에 고장·대체역 꼬리표가 붙으므로 이름을 위쪽에 두지 않는다 (REQ-MAP-006)
+        var tagged = S.emph.indexOf(n.st.id) >= 0;
         for (var c = 0; c < n.cands.length; c++) {
           var cd = n.cands[c], ox = cd.x * f, oy = cd.y * f;
+          if (tagged && cd.y < 0) continue;
           var x0 = cd.a === 'start' ? ox : (cd.a === 'end' ? ox - n.w : ox - n.w / 2);
           var b = { x0: sx + x0 - 1, x1: sx + x0 + n.w + 1, y0: sy + oy - fs * 0.85, y1: sy + oy + fs * 0.3, owner: n.st.id };
           if (!hits(b)) { chosen = { cd: cd, b: b }; break; }
-          if (must && c === 0) chosen = { cd: cd, b: b };
+          if (must && !fallback) fallback = { cd: cd, b: b };
         }
+        if (!chosen) chosen = fallback;
       }
       var hide = !chosen;
       if (!hide) {
@@ -451,20 +476,21 @@
       var r = transfer ? 7.5 : 5;
       var g = el('g', { 'class': 'station-node' + (transfer ? ' transfer' : ''), 'data-id': st.id }, parent);
       el('title', null, g).textContent = st.name + '역';
-      el('circle', { 'class': 'select-ring', r: r + 6 }, g);
-      el('circle', { 'class': 'hit', r: 15 }, g);
+      var sel = el('circle', { 'class': 'select-ring', r: r + 6 }, g);
+      var hit = el('circle', { 'class': 'hit', r: 15 }, g);
       var ln = null;
       for (var j = 0; j < lines.length && !ln; j++) ln = getLine(lines[j]);
-      el('circle', { 'class': 'st-circle', r: r, stroke: transfer ? null : (ln && ln.color) || '#64748B' }, g);
+      // 상태가 바뀐 순간에만 퍼지는 고리 (REQ-MAP-003)
+      var ring = el('circle', { 'class': 'status-ring', r: r }, g);
+      var circle = el('circle', { 'class': 'st-circle', r: r, stroke: transfer ? null : (ln && ln.color) || '#64748B' }, g);
+      var icon = el('text', { 'class': 'st-icon', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': ICON_PX }, g);
       var cands = labelCandidates(vecs[st.id], r);
       var lp = cands[0];
       var label = el('text', { 'class': 'station-label', x: lp.x, y: lp.y, 'text-anchor': lp.a }, g);
       label.textContent = st.name;
-      var dx = r * 0.78 + 1.6, dy = -(r * 0.78 + 1.6);
-      var pulse = el('circle', { 'class': 'status-pulse', cx: r2(dx), cy: r2(dy), r: 3.6 }, g);
-      var dot = el('circle', { 'class': 'status-dot', cx: r2(dx), cy: r2(dy), r: transfer ? 3.8 : 3.4 }, g);
       S.nodes[st.id] = {
-        g: g, st: st, dot: dot, pulse: pulse, label: label, cands: cands, cd: lp,
+        g: g, st: st, circle: circle, ring: ring, sel: sel, icon: icon, hit: hit, vec: vecs[st.id],
+        label: label, cands: cands, cd: lp, baseR: r,
         r: r, transfer: transfer, hidden: false, w: textWidth(st.name, LABEL_PX)
       };
       S.scaled.push({ g: g, x: st.x, y: st.y });
@@ -518,8 +544,7 @@
     S.pointerCount++;
     try { S.svg.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     if (S.pointerCount === 1) {
-      var t = e.target && e.target.closest ? e.target.closest('.station-node') : null;
-      S.gesture = { sx: p.x, sy: p.y, moved: 0, multi: false, target: t };
+      S.gesture = { sx: p.x, sy: p.y, moved: 0, multi: false };
       S.pinch = null;
     } else {
       if (S.gesture) S.gesture.multi = true;
@@ -557,12 +582,25 @@
       var g = S.gesture;
       S.gesture = null; S.pinch = null;
       S.svg.classList.remove('dragging');
-      if (!cancelled && g && !g.multi && g.moved < TAP_SLOP) handleTap(g.target);
+      if (!cancelled && g && !g.multi && g.moved < TAP_SLOP) handleTap(stationAt(g.sx, g.sy));
     } else if (S.pointerCount >= 2) {
       S.pinch = pinchInfo();
     } else {
       S.pinch = null;
     }
+  }
+
+  // 누른 곳에서 화면 기준 22px 안에 있는 역 가운데 노드 중심이 가장 가까운 역 (REQ-MAP-004)
+  // 누르는 영역이 이웃 역과 겹쳐도 더 가까운 역이 선택된다
+  function stationAt(px, py) {
+    var t = curT(), best = null, bd = HIT_PX;
+    for (var id in S.nodes) {
+      if (!Object.prototype.hasOwnProperty.call(S.nodes, id)) continue;
+      var n = S.nodes[id];
+      var d = Math.hypot(n.st.x * t.k + t.tx - px, n.st.y * t.k + t.ty - py);
+      if (d <= bd) { bd = d; best = n.g; }
+    }
+    return best;
   }
 
   function handleTap(node) {
@@ -622,19 +660,43 @@
   }
 
   /* ---------------- public API ---------------- */
+  // 고리를 2~3번 퍼뜨리고 멈춘다. 같은 역이 또 바뀌면 처음부터 다시
+  function ping(n) {
+    n.ring.classList.remove('ping');
+    n.ring.getBoundingClientRect();
+    n.ring.classList.add('ping');
+  }
+
+  // 역 노드의 채움·크기·아이콘으로 상태를 보여 준다 (REQ-MAP-003)
+  //   정보 없음: 빈 흰 원 / 정상: 초록으로 찬 원 / 일부 운행·이용 불가: 커진 원 + 흰 아이콘
   function refreshStatuses() {
     if (!S) return;
+    var relayout = false;
     for (var id in S.nodes) {
       if (!Object.prototype.hasOwnProperty.call(S.nodes, id)) continue;
       var n = S.nodes[id];
       var status = stationStatus(id);
-      var cls = STATUS_CLASS[status] || '';
-      n.dot.setAttribute('class', 'status-dot' + (cls ? ' ' + cls : ''));
-      n.pulse.setAttribute('class', 'status-pulse' + (status === 'UNAVAILABLE' ? ' on' : ''));
+      var alert = status === 'PARTIAL' || status === 'UNAVAILABLE';
+      var r = alert ? R_ALERT : n.baseR;
+      if (n.r !== r) {
+        n.r = r;
+        n.circle.setAttribute('r', r);
+        n.ring.setAttribute('r', r);
+        n.sel.setAttribute('r', r + 6);
+        n.cands = labelCandidates(n.vec, r);
+        n.cd = null;
+        relayout = true;
+      }
+      n.icon.textContent = alert ? statusIcon(status) : '';
       n.g.classList.toggle('st-ok', status === 'AVAILABLE');
       n.g.classList.toggle('st-warn', status === 'PARTIAL');
       n.g.classList.toggle('st-bad', status === 'UNAVAILABLE');
+      // 처음 그릴 때는 퍼지지 않는다
+      if (S.statusReady && n.status !== status) ping(n);
+      n.status = status;
     }
+    S.statusReady = true;
+    if (relayout) { S.labelK = 0; layoutLabels(); }
   }
 
   function selectStation(id) {
@@ -672,7 +734,8 @@
   function addMarker(st, kind) {
     var g = el('g', { 'class': kind, 'data-id': st.id }, S.layers.markers);
     var transfer = (st.lines || []).length > 1;
-    var r = transfer ? 7.5 : 5;
+    // 노드의 지금 크기에 맞춘다 (일부 운행·이용 불가 역은 커진 노드, REQ-MAP-003)
+    var r = S.nodes[st.id] ? S.nodes[st.id].r : (transfer ? 7.5 : 5);
     if (kind === 'alt-target') {
       el('circle', { 'class': 'at-pulse', r: r + 7 }, g);
       el('circle', { 'class': 'at-ring', r: r + 6 }, g);
@@ -808,6 +871,12 @@
     var s = svc();
     if (s && typeof s.subscribe === 'function') {
       try { S.unsub = s.subscribe(function () { refreshStatuses(); }); } catch (e) { /* ignore */ }
+    }
+    if (S.svg) {
+      S.svg.addEventListener('animationend', function (e) {
+        var t = e.target;
+        if (t && t.classList && t.classList.contains('status-ring')) t.classList.remove('ping');
+      });
     }
   }
 

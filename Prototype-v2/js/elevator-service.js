@@ -4,9 +4,10 @@
 (function () {
   'use strict';
 
+  // 엘리베이터 상태 이름은 여기서만 정한다. 다른 파일은 getStatusLabel로 가져다 쓴다. (REQ-DS-008)
   var STATUS_LABELS = {
-    AVAILABLE: '정상 운행',
-    PARTIAL: '일부 이용 불가',
+    AVAILABLE: '정상',
+    PARTIAL: '일부 운행',
     UNAVAILABLE: '이용 불가',
     UNKNOWN: '정보 없음'
   };
@@ -220,6 +221,13 @@
     return state.elevators[stationId] || [];
   }
 
+  // 화면에 보여 줄 순서: 멈춘 엘리베이터(고장·점검) → 정상. 같은 상태 안에서는 데이터 순서 유지 (REQ-COM-005)
+  function sortForDisplay(list) {
+    return (list || []).map(function (e, i) { return { e: e, i: i, down: !e || e.status !== 'AVAILABLE' }; })
+      .sort(function (a, b) { return (b.down - a.down) || (a.i - b.i); })
+      .map(function (x) { return x.e; });
+  }
+
   function hasElevatorData(stationId) {
     ensureInit();
     var e = state.elevators[stationId];
@@ -240,6 +248,17 @@
 
   function getStatusLabel(status) {
     return STATUS_LABELS[status] || STATUS_LABELS.UNKNOWN;
+  }
+
+  // 상태 모양(Material Symbols 이름). 색만으로 구분하지 않도록 상태마다 모양을 달리한다. (REQ-DS-003)
+  var STATUS_ICONS = {
+    AVAILABLE: 'check_circle',
+    PARTIAL: 'error',
+    UNAVAILABLE: 'cancel',
+    UNKNOWN: 'help'
+  };
+  function getStatusIcon(status) {
+    return STATUS_ICONS[status] || STATUS_ICONS.UNKNOWN;
   }
 
   // ---------- 변경 ----------
@@ -399,9 +418,11 @@
     findStationsInText: findStationsInText,
     getLine: getLine,
     getElevators: getElevators,
+    sortForDisplay: sortForDisplay,
     hasElevatorData: hasElevatorData,
     getStationStatus: getStationStatus,
     getStatusLabel: getStatusLabel,
+    getStatusIcon: getStatusIcon,
     toggleElevator: toggleElevator,
     setStationBroken: setStationBroken,
     reset: reset,
