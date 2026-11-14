@@ -1,14 +1,14 @@
 # AGENTS.md — FE 에이전트 작업 가이드
 
 이 레포에서 작업하는 AI 코딩 에이전트(Gemini, Claude, Codex 등)가 **가장 먼저** 읽는 문서다.
-`README.md`는 UTF-16으로 저장돼 있어 내용이 거의 없다. 이 문서와 `docs/`가 기준이다.
+프로젝트 소개·설치·실행은 `README.md`, 작업 원칙은 이 문서, 디자인 요구사항은 `docs/`를 기준으로 한다.
 
 ## 1. 이 레포는 무엇인가
 
 우왕톤 7팀 프론트엔드. "엘리베이터 지하철" 모바일 웹 프로토타입. 휠체어·유모차 이용자가 노선도에서 엘리베이터 상태를 보고, 대체역과 출발 시각을 확인하고, AI 챗봇에 묻는다.
 - `Prototype/`: 정적 HTML/CSS/JS 프로토타입 원본 (빌드 없음, `Prototype/index.html`을 브라우저로 열어 확인). **수정하지 않는다.**
-- `Prototype-v2/`: 현재 작업 대상. 노선도를 공식 노선도 배치로 바꾸고 1~8호선만 남김. `Prototype-v2/index.html`로 확인. 화면은 노선도(`#view-map`), 엘리베이터(`#view-elevator`), 출발계산(`#view-time`), AI 챗봇(`#view-chat`)과 계정/즐겨찾기다.
-- `web/`: **React 이전 작업 중**(Vite + React + TypeScript, 2026-11-15 시작). `Prototype-v2`의 화면(`app.js`)만 React로 다시 쓰고, 서비스 JS(`Prototype-v2/js`)와 CSS는 고치지 않고 그대로 불러온다. DOM id·클래스를 기존과 같게 유지해 기존 브라우저 테스트로 동등성을 확인한다. 기능이 다 옮겨질 때까지 `Prototype-v2`가 기준 앱이다. 명령어는 [web/README.md](web/README.md).
+- `Prototype-v2/`: 이전 앱이자 화면 비교 기준. 노선도를 공식 노선도 배치로 바꾸고 1~8호선만 남김. 재사용 서비스와 CSS의 원본을 유지한다.
+- `web/`: **React 앱**(Vite + React + TypeScript). 화면 이전 통합본이 2026-11-15 PR #73으로 main에 반영됐다. `Prototype-v2`의 화면(`app.js`)을 React로 다시 쓰고 서비스 JS·CSS는 그대로 불러온다. DOM id·클래스를 유지해 기존 브라우저 테스트로 동등성을 확인한다. 배포 전환은 별도다. 명령어는 [README.md](README.md)와 [web/README.md](web/README.md).
 - `docs/`: 디자인 요구사항 문서
 - `tests/`: 테스트 (§4)
 
