@@ -250,11 +250,11 @@ body.fullscreen .demo-panel.show { display: block; }
 .demo-sub { font-size: calc(12px * var(--fs-scale)); color: var(--muted); margin-top: 2px; }
 .demo-section { margin-top: 22px; }
 .demo-section .section-label { margin-bottom: 10px; }
-.demo-station-name { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+.demo-station-name { font-size: calc(15px * var(--fs-scale)); font-weight: 800; color: var(--text); margin-bottom: 10px; }
 .demo-station-controls[hidden] { display: none; }
 .demo-station-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .demo-elev-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
-.demo-elev-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.demo-elev-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); font-size: calc(13px * var(--fs-scale)); }
 .demo-elev-loc { flex: 1; min-width: 0; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .demo-elev-status { font-weight: 700; white-space: nowrap; }
 .demo-elev-status.ok { color: var(--ok-text); }
