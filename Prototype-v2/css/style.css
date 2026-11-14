@@ -54,6 +54,7 @@
   --ease-sheet: cubic-bezier(.32, .72, 0, 1);
 
   --station-combo-results-min-width: 240px;
+  --arrival-field-min-width: 120px;
 
   --statusbar-h: 44px;
   --tabbar-h: 64px;
@@ -1076,6 +1077,11 @@ button.summary-card:active { transform: scale(.97); }
   gap: 8px;
 }
 .station-pair .swap-btn { width: 44px; height: 44px; margin: 0; }
+
+.time-options-row { flex-wrap: wrap; }
+.time-options-row .form-field {
+  min-width: min(100%, calc(var(--arrival-field-min-width) * var(--fs-scale)));
+}
 
 .switch {
   display: inline-flex;
