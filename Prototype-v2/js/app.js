@@ -1312,6 +1312,8 @@
     var arriveBy = modeNow && modeNow.checked ? null : (arrive && arrive.value ? arrive.value : null);
     var tc = TC();
     if (!tc || !tc.calculateDeparture) { res.innerHTML = '<div class="empty">출발 시각 계산기를 불러오지 못했어요.</div>'; return; }
+    // 실데이터 모드: BE 경로·출발 시각 API를 쓴다. 모의 계산으로 되돌아가지 않는다.
+    if (window.ApiClient && window.ApiClient.isApiMode()) { submitTimeLive(tc, res, originId, destId, arriveBy); return; }
     var r = safe('calculateDeparture', function () {
       return tc.calculateDeparture({ originId: originId, destId: destId, arriveBy: arriveBy, now: new Date() });
     });
@@ -1322,10 +1324,94 @@
     res.innerHTML = renderTimeResult(r, originId, destId, arriveBy);
   }
 
+  var timeLiveSeq = 0;
+
+  function timeLiveErrorHtml(e) {
+    var code = e && e.code, msg;
+    if (code === 'UNMAPPED_STATION') msg = escapeHtml(yeok(e.slug)) + '은 서버 역 목록과 연결되지 않아 계산할 수 없어요. 다른 역을 골라 주세요.';
+    else if (code === 'SAME_STATION' || (e && e.status === 422 && code === 'VALIDATION_ERROR' && /같/.test(e.message || ''))) msg = '출발역과 도착역이 같아요. 다른 역을 골라 주세요.';
+    else if (e && e.status === 404) msg = '경로를 찾지 못했습니다. 다른 역 조합으로 다시 시도해 주세요.';
+    else if (code === 'NETWORK' || code === 'TIMEOUT') msg = '서버에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
+    else if (code === 'BAD_TIME' || code === 'VALIDATION_ERROR') msg = '입력을 확인해 주세요. ' + escapeHtml(e.message || '');
+    else msg = '출발 시각을 계산하지 못했어요. ' + escapeHtml((e && e.message) || '');
+    return '<div class="empty" role="alert">' + msg + '</div>';
+  }
+
+  // API 모드: 로딩 표시 + 제출 버튼 잠금 → BE 결과 렌더. 나중에 시작한 요청만 화면에 반영한다.
+  function submitTimeLive(tc, res, originId, destId, arriveBy) {
+    var form = byId('timeForm');
+    var btn = form ? form.querySelector('button[type="submit"]') : null;
+    var seq = ++timeLiveSeq;
+    if (btn) btn.disabled = true;
+    res.setAttribute('aria-busy', 'true');
+    res.innerHTML = '<div class="empty" role="status">' + icon('hourglass_top') + ' 서버에서 경로와 출발 시각을 계산하고 있어요…</div>';
+    var run = tc.calculateDepartureLive
+      ? tc.calculateDepartureLive({ originId: originId, destId: destId, arriveBy: arriveBy, now: new Date() })
+      : Promise.reject(new Error('출발 시각 계산기를 불러오지 못했어요.'));
+    run.then(function (r) {
+      if (seq !== timeLiveSeq) return;
+      res.innerHTML = renderTimeResult(r, originId, destId, arriveBy);
+    }, function (e) {
+      if (seq !== timeLiveSeq) return;
+      console.error('[App] calculateDepartureLive 실패:', e);
+      res.innerHTML = timeLiveErrorHtml(e);
+    }).then(function () {
+      if (seq !== timeLiveSeq) return;
+      if (btn) btn.disabled = false;
+      res.removeAttribute('aria-busy');
+    });
+  }
+
+  // 서버 문구는 모두 escapeHtml을 거친다.
+  function liveWarningHtml(r, originId, destId) {
+    var html = '';
+    var st = r.warningStatus;
+    var items = r.elevatorWarnings || [];
+    var title = st === 'CLEAR' ? icon('check_circle') + '확인된 설비 기준으로 경로 위 엘리베이터가 모두 가동 중이에요'
+      : st === 'WARNING' ? icon('warning') + '경로 위 엘리베이터에 주의가 필요해요'
+      : icon('help') + '엘리베이터 상태를 확인하지 못한 역이 있어요';
+    html += '<div class="card"><div class="card-title">' + title + '</div>' +
+      (st === 'CLEAR' ? '<div class="card-sub">확인된 설비 기준이며 이용 가능을 보장하지 않아요. 현장에서 한 번 더 확인해 주세요.</div>'
+        : (r.warningMessage ? '<div class="card-sub">' + escapeHtml(r.warningMessage) + '</div>' : '')) + '</div>';
+    items.forEach(function (w) {
+      var mapped = !!getStation(w.stationId);
+      var kind = w.kind === 'UNCONFIRMED' ? 'UNKNOWN' : w.kind;
+      html += '<div class="card"><div class="card-title">' + icon(statusIcon(kind)) + escapeHtml(yeok(w.stationId)) +
+        ' 엘리베이터 ' + escapeHtml(statusLabel(kind)) + '</div>' +
+        (w.message ? '<div class="card-sub">' + escapeHtml(w.message) + '</div>' : '') +
+        // ALTERNATIVES_HOOK: w.alternative가 채워지면(ElevatorService 비동기 대체역 API) 여기서 대체역을 보여 준다.
+        (mapped ? accessibleRouteHtml(w.stationId, originId, destId) +
+          '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(w.stationId) + '">역 정보 보기</button>' : '') +
+        '</div>';
+    });
+    return html;
+  }
+
+  function liveBasisHtml(r) {
+    var t = r.selectedTrain;
+    var text;
+    if (r.timetableUsed && t) {
+      text = '시간표 열차 기준 · 열차 ' + escapeHtml(t.trainNo) + ' · 계획 탑승 ' + escapeHtml(showTime(t.boardingAt)) +
+        (t.alightingAt ? ' · 계획 하차 ' + escapeHtml(showTime(t.alightingAt)) : '') + ' · 지연은 반영하지 않았어요';
+    } else {
+      text = '추정 · 실제 열차 시간표를 쓰지 않아 탑승할 열차는 확인되지 않았어요';
+    }
+    return '<div class="card-row muted">' + text + '</div>';
+  }
+
+  function liveLimitationsHtml(r) {
+    var list = (r.limitations || []).filter(Boolean);
+    if (!list.length) return '';
+    return '<div class="card"><div class="card-title">알아 둘 점</div><ul class="limit-list">' +
+      list.map(function (l) { return '<li>' + escapeHtml(l) + '</li>'; }).join('') + '</ul></div>';
+  }
+
   function renderTimeResult(r, originId, destId, arriveBy) {
     var html = '';
     var sub;
-    if (r.late) {
+    if (r.live && r.alreadyPast) {
+      sub = '<div class="big-time-sub warn-text">권장 출발 시각이 이미 지났어요 — 희망 도착 시각에 맞추기 어려울 수 있어요</div>';
+    } else if (r.late) {
       sub = '<div class="big-time-sub warn-text">희망 시각까지 도착이 어려워요 — 가장 빠른 도착 ' + escapeHtml(showTime(r.arriveAt)) + '</div>';
     } else if (typeof r.minutesFromNow === 'number' && r.minutesFromNow < 0) {
       sub = '<div class="big-time-sub warn-text">출발 시각이 ' + Math.abs(r.minutesFromNow) + '분 지났어요 — 지금 바로 출발하세요</div>';
@@ -1340,14 +1426,17 @@
     if (r.arriveAt) info.push('도착 ' + escapeHtml(showTime(r.arriveAt)));
     if (typeof route.transfers === 'number') info.push('환승 ' + route.transfers + '회');
     if (arriveBy) info.push('희망 ' + escapeHtml(showTime(arriveBy)));
+    if (r.live && r.dateChanged) info.push('자정을 넘겨 도착');
 
     html += '<div class="card">' +
       '<div class="card-sub">' + escapeHtml(yeok(originId)) + ' → ' + escapeHtml(yeok(destId)) + ' · 집에서 출발 시각</div>' +
       '<div class="big-time">' + bigTimeHtml(r.leaveAt) + '</div>' + sub +
       (info.length ? '<div class="card-row muted">' + info.join(' · ') + '</div>' : '') +
+      (r.live ? liveBasisHtml(r) : '') +
       '</div>';
 
-    (r.elevatorWarnings || []).forEach(function (w) {
+    if (r.live) html += liveWarningHtml(r, originId, destId);
+    else (r.elevatorWarnings || []).forEach(function (w) {
       html += '<div class="card"><div class="card-title">' + icon('warning') + escapeHtml(yeok(w.stationId)) +
         ' 엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</div>' +
         accessibleRouteHtml(w.stationId, originId, destId) +
@@ -1357,6 +1446,7 @@
       html += '<div class="card"><div class="card-title">출발부터 탑승까지</div>' +
         window.DepartureGraphic.render({ departureTime: showTime(r.leaveAt), boardingTime: showTime(r.boardAt), stationName: yeok(originId) }) + '</div>';
     }
+    if (r.live) html += liveLimitationsHtml(r);
     return html;
   }
 

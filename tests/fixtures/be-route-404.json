@@ -1,0 +1,18 @@
+{
+  "_source": {
+    "date": "2026-11-15",
+    "be_commit": "882745c",
+    "db": "copy of BE data/dev.db (scratchpad bedb/copy.db), BE on port 8012"
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/routes?from=31&to=999999"
+  },
+  "status": 404,
+  "response": {
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "요청한 리소스를 찾을 수 없습니다."
+    }
+  }
+}

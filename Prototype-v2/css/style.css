@@ -1969,3 +1969,7 @@ html:not(.ms-ready) .ms {
 .combo-status.bad { color: var(--bad-text); }
 .combo-status.unknown { color: var(--muted); }
 .sheet-accessibility { margin-top: var(--sp-3); }
+
+/* 출발 계산 결과: 서버가 준 한계 안내 목록 */
+.limit-list { margin: var(--sp-2) 0 0; padding-left: var(--sp-5); font-size: var(--fs-label); color: var(--muted); }
+.limit-list li + li { margin-top: var(--sp-1); }

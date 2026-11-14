@@ -1,0 +1,134 @@
+{
+  "_source": {
+    "date": "2026-11-15",
+    "be_commit": "882745c",
+    "db": "copy of BE data/dev.db (scratchpad bedb/copy.db), BE on port 8012"
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/departure-time",
+    "body": {
+      "arrival_at": "2026-12-01T09:00:00+09:00",
+      "travel_minutes": 22,
+      "buffer_minutes": 5,
+      "walk_to_station_minutes": 7,
+      "station_entry_minutes": 3,
+      "exit_walk_minutes": 3,
+      "from_station_id": 31,
+      "to_station_id": 207
+    }
+  },
+  "status": 200,
+  "response": {
+    "recommended_departure_at": "2026-12-01T08:20:00+09:00",
+    "estimated_boarding_at": "2026-12-01T08:35:00+09:00",
+    "estimated_alighting_at": "2026-12-01T08:57:00+09:00",
+    "arrival_at": "2026-12-01T09:00:00+09:00",
+    "total_minutes": 40,
+    "date_changed": false,
+    "already_past": false,
+    "estimated": true,
+    "timetable_used": false,
+    "inputs": {
+      "travel_minutes": 22,
+      "buffer_minutes": 5,
+      "walk_to_station_minutes": 7,
+      "station_entry_minutes": 3,
+      "exit_walk_minutes": 3
+    },
+    "defaults_applied": [],
+    "timeline": [
+      {
+        "kind": "WALK_TO_STATION",
+        "label": "집에서 역까지 도보",
+        "start_at": "2026-12-01T08:20:00+09:00",
+        "end_at": "2026-12-01T08:27:00+09:00",
+        "minutes": 7
+      },
+      {
+        "kind": "STATION_ENTRY",
+        "label": "역 진입",
+        "start_at": "2026-12-01T08:27:00+09:00",
+        "end_at": "2026-12-01T08:30:00+09:00",
+        "minutes": 3
+      },
+      {
+        "kind": "BUFFER",
+        "label": "여유 시간",
+        "start_at": "2026-12-01T08:30:00+09:00",
+        "end_at": "2026-12-01T08:35:00+09:00",
+        "minutes": 5
+      },
+      {
+        "kind": "RIDE",
+        "label": "열차 이동(외부 입력 예상 시간)",
+        "start_at": "2026-12-01T08:35:00+09:00",
+        "end_at": "2026-12-01T08:57:00+09:00",
+        "minutes": 22
+      },
+      {
+        "kind": "EXIT_WALK",
+        "label": "출구 이동",
+        "start_at": "2026-12-01T08:57:00+09:00",
+        "end_at": "2026-12-01T09:00:00+09:00",
+        "minutes": 3
+      }
+    ],
+    "elevator_warning": {
+      "status": "UNCONFIRMED",
+      "items": [
+        {
+          "station_id": 31,
+          "station_name": "강남",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 32,
+          "station_name": "교대(법원, 검찰청)",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 77,
+          "station_name": "고속터미널",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 210,
+          "station_name": "반포",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 209,
+          "station_name": "논현",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 208,
+          "station_name": "학동",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 207,
+          "station_name": "강남구청",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        }
+      ],
+      "message": "경로 위 일부 역의 엘리베이터 상태를 확인하지 못해 경로 전체를 단정할 수 없음"
+    },
+    "selected_train": null,
+    "limitations": [
+      "실제 열차 시간표를 사용하지 않은 추정 계산이며 탑승 가능한 열차는 확인되지 않음",
+      "예상 이동 시간은 외부에서 입력한 값이며 경로 탐색으로 검증되지 않음",
+      "도보·역 진입·출구 이동 시간은 추정값이며 개인과 상황에 따라 다를 수 있음",
+      "환승이 필요한 경로는 시간표로 열차를 고르지 않고 추정 계산을 사용함",
+      "경로 위 일부 역의 엘리베이터 상태를 확인하지 못해 경로 전체를 단정할 수 없음"
+    ]
+  }
+}

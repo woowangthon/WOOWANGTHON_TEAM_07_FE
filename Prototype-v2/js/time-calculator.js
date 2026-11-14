@@ -370,6 +370,167 @@
     };
   }
 
+  // ---------- 실데이터(API) 모드: BE 경로 + 출발 시각 ----------
+  // 계약: BE docs/api-contract.md §8.2(POST /api/departure-time), §8.4(GET /api/routes).
+  // 모의 BFS·배차 모델은 쓰지 않는다. 실패해도 모의 계산으로 되돌아가지 않는다(대회 규칙: 시연에서 Mock 금지).
+  // 오류는 Error(.code): 'UNMAPPED_STATION'(.slug), 'SAME_STATION', 'BAD_TIME', 또는 ApiClient 오류(NETWORK/TIMEOUT/NOT_FOUND/VALIDATION_ERROR, .status).
+  var LIVE_MINUTES = { walk: 7, entry: 3, buffer: 5, exit: 3 }; // BE 기본값과 같다. 명시해서 보낸다(AI와 같은 방식)
+  var idMapLoading = null;
+  function isDate(d) { return Object.prototype.toString.call(d) === '[object Date]'; } // 다른 realm의 Date도 허용
+
+  function liveError(message, code, extra) {
+    var e = new Error(message); e.code = code;
+    if (extra) Object.keys(extra).forEach(function (k) { e[k] = extra[k]; });
+    return e;
+  }
+  function liveApi(opts) { return (opts && opts.api) || (typeof window !== 'undefined' ? window.ApiClient : null); }
+  function liveMap(opts) { return (opts && opts.idMap) || (typeof window !== 'undefined' ? window.StationIdMap : null); }
+
+  async function ensureIdMap(opts) {
+    var map = liveMap(opts);
+    if (!map) throw liveError('역 ID 매핑을 불러오지 못했습니다', 'NETWORK');
+    if (map.getResult && map.getResult()) return map;
+    if (!idMapLoading) {
+      idMapLoading = Promise.resolve(map.load(opts && opts.fetch ? { fetch: opts.fetch } : undefined)).then(function () { idMapLoading = null; }, function (e) { idMapLoading = null; throw e; });
+    }
+    await idMapLoading;
+    return map;
+  }
+
+  // KST 벽시계 (UTC+9). 브라우저 시간대와 무관하게 계산한다.
+  function kstParts(date) {
+    var d = new Date(date.getTime() + 9 * 3600000);
+    return { y: d.getUTCFullYear(), mo: d.getUTCMonth() + 1, d: d.getUTCDate(), min: d.getUTCHours() * 60 + d.getUTCMinutes() };
+  }
+  // 날짜(KST) + 분(1440 이상이면 다음 날로 넘김) → '2026-12-01T09:00:00+09:00'
+  function kstIso(y, mo, d, minutes) {
+    var base = new Date(Date.UTC(y, mo - 1, d) + minutes * 60000);
+    return base.getUTCFullYear() + '-' + pad(base.getUTCMonth() + 1) + '-' + pad(base.getUTCDate()) + 'T' +
+      pad(base.getUTCHours()) + ':' + pad(base.getUTCMinutes()) + ':00+09:00';
+  }
+  function hhmmOfIso(iso) {
+    var m = /T(\d{2}):(\d{2})/.exec(String(iso || ''));
+    return m ? m[1] + ':' + m[2] : null;
+  }
+
+  // 도착 희망 시각 → KST ISO. arriveBy가 없으면(지금 출발) 지금 + 총 소요 + 1분으로 잡아 권장 출발이 지금 근처가 되게 한다.
+  // arriveBy 해석은 모의 경로와 같다: 이미 12시간 넘게 지난 시각이면 내일로 본다(예: 23시에 "00:30" → 내일 00:30).
+  // 12시간 이내로 지난 시각은 오늘 그대로 보내고, BE가 already_past로 알려 준다.
+  function buildArrivalIso(arriveBy, travelMinutes, now) {
+    var n = isDate(now) && !isNaN(now.getTime()) ? now : new Date();
+    var k = kstParts(n);
+    var arrMin;
+    if (arriveBy) {
+      arrMin = toMin(arriveBy);
+      if (arrMin == null) { var p = parseKoreanTime(arriveBy, n); arrMin = p ? toMin(p) : null; }
+      if (arrMin == null) throw liveError('도착 시각 형식을 알 수 없습니다', 'BAD_TIME');
+      if (arrMin < k.min && k.min - arrMin > 12 * 60) arrMin += DAY;
+    } else {
+      arrMin = k.min + LIVE_MINUTES.walk + LIVE_MINUTES.entry + LIVE_MINUTES.buffer + travelMinutes + LIVE_MINUTES.exit + 1;
+    }
+    return kstIso(k.y, k.mo, k.d, arrMin);
+  }
+
+  var LIVE_ICONS = { WALK_TO_STATION: 'accessible', STATION_ENTRY: 'elevator', BUFFER: 'schedule', RIDE: 'subway', EXIT_WALK: 'door_front' };
+
+  function adaptLive(route, dep, map, now) {
+    var tl = dep.timeline || [];
+    var br = { walk: 0, entry: 0, wait: 0, ride: 0, transfer: 0, exitWalk: 0 };
+    tl.forEach(function (t) {
+      if (t.kind === 'WALK_TO_STATION') br.walk += t.minutes;
+      else if (t.kind === 'STATION_ENTRY') br.entry += t.minutes;
+      else if (t.kind === 'BUFFER') br.wait += t.minutes;
+      else if (t.kind === 'RIDE') br.ride += t.minutes;
+      else if (t.kind === 'EXIT_WALK') br.exitWalk += t.minutes;
+    });
+    var transferMin = 0;
+    (route.timeline || []).forEach(function (t) { if (t.kind === 'TRANSFER') transferMin += t.minutes; });
+    var train = dep.selected_train || null;
+    if (!train && transferMin) { br.transfer = transferMin; br.ride = Math.max(0, br.ride - transferMin); } // 추정 이동 시간에 환승이 들어 있다
+
+    function slugOrName(id, name) { var s = map.toSlug(id); return s || name; }
+    var path = (route.stations || []).map(function (s) { return slugOrName(s.station_id, s.station_name); });
+    var legs = (route.timeline || []).filter(function (t) { return t.kind === 'RIDE'; }).map(function (t) {
+      return {
+        lineId: t.line_id, lineName: t.line_name, stops: t.stops,
+        from: slugOrName(t.from_station.station_id, t.from_station.station_name),
+        to: slugOrName(t.to_station.station_id, t.to_station.station_name)
+      };
+    });
+    var stops = legs.reduce(function (a, l) { return a + (l.stops || 0); }, 0);
+
+    var ew = dep.elevator_warning || {};
+    var items = (ew.items || []).map(function (it) {
+      return {
+        stationId: slugOrName(it.station_id, it.station_name), stationName: it.station_name,
+        status: it.kind, kind: it.kind, message: it.message, beStationId: it.station_id,
+        alternative: null // ALTERNATIVES_HOOK: ElevatorService의 비동기 대체역 API가 생기면 여기서 채운다. 지금은 비워 둔다
+      };
+    });
+    var leaveMs = Date.parse(dep.recommended_departure_at);
+    var nowDate = isDate(now) && !isNaN(now.getTime()) ? now : new Date();
+    var last = tl.length ? tl[tl.length - 1] : null;
+    var arriveIso = last && last.end_at ? last.end_at : dep.arrival_at;
+    return {
+      live: true,
+      leaveAt: hhmmOfIso(dep.recommended_departure_at),
+      boardAt: hhmmOfIso(dep.estimated_boarding_at),
+      arriveAt: hhmmOfIso(arriveIso),
+      minutesFromNow: isNaN(leaveMs) ? null : Math.round((leaveMs - nowDate.getTime()) / 60000),
+      late: false,
+      lateByMinutes: 0,
+      arriveBy: hhmmOfIso(dep.arrival_at),
+      route: { path: path, legs: legs, stops: stops, transfers: route.transfer_count || 0, totalMinutes: route.total_minutes, limitations: route.limitations || [] },
+      breakdown: br,
+      timeline: tl.map(function (t) {
+        return { time: hhmmOfIso(t.start_at), endTime: hhmmOfIso(t.end_at), label: t.label, icon: LIVE_ICONS[t.kind] || 'schedule', kind: t.kind, minutes: t.minutes };
+      }),
+      elevatorWarnings: items,
+      warningStatus: ew.status || 'UNCONFIRMED',
+      warningMessage: ew.message || '',
+      limitations: dep.limitations || [],
+      selectedTrain: train ? {
+        trainNo: train.train_no,
+        boardingAt: hhmmOfIso(train.boarding_at || train.boarding_time),
+        alightingAt: hhmmOfIso(train.alighting_at || train.alighting_time)
+      } : null,
+      timetableUsed: !!dep.timetable_used,
+      alreadyPast: !!dep.already_past,
+      dateChanged: !!dep.date_changed,
+      estimated: dep.estimated !== false
+    };
+  }
+
+  // 비동기(API 모드 전용). opts: {originId, destId (FE 슬러그), arriveBy, now, api?, idMap?, fetch?}
+  async function calculateDepartureLive(opts) {
+    opts = opts || {};
+    if (!opts.originId || !opts.destId || opts.originId === opts.destId) throw liveError('출발역과 도착역이 같습니다', 'SAME_STATION');
+    var api = liveApi(opts);
+    if (!api) throw liveError('API 클라이언트를 불러오지 못했습니다', 'NETWORK');
+    var map = await ensureIdMap(opts);
+    var fromId = map.toBeId(opts.originId), toId = map.toBeId(opts.destId);
+    if (fromId == null) throw liveError('출발역을 서버 역 목록과 연결하지 못했습니다', 'UNMAPPED_STATION', { slug: opts.originId });
+    if (toId == null) throw liveError('도착역을 서버 역 목록과 연결하지 못했습니다', 'UNMAPPED_STATION', { slug: opts.destId });
+    var callOpts = opts.fetch ? { fetch: opts.fetch } : undefined;
+
+    var route = await api.getJSON('be', '/api/routes?from=' + fromId + '&to=' + toId, callOpts);
+    var travel = Math.round(Number(route && route.total_minutes));
+    if (!(travel >= 1)) throw liveError('경로 소요 시간을 알 수 없습니다', 'BAD_RESPONSE');
+    var now = isDate(opts.now) && !isNaN(opts.now.getTime()) ? opts.now : new Date();
+    var body = {
+      arrival_at: buildArrivalIso(opts.arriveBy, travel, now),
+      travel_minutes: travel,
+      buffer_minutes: LIVE_MINUTES.buffer,
+      walk_to_station_minutes: LIVE_MINUTES.walk,
+      station_entry_minutes: LIVE_MINUTES.entry,
+      exit_walk_minutes: LIVE_MINUTES.exit,
+      from_station_id: fromId,
+      to_station_id: toId
+    };
+    var dep = await api.postJSON('be', '/api/departure-time', body, callOpts);
+    return adaptLive(route, dep, map, now);
+  }
+
   // ---------- 한국어 시각 파싱 ----------
   var KNUM = { '열한': 11, '열두': 12, '한': 1, '두': 2, '세': 3, '네': 4, '다섯': 5, '여섯': 6, '일곱': 7, '여덟': 8, '아홉': 9, '열': 10 };
 
@@ -422,6 +583,8 @@
   window.TimeCalculator = {
     findRoute: findRoute,
     calculateDeparture: calculateDeparture,
+    calculateDepartureLive: calculateDepartureLive,
+    buildArrivalIso: buildArrivalIso,
     parseKoreanTime: parseKoreanTime,
     formatTime: formatTime,
     addMinutes: addMinutes,

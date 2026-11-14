@@ -1,0 +1,298 @@
+{
+  "_source": {
+    "date": "2026-11-15",
+    "be_commit": "882745c",
+    "db": "copy of BE data/dev.db (scratchpad bedb/copy.db), BE on port 8012"
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/routes?from=31&to=207"
+  },
+  "status": 200,
+  "response": {
+    "from_station": {
+      "station_id": 31,
+      "station_name": "강남"
+    },
+    "to_station": {
+      "station_id": 207,
+      "station_name": "강남구청"
+    },
+    "stations": [
+      {
+        "station_id": 31,
+        "station_name": "강남",
+        "lines": [
+          {
+            "line_id": "2",
+            "line_name": "2호선"
+          }
+        ],
+        "is_transfer": false,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 4,
+          "unknown_elevator_count": 4
+        }
+      },
+      {
+        "station_id": 32,
+        "station_name": "교대(법원, 검찰청)",
+        "lines": [
+          {
+            "line_id": "2",
+            "line_name": "2호선"
+          },
+          {
+            "line_id": "3",
+            "line_name": "3호선"
+          }
+        ],
+        "is_transfer": true,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 5,
+          "unknown_elevator_count": 5
+        }
+      },
+      {
+        "station_id": 77,
+        "station_name": "고속터미널",
+        "lines": [
+          {
+            "line_id": "3",
+            "line_name": "3호선"
+          },
+          {
+            "line_id": "7",
+            "line_name": "7호선"
+          }
+        ],
+        "is_transfer": true,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 5,
+          "unknown_elevator_count": 5
+        }
+      },
+      {
+        "station_id": 210,
+        "station_name": "반포",
+        "lines": [
+          {
+            "line_id": "7",
+            "line_name": "7호선"
+          }
+        ],
+        "is_transfer": false,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 4,
+          "unknown_elevator_count": 4
+        }
+      },
+      {
+        "station_id": 209,
+        "station_name": "논현",
+        "lines": [
+          {
+            "line_id": "7",
+            "line_name": "7호선"
+          }
+        ],
+        "is_transfer": false,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 3,
+          "unknown_elevator_count": 3
+        }
+      },
+      {
+        "station_id": 208,
+        "station_name": "학동",
+        "lines": [
+          {
+            "line_id": "7",
+            "line_name": "7호선"
+          }
+        ],
+        "is_transfer": false,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 3,
+          "unknown_elevator_count": 3
+        }
+      },
+      {
+        "station_id": 207,
+        "station_name": "강남구청",
+        "lines": [
+          {
+            "line_id": "7",
+            "line_name": "7호선"
+          }
+        ],
+        "is_transfer": false,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 2,
+          "unknown_elevator_count": 2
+        }
+      }
+    ],
+    "transfer_count": 2,
+    "total_minutes": 22,
+    "estimated": true,
+    "timeline": [
+      {
+        "kind": "RIDE",
+        "label": "2호선 강남 → 교대(법원, 검찰청)",
+        "minutes": 2,
+        "line_id": "2",
+        "line_name": "2호선",
+        "from_station": {
+          "station_id": 31,
+          "station_name": "강남"
+        },
+        "to_station": {
+          "station_id": 32,
+          "station_name": "교대(법원, 검찰청)"
+        },
+        "stops": 1,
+        "station": null,
+        "from_line_id": null,
+        "to_line_id": null
+      },
+      {
+        "kind": "TRANSFER",
+        "label": "교대(법원, 검찰청)에서 2호선 → 3호선 환승",
+        "minutes": 5,
+        "line_id": null,
+        "line_name": null,
+        "from_station": null,
+        "to_station": null,
+        "stops": null,
+        "station": {
+          "station_id": 32,
+          "station_name": "교대(법원, 검찰청)"
+        },
+        "from_line_id": "2",
+        "to_line_id": "3"
+      },
+      {
+        "kind": "RIDE",
+        "label": "3호선 교대(법원, 검찰청) → 고속터미널",
+        "minutes": 2,
+        "line_id": "3",
+        "line_name": "3호선",
+        "from_station": {
+          "station_id": 32,
+          "station_name": "교대(법원, 검찰청)"
+        },
+        "to_station": {
+          "station_id": 77,
+          "station_name": "고속터미널"
+        },
+        "stops": 1,
+        "station": null,
+        "from_line_id": null,
+        "to_line_id": null
+      },
+      {
+        "kind": "TRANSFER",
+        "label": "고속터미널에서 3호선 → 7호선 환승",
+        "minutes": 5,
+        "line_id": null,
+        "line_name": null,
+        "from_station": null,
+        "to_station": null,
+        "stops": null,
+        "station": {
+          "station_id": 77,
+          "station_name": "고속터미널"
+        },
+        "from_line_id": "3",
+        "to_line_id": "7"
+      },
+      {
+        "kind": "RIDE",
+        "label": "7호선 고속터미널 → 강남구청",
+        "minutes": 8,
+        "line_id": "7",
+        "line_name": "7호선",
+        "from_station": {
+          "station_id": 77,
+          "station_name": "고속터미널"
+        },
+        "to_station": {
+          "station_id": 207,
+          "station_name": "강남구청"
+        },
+        "stops": 4,
+        "station": null,
+        "from_line_id": null,
+        "to_line_id": null
+      }
+    ],
+    "elevator_warning": {
+      "status": "UNCONFIRMED",
+      "items": [
+        {
+          "station_id": 31,
+          "station_name": "강남",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 32,
+          "station_name": "교대(법원, 검찰청)",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 77,
+          "station_name": "고속터미널",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 210,
+          "station_name": "반포",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 209,
+          "station_name": "논현",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 208,
+          "station_name": "학동",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 207,
+          "station_name": "강남구청",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        }
+      ],
+      "message": "경로 위 일부 역의 엘리베이터 상태를 확인하지 못해 경로 전체를 단정할 수 없음"
+    },
+    "limitations": [
+      "소요 시간은 역 간 이동과 환승에 고정 시간을 가정한 추정값이며 실제 열차 시간표와 다를 수 있음",
+      "역 간 연결은 열차 시간표에서 추출한 것이며 공식 인접역 자료로 검증되지 않음",
+      "엘리베이터만으로 이동할 수 있는 환승·출입 동선인지는 검증되지 않음"
+    ]
+  }
+}
