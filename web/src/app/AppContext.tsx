@@ -111,7 +111,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [sheet, currentTab])
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
-  useEffect(() => installCompat(api), [api])
+  // 기존 app.js는 스크립트 끝에서 window.App을 바로 만들었다. 테스트가 DOMContentLoaded 직후 부르므로 layout effect에서 설치한다(main.tsx는 flushSync로 첫 렌더를 동기 커밋).
+  useLayoutEffect(() => installCompat(api), [api])
 
   // 데이터 원천: 실데이터 모드면 BE 상태 불러오기를 시작한다(목업 배지는 AppShell이 apiMode로 숨긴다).
   useEffect(() => {
