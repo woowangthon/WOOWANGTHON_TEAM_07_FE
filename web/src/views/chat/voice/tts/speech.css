@@ -1,0 +1,23 @@
+.chat-speech-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-label);
+  cursor: pointer;
+}
+.chat-speech-button svg { width: var(--icon-md); height: var(--icon-md); fill: currentColor; flex-shrink: 0; }
+.chat-speech-button[aria-pressed="true"] { background: var(--primary-tint); }
+.chat-speech-button:focus-visible, .chat-speech-settings select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.chat-speech-settings { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: var(--sp-2) 0; }
+.chat-speech-settings label { color: var(--text); font-size: var(--fs-label); }
+.chat-speech-settings select { min-height: var(--tap-min); max-width: 100%; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit; padding: var(--sp-1) var(--sp-2); }
+.chat-speech-notice { flex-basis: 100%; margin: 0; color: var(--text-2); font-size: var(--fs-caption); line-height: 1.5; overflow-wrap: anywhere; }
