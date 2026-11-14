@@ -919,7 +919,7 @@ body.fullscreen .demo-panel.show { display: block; }
 }
 button.summary-card:active { transform: scale(.97); }
 .summary-num {
-  font-size: 26px;
+  font-size: calc(26px * var(--fs-scale));
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.03em;
@@ -1489,11 +1489,26 @@ button.summary-card:active { transform: scale(.97); }
 }
 .fav-item:first-child { border-top: none; }
 
-.fav-name {
+.fav-info {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fav-name {
   min-width: 0;
   font-size: 14px;
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-original {
+  font-size: 12px;
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

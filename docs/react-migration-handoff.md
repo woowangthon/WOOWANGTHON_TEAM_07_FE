@@ -101,14 +101,15 @@ React에서는 `_app.tsx`의 `useEffect` 없이 동일 패턴을 `<Script strate
 ## 탭 / 뷰 구조
 
 ```
-#view-map      → <MapView>
-#view-elevator → <ElevatorView>
-#view-time     → <TimeView>
-#view-chat     → <ChatView>
-#view-login    → <LoginView> / <MyPageView>
+#view-map      → <MapView>       (앱 헤더 보임)
+#view-elevator → <ElevatorView>  (앱 헤더 보임)
+#view-time     → <TimeView>      (앱 헤더 숨김)
+#view-chat     → <ChatView>      (앱 헤더 숨김)
+#view-login    → <LoginView> / <MyPageView>  (앱 헤더 숨김)
 ```
 
 - 탭 상태는 현재 `app.js`의 모듈 변수 `currentTab`으로 관리
+- `switchTab(name)` 호출 시 `.app-header`의 `hidden` 속성 토글 (map/elevator만 표시)
 - React 마이그레이션 시 React Router (`/map`, `/elevator`, ...) 또는 단순 상태로 대체
 
 ---
@@ -118,6 +119,36 @@ React에서는 `_app.tsx`의 `useEffect` 없이 동일 패턴을 `<Script strate
 CSS 커스텀 프로퍼티(`--primary`, `--fs-scale` 등)는 `css/style.css` `:root` 에 정의.
 React 마이그레이션 시 Tailwind CSS 변수 또는 CSS Modules로 옮깁니다.
 토큰 목록: [`docs/design-system.md`](design-system.md)
+
+---
+
+## 엘리베이터 탭 커스텀 필터
+
+```ts
+// sessionStorage key: 'elevSubway.elevFilters.v1'
+// 값: JSON 배열 of 노선 ID strings, e.g. ["2", "5"]
+```
+
+- 로그인 사용자 전용 (`AuthService.getSession()` 확인)
+- 기본 필터 (전체/일부 불가) AND 커스텀 노선 필터 (OR 로직)
+- `#customFilterRow` 에 렌더링, `#addFilterBtn` 클릭 → 노선 선택 바텀 시트
+- React 마이그레이션 시 sessionStorage → 사용자 설정 API로 대체
+
+## 출발 시각 계산 — 역 선택 콤보박스
+
+- 기존 `<select>` 를 `<button class="combobox-btn">` + `<input type="hidden">` 으로 교체
+- 클릭 시 `openStationPicker(role, label)` → 바텀 시트 (검색 + 역 목록)
+- 선택 시 `setComboValue(role, id)` → 버튼 텍스트 + hidden input 값 갱신
+- `#originComboBtn` / `#originSelect` (hidden), `#destComboBtn` / `#destSelect` (hidden)
+- React에서는 `<Select>` 컴포넌트 (react-select 또는 직접 구현) + controlled input으로 대체
+
+## 지하철 이동 애니메이션 (즐겨찾기 상세)
+
+- 기본: 정적 (애니메이션 없음)
+- `#subwayDemoPlay` 버튼 클릭 → `.subway-demo-anim.running` 클래스 추가 → CSS `animation: trainMove 3s forwards`
+- 3.2초 후 `running` 제거, 버튼 재활성화
+- `prefers-reduced-motion` 미디어 쿼리에서 `animation: none !important`
+- React에서는 열차 도착 API 연동 후 실제 진행률 계산으로 대체
 
 ---
 

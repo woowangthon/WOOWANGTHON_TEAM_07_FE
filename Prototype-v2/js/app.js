@@ -643,18 +643,21 @@
     }).join('');
     html += '<button type="button" class="chip-add-btn" id="addFilterBtn">＋ 노선</button>';
     row.innerHTML = html;
-    row.addEventListener('click', function (e) {
-      var rmBtn = e.target.closest('[data-remove-filter]');
-      if (rmBtn) {
-        var lineId = rmBtn.getAttribute('data-remove-filter');
-        elevCustomFilters = elevCustomFilters.filter(function (x) { return x !== lineId; });
-        saveElevCustomFilters(elevCustomFilters);
-        renderCustomFilterChips();
-        renderElevatorList();
-        return;
-      }
-      if (e.target.closest('#addFilterBtn')) { openFilterPicker(); }
-    }, { once: true });
+    if (!row.dataset.listenerAdded) {
+      row.dataset.listenerAdded = '1';
+      row.addEventListener('click', function (e) {
+        var rmBtn = e.target.closest('[data-remove-filter]');
+        if (rmBtn) {
+          var lineId = rmBtn.getAttribute('data-remove-filter');
+          elevCustomFilters = elevCustomFilters.filter(function (x) { return x !== lineId; });
+          saveElevCustomFilters(elevCustomFilters);
+          renderCustomFilterChips();
+          renderElevatorList();
+          return;
+        }
+        if (e.target.closest('#addFilterBtn')) { openFilterPicker(); }
+      });
+    }
   }
 
   function openFilterPicker() {
@@ -823,24 +826,91 @@
     if (modeNow && arrive) arrive.disabled = !!modeNow.checked;
   }
 
-  function initTimeTab() {
-    var o = byId('originSelect'), d = byId('destSelect');
-    var stations = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
-    var opts = stations.map(function (s) {
-      var shorts = (s.lines || []).map(function (l) { return getLine(l).short; }).join('·');
-      return '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(yeok(s)) +
-        (shorts ? ' (' + escapeHtml(shorts) + ')' : '') + '</option>';
+  function setComboValue(role, id) {
+    var hid = byId(role + 'Select');
+    var btn = byId(role + 'ComboBtn');
+    if (hid) hid.value = id || '';
+    if (btn) {
+      var s = id ? getStation(id) : null;
+      btn.textContent = s ? yeok(s) : '역 선택';
+    }
+  }
+
+  function renderPickerList(stations, currentId) {
+    if (!stations.length) return '<div class="empty">해당 역이 없습니다</div>';
+    return stations.map(function (s) {
+      return '<div class="station-picker-row' + (s.id === currentId ? ' active' : '') + '" ' +
+        'data-station-id="' + escapeHtml(s.id) + '" role="option" tabindex="0">' +
+        '<span class="station-picker-name">' + escapeHtml(yeok(s)) + '</span>' +
+        lineBadges(s) + '</div>';
     }).join('');
-    if (o) { o.innerHTML = opts; if (hasOption(o, 'sindorim')) o.value = 'sindorim'; }
-    if (d) { d.innerHTML = opts; if (hasOption(d, 'gangnam')) d.value = 'gangnam'; }
+  }
+
+  function openStationPicker(role, labelText) {
+    var stations = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
+    var currentId = (byId(role + 'Select') || {}).value || '';
+
+    var html = '<div class="sheet-header">' +
+      '<div class="sheet-title">' + escapeHtml(labelText) + '</div>' +
+      '</div>' +
+      '<div class="sheet-section">' +
+      '<input type="search" id="stationPickerInput" class="station-picker-input" placeholder="역 이름 검색" autocomplete="off" />' +
+      '</div>' +
+      '<div id="stationPickerList" class="station-picker-list">' +
+      renderPickerList(stations, currentId) +
+      '</div>';
+    setSheetHtml(html, false);
+    openSheetShell();
+
+    var input = byId('stationPickerInput');
+    var listEl = byId('stationPickerList');
+
+    if (input) {
+      input.addEventListener('input', function () {
+        var q = normalizeName(input.value);
+        var filtered = !q ? stations : stations.filter(function (s) {
+          return normalizeName(s.name).indexOf(q) >= 0;
+        });
+        if (listEl) listEl.innerHTML = renderPickerList(filtered, currentId);
+      });
+      setTimeout(function () { try { input.focus(); } catch (e) {} }, 150);
+    }
+
+    if (listEl) {
+      listEl.addEventListener('click', function (e) {
+        var row = e.target.closest('[data-station-id]');
+        if (!row) return;
+        setComboValue(role, row.getAttribute('data-station-id'));
+        closeSheet();
+      });
+      listEl.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var row = e.target.closest('[data-station-id]');
+        if (row) { e.preventDefault(); setComboValue(role, row.getAttribute('data-station-id')); closeSheet(); }
+      });
+    }
+  }
+
+  function initTimeTab() {
+    setComboValue('origin', 'sindorim');
+    setComboValue('dest', 'gangnam');
+
+    var originBtn = byId('originComboBtn');
+    var destBtn = byId('destComboBtn');
+    if (originBtn) originBtn.addEventListener('click', function () { openStationPicker('origin', '출발역 선택'); });
+    if (destBtn) destBtn.addEventListener('click', function () { openStationPicker('dest', '도착역 선택'); });
 
     var arrive = byId('arriveBy');
     if (arrive) arrive.value = defaultArriveBy();
 
     var swap = byId('swapBtn');
-    if (swap && o && d) swap.addEventListener('click', function () {
-      var t = o.value; o.value = d.value; d.value = t;
+    if (swap) swap.addEventListener('click', function () {
+      var oVal = (byId('originSelect') || {}).value || '';
+      var dVal = (byId('destSelect') || {}).value || '';
+      setComboValue('origin', dVal);
+      setComboValue('dest', oVal);
     });
+
     var modeNow = byId('modeNow');
     if (modeNow) modeNow.addEventListener('change', syncTimeMode);
     syncTimeMode();
@@ -861,8 +931,8 @@
   function submitTime() {
     var o = byId('originSelect'), d = byId('destSelect'), arrive = byId('arriveBy'), modeNow = byId('modeNow');
     var res = byId('timeResult');
-    if (!res || !o || !d) return;
-    var originId = o.value, destId = d.value;
+    if (!res) return;
+    var originId = o ? o.value : '', destId = d ? d.value : '';
     if (!originId || !destId) { res.innerHTML = '<div class="empty">출발역과 도착역을 선택해 주세요.</div>'; return; }
     if (originId === destId) { res.innerHTML = '<div class="empty">출발역과 도착역이 같아요. 다른 역을 골라 주세요.</div>'; return; }
     var arriveBy = modeNow && modeNow.checked ? null : (arrive && arrive.value ? arrive.value : null);
@@ -943,9 +1013,9 @@
     opts = opts || {};
     closeSheet();
     switchTab('time');
-    var o = byId('originSelect'), d = byId('destSelect'), arrive = byId('arriveBy'), modeNow = byId('modeNow');
-    if (opts.originId && hasOption(o, opts.originId)) o.value = opts.originId;
-    if (opts.destId && hasOption(d, opts.destId)) d.value = opts.destId;
+    var arrive = byId('arriveBy'), modeNow = byId('modeNow');
+    if (opts.originId) setComboValue('origin', opts.originId);
+    if (opts.destId) setComboValue('dest', opts.destId);
     if (Object.prototype.hasOwnProperty.call(opts, 'arriveBy')) {
       if (opts.arriveBy) {
         if (modeNow) modeNow.checked = false;
@@ -1079,7 +1149,7 @@
     var node = buildBotMsg(resp);
     if (replaceNode && replaceNode.parentNode === m) m.replaceChild(node, replaceNode);
     else m.appendChild(node);
-    renderSuggestions(resp && resp.suggestions);
+    // suggestion chips disabled (REQ-CHAT-xxx)
     scrollChat();
   }
 
@@ -1258,9 +1328,14 @@
     if (empty) empty.hidden = favs.length > 0;
     if (!favs.length) { list.innerHTML = ''; return; }
     list.innerHTML = favs.map(function (fav) {
-      var display = escapeHtml(fav.alias || fav.placeName);
+      var primary = escapeHtml(fav.alias || fav.placeName);
+      var hasAlias = fav.alias && fav.alias !== fav.placeName;
+      var secondary = hasAlias ? '<div class="fav-original">' + escapeHtml(fav.placeName) + '</div>' : '';
       return '<li class="fav-item" data-fav-id="' + escapeHtml(fav.id) + '">' +
-        '<button class="fav-name fav-name-btn" type="button" data-fav-id="' + escapeHtml(fav.id) + '">' + display + '</button>' +
+        '<div class="fav-info">' +
+          '<button class="fav-name fav-name-btn" type="button" data-fav-id="' + escapeHtml(fav.id) + '">' + primary + '</button>' +
+          secondary +
+        '</div>' +
         '<div class="fav-actions">' +
           '<button class="btn btn-sm btn-ghost" type="button" data-fav-rename="' + escapeHtml(fav.id) + '">이름 변경</button>' +
           '<button class="btn btn-sm btn-ghost" type="button" data-fav-delete="' + escapeHtml(fav.id) + '">삭제</button>' +
@@ -1288,9 +1363,10 @@
       '</div>' +
       '<div class="sheet-section">' +
         '<div class="section-label">지하철 이동 (데모)</div>' +
-        '<div class="subway-demo-anim" aria-label="지하철 이동 데모">' +
+        '<div class="subway-demo-anim" id="subwayDemoAnim" aria-label="지하철 이동 데모">' +
           '<div class="subway-track"><span class="subway-train" aria-hidden="true">🚇</span></div>' +
           '<p class="subway-demo-label">실제 열차 위치 연동 대기 중</p>' +
+          '<button type="button" class="btn btn-sm btn-ghost" id="subwayDemoPlay" style="margin-top:8px">▶ 데모 보기</button>' +
         '</div>' +
       '</div>' +
       '<div class="sheet-section">' +
@@ -1298,6 +1374,19 @@
       '</div>';
     setSheetHtml(html, false);
     openSheetShell();
+    var playBtn = byId('subwayDemoPlay');
+    if (playBtn) playBtn.addEventListener('click', function () {
+      var anim = byId('subwayDemoAnim');
+      if (!anim) return;
+      anim.classList.remove('running');
+      void anim.offsetWidth;
+      anim.classList.add('running');
+      playBtn.disabled = true;
+      setTimeout(function () {
+        anim.classList.remove('running');
+        playBtn.disabled = false;
+      }, 3200);
+    });
   }
 
   /* renderFavStations stub — 위치 API 연동 후 구현 */
@@ -1312,7 +1401,7 @@
     var fav = null;
     for (var i = 0; i < favs.length; i++) { if (favs[i].id === favId) { fav = favs[i]; break; } }
     if (!fav) return;
-    var nameEl = item.querySelector('.fav-name');
+    var infoEl = item.querySelector('.fav-info');
     var actionsEl = item.querySelector('.fav-actions');
     var input = document.createElement('input');
     input.type = 'text';
@@ -1347,11 +1436,12 @@
       if (e.key === 'Escape') cancelRename();
     });
 
-    nameEl.style.display = 'none';
-    actionsEl.style.display = 'none';
-    item.insertBefore(input, nameEl);
-    item.insertBefore(confirmBtn, nameEl);
-    item.insertBefore(cancelBtn, nameEl);
+    if (infoEl) infoEl.style.display = 'none';
+    if (actionsEl) actionsEl.style.display = 'none';
+    var anchor = infoEl || actionsEl;
+    item.insertBefore(input, anchor);
+    item.insertBefore(confirmBtn, anchor);
+    item.insertBefore(cancelBtn, anchor);
     input.focus();
     input.select();
   }
@@ -1537,6 +1627,9 @@
     /* 탭 이름 */
     var loginTabLabel = document.querySelector('.tab[data-tab="login"] span:last-child');
     if (loginTabLabel) loginTabLabel.textContent = signedIn ? '마이페이지' : '로그인';
+
+    /* 로그인 상태에 따라 커스텀 필터 행 갱신 */
+    renderCustomFilterChips();
   }
 
   // ---------------------------------------------------------------------------

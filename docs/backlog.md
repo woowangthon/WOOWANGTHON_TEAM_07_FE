@@ -7,7 +7,7 @@
 
 | 대기 | 진행중 | 완료 | 보류 |
 |---|---|---|---|
-| 34 | 0 | 2 | 0 |
+| 32 | 0 | 7 | 0 |
 
 ## 구현 순서
 
@@ -66,3 +66,6 @@
 | [#49](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/49) | 마이페이지 사용자 이름 변경 기능 | P1 | 완료 | 2026-11-14 |
 | [#50](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/50) | 즐겨찾기 장소 상세 바텀시트 | P1 | 완료 | 2026-11-14 |
 | [#51](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/51) | 지하철 이동 애니메이션 (데모) | P2 | 완료 | 2026-11-14 |
+| REQ-ELV-002 (부분) | 요약 카드 inline style 제거 | P0 | 완료 | 2026-11-14 |
+| REQ-TIME-001 (부분) | 출발역·도착역 콤보박스 (역 선택 피커) | P1 | 완료 | 2026-11-14 |
+| REQ-ELV-001 (부분) | 엘리베이터 필터 2개로 축소 + 커스텀 노선 필터 (로그인) | P1 | 완료 | 2026-11-14 |
