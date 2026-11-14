@@ -376,8 +376,63 @@
     mapCall('focusStation', id, {});
     sheet.mode = 'station';
     sheet.stationId = id;
+    lastStationId = id;
     renderStationSheet(false);
+    renderDemoStation();
     openSheetShell();
+  }
+
+  var lastStationId = null;
+
+  function renderDemoStation() {
+    var nameEl = byId('demoStationName');
+    var controls = byId('demoStationControls');
+    var list = byId('demoElevList');
+    if (!nameEl || !controls || !list) return;
+    if (!lastStationId || !getStation(lastStationId)) {
+      nameEl.textContent = '지도에서 역을 선택하세요';
+      controls.hidden = true;
+      list.innerHTML = '';
+      return;
+    }
+    nameEl.textContent = yeok(lastStationId);
+    controls.hidden = false;
+    var elevs = getElevators(lastStationId);
+    list.innerHTML = elevs.length ? elevs.map(function (e) {
+      var down = isDown(e);
+      return '<div class="demo-elev-item">' +
+        '<span class="demo-elev-loc">' + escapeHtml(e.location) + '</span>' +
+        '<span class="demo-elev-status ' + (down ? 'bad' : 'ok') + '">' + escapeHtml(ELEV_STATUS_TEXT[e.status] || e.status) + '</span>' +
+        '<button type="button" class="btn btn-sm ' + (down ? 'btn-primary' : 'btn-ghost') +
+          '" data-demo-elev="' + escapeHtml(e.id) + '">' + (down ? '복구' : '고장') + '</button>' +
+        '</div>';
+    }).join('') : '<div class="muted">엘리베이터 데이터가 없어요</div>';
+  }
+
+  function demoSetStationBroken(broken) {
+    var es = ES();
+    if (!lastStationId || !es || !es.setStationBroken) return;
+    var sid = lastStationId;
+    es.setStationBroken(sid, broken);
+    toast(yeok(sid) + ' 엘리베이터가 ' + (broken ? '모두 고장 상태로 전환되었어요' : '모두 복구되었어요'));
+    if (broken) {
+      var alt = findAlternative(sid);
+      if (alt && alt.station) {
+        setTimeout(function () { mapCall('highlightAlternative', sid, alt.station.id, alt.path); }, 300);
+      }
+    } else {
+      mapCall('clearHighlights');
+    }
+  }
+
+  function demoToggleElevator(eid) {
+    var es = ES();
+    if (!lastStationId || !es || !es.toggleElevator) return;
+    es.toggleElevator(lastStationId, eid);
+    var el = getElevators(lastStationId).filter(function (x) { return x.id === eid; })[0];
+    var loc = el ? ' ' + el.location : '';
+    toast(yeok(lastStationId) + loc + ' 엘리베이터가 ' +
+      (el && isDown(el) ? '고장 상태로 전환되었어요' : '복구되었어요'));
   }
 
   function renderStationSheet(keepScroll) {
@@ -415,13 +470,8 @@
             '<div class="elev-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' +
             (down && e.reason ? '<div class="elev-reason">' + escapeHtml(e.reason) + '</div>' : '') +
           '</div>' +
-          '<button type="button" class="btn btn-sm ' + (down ? 'btn-primary' : 'btn-ghost') +
-            '" data-act="toggle-elev" data-elev="' + escapeHtml(e.id) + '">' + (down ? '복구' : '고장 전환') + '</button>' +
           '</div>';
       }).join('') + '</div>';
-      var allDown = status === 'UNAVAILABLE';
-      html += '<div style="margin-top:10px"><button type="button" class="btn btn-danger btn-block" data-act="station-broken" data-broken="' +
-        (allDown ? '0' : '1') + '">' + (allDown ? '역 전체 복구' : '역 전체 고장 전환 (시연)') + '</button></div>';
     } else {
       html += '<div class="empty">이 역은 엘리베이터 데이터가 아직 없어요</div>';
     }
@@ -498,35 +548,7 @@
     if (!btn) return;
     var act = btn.getAttribute('data-act');
     var sid = sheet.stationId;
-    var es = ES();
     switch (act) {
-      case 'toggle-elev': {
-        var eid = btn.getAttribute('data-elev');
-        if (!es || !es.toggleElevator) return;
-        es.toggleElevator(sid, eid);
-        var el = getElevators(sid).filter(function (x) { return x.id === eid; })[0];
-        var loc = el ? ' ' + el.location : '';
-        toast(yeok(sid) + loc + ' 엘리베이터가 ' +
-          (el && isDown(el) ? '고장 상태로 전환되었어요' : '복구되었어요'));
-        refreshSheet();
-        break;
-      }
-      case 'station-broken': {
-        if (!es || !es.setStationBroken) return;
-        var broken = btn.getAttribute('data-broken') === '1';
-        es.setStationBroken(sid, broken);
-        toast(yeok(sid) + ' 엘리베이터가 ' + (broken ? '고장 상태로 전환되었어요' : '모두 복구되었어요'));
-        refreshSheet();
-        if (broken) {
-          var alt = findAlternative(sid);
-          if (alt && alt.station) {
-            setTimeout(function () { mapCall('highlightAlternative', sid, alt.station.id, alt.path); }, 300);
-          }
-        } else {
-          mapCall('clearHighlights');
-        }
-        break;
-      }
       case 'detour': {
         var a = sheet.alt;
         if (a && a.station) mapCall('highlightAlternative', sid, a.station.id, a.path);
@@ -776,15 +798,22 @@
     var items = dataStations();
     var counts = { AVAILABLE: 0, PARTIAL: 0, UNAVAILABLE: 0 };
     items.forEach(function (x) { if (counts[x.status] !== undefined) counts[x.status]++; });
+    var SUMMARY_ICONS = {
+      ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M8 12.5l2.5 2.5L16 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.2v.1" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
+      bad: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+    };
     var cards = [
       { key: 'AVAILABLE', cls: 'ok', label: '정상' },
-      { key: 'PARTIAL', cls: 'warn', label: '일부 불가' },
+      { key: 'PARTIAL', cls: 'warn', label: '일부 운행' },
       { key: 'UNAVAILABLE', cls: 'bad', label: '이용 불가' }
     ];
     el.innerHTML = cards.map(function (c) {
       return '<div class="summary-card ' + c.cls + '">' +
-        '<div class="summary-num">' + counts[c.key] + '</div>' +
-        '<div class="summary-label">' + escapeHtml(c.label) + '</div></div>';
+        '<span class="summary-icon">' + SUMMARY_ICONS[c.cls] + '</span>' +
+        '<span class="summary-label">' + escapeHtml(c.label) + '</span>' +
+        '<div class="summary-body"><div class="summary-num">' + counts[c.key] + '<span class="summary-unit">역</span></div></div>' +
+        '</div>';
     }).join('');
   }
 
@@ -1279,6 +1308,16 @@
         if (b) runScenario(b.getAttribute('data-scenario'));
       });
     }
+    var stationBreak = byId('demoStationBreak');
+    if (stationBreak) stationBreak.addEventListener('click', function () { demoSetStationBroken(true); });
+    var stationRestore = byId('demoStationRestore');
+    if (stationRestore) stationRestore.addEventListener('click', function () { demoSetStationBroken(false); });
+    var elevList = byId('demoElevList');
+    if (elevList) elevList.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-demo-elev]');
+      if (b) demoToggleElevator(b.getAttribute('data-demo-elev'));
+    });
+    renderDemoStation();
     var reset = byId('demoReset');
     if (reset) reset.addEventListener('click', resetDemo);
     var fs = byId('fullscreenToggle');
@@ -1813,6 +1852,7 @@
     es.subscribe(function () {
       safe('refreshSheet', refreshSheet);
       safe('renderElevatorTab', renderElevatorTab);
+      safe('renderDemoStation', renderDemoStation);
     });
   }
 
