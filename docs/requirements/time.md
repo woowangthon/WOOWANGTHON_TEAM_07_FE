@@ -153,3 +153,26 @@
 - 관련: REQ-ELV-004, REQ-DS-003
 
 **작업 기록**
+
+
+### REQ-TIME-006 출발부터 탑승까지의 결과 그래픽
+
+- 상태: 완료
+- 우선순위: P1
+- 등록일: 2026-11-15
+- Issue: #62 (Refs #60)
+- 대상: `Prototype-v2/js/departure-graphic.js`, `css/departure-graphic.css`, `app.js` `renderTimeResult`, `ai-agent.js` 출발 계산 응답
+
+**요구사항**
+큰 출발 권장 시각을 유지하고 그래픽은 출발 → 탑승 두 단계만 표시한다. 실제 위치와 무관한 짧은 일회성 지하철 장식 움직임임을 알리고, 글자 크기 확대와 prefers-reduced-motion을 지원한다. 계산의 도착 시각 텍스트는 유지한다. 기존 REQ-TIME-003/004의 도착까지 타임라인 제안보다 이번 그래픽 범위가 우선한다.
+
+**완료 조건**
+- [x] 결과와 챗봇의 큰 시각 유지, 그래픽에 도착 없음
+- [x] 짧은 일회성 움직임과 실제 열차 위치 아님 안내
+- [x] 375px·글자4단계·reduced-motion 브라우저 검증
+
+**작업 기록**
+- 2026-11-15 인계 문서 확인·계획 기록, FE Issue #62 생성 후 시작.
+
+- 구현: 공용 departure-graphic JS/CSS, app.js 결과·ai-agent.js 응답 연결. 시간 계산 데이터의 timeline은 유지하지만 결과 그래픽에는 사용하지 않는다.
+- 검증: 전용 Node 5개 및 실제 Chromium 33 assertions 통과. [검증 기록](../qa-2026-11-15.md).

@@ -1045,17 +1045,9 @@
         }).join('') + '</div></div>';
     }
 
-    // 타임라인
-    var tl = r.timeline || [];
-    if (tl.length) {
-      html += '<div class="card"><div class="card-title">타임라인</div><div class="timeline">' +
-        tl.map(function (t) {
-          return '<div class="timeline-item">' +
-            '<span class="timeline-time">' + escapeHtml(t.time) + '</span>' +
-            '<span class="timeline-icon">' + escapeHtml(t.icon || '•') + '</span>' +
-            '<span class="timeline-label">' + escapeHtml(t.label) + '</span></div>';
-        }).join('') + '</div></div>';
-    }
+    // 출발부터 탑승까지의 안내 그래픽 (실제 열차 위치와 무관)
+    html += '<div class="card"><div class="card-title">출발부터 탑승까지</div>' +
+      window.DepartureGraphic.render({ departureTime: r.leaveAt, boardingTime: r.boardAt, stationName: yeok(originId) }) + '</div>';
     return html;
   }
 

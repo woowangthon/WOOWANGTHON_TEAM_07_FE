@@ -178,17 +178,6 @@
     }).join('') + '</div>';
   }
 
-  function timelineHtml(timeline) {
-    if (!Array.isArray(timeline) || !timeline.length) return '';
-    return '<div class="timeline">' + timeline.map(function (t) {
-      return '<div class="timeline-item">' +
-        '<span class="timeline-time">' + esc(t.time) + '</span>' +
-        '<span class="timeline-icon">' + esc(t.icon || '•') + '</span>' +
-        '<span class="timeline-label">' + esc(t.label) + '</span>' +
-        '</div>';
-    }).join('') + '</div>';
-  }
-
   // ---------------------------------------------------------------------------
   // Response 생성
   // ---------------------------------------------------------------------------
@@ -427,7 +416,7 @@
       html += '<div class="card-sub">' + esc(route.stops) + '개역 · 환승 ' + esc(route.transfers) + '회 · 탑승 약 ' + esc(route.rideMinutes) + '분 · ' + esc(r.arriveAt) + ' 도착</div>';
       html += routeLegsHtml(route);
     }
-    html += timelineHtml(r.timeline);
+    html += window.DepartureGraphic.render({ departureTime: r.leaveAt, boardingTime: r.boardAt, stationName: stName(origin) });
 
     // 엘리베이터 경고: 계산기 제공분 + 환승역
     var warnIds = [];
