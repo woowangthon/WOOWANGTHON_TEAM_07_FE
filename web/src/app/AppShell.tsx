@@ -1,6 +1,6 @@
 // 앱 틀: Prototype-v2/index.html의 body 마크업(desktop-stage > 시연 패널 + #phone)을 그대로 옮겼다.
 // 화면별 내용은 src/views/*, 시트 내용은 src/sheets/*, 시연 패널은 DemoPanel.tsx가 맡는다.
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject, type ReactNode } from 'react'
 import { useApp } from './context'
 import { BottomSheet } from './BottomSheet'
 import { DemoPanel } from './DemoPanel'
@@ -38,7 +38,7 @@ function useLockPhoneScroll(ref: RefObject<HTMLDivElement | null>) {
   }, [ref])
 }
 
-export function AppShell() {
+export function AppShell({ welcomeControl }: { welcomeControl?: ReactNode }) {
   const { currentTab, sheet, openSheet, closeSheet, toastMessage, toastVisible } = useApp()
   const phoneRef = useRef<HTMLDivElement>(null)
   // 목업 모드 표시(가상 데이터를 실제로 오해하지 않게). 실데이터 모드에서는 숨긴다. 시작 때 한 번 정한다.
@@ -53,6 +53,7 @@ export function AppShell() {
       {/* 모바일 폰 프레임 */}
       <div id="phone" ref={phoneRef} className="phone">
         <StatusBar />
+        {welcomeControl}
 
         <header className="app-header" hidden={currentTab === 'time' || currentTab === 'chat' || currentTab === 'login'}>
           <div id="dataSourceBadge" className="data-badge" role="status" hidden={!mockBadge}><Icon name="science" />목업 데이터 · 실제 상태가 아니에요</div>

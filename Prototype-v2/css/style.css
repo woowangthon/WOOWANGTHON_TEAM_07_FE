@@ -17,13 +17,13 @@
   --muted-2: #9CA3AF;
   --border: #E5E7EB;
   --border-strong: #D1D5DB;
-  --primary: #FFD400;          /* 점자블록 옐로. 넓은 면에만 쓴다 */
-  --primary-press: #F0C400;
-  --primary-tint: #FFF6CC;
-  --on-primary: #111827;       /* 노랑 면 위 글자, 아이콘 */
-  --primary-text: #8A6A00;     /* 흰 배경 위 브랜드 계열 글자 */
-  --primary-glow: rgba(255, 212, 0, .35);   /* 포커스 테두리 바깥 빛, 선택 링 채움 */
-  --primary-shadow: rgba(138, 106, 0, .22); /* 노랑 버튼, 말풍선 그림자 */
+  --primary: #2563EB;          /* 대표 색상: 파랑 */
+  --primary-press: #1D4ED8;
+  --primary-tint: #EFF6FF;
+  --on-primary: #FFFFFF;       /* 파랑 면 위 글자, 아이콘 */
+  --primary-text: #1D4ED8;     /* 흰 배경 위 브랜드 계열 글자 */
+  --primary-glow: rgba(37, 99, 235, .25);   /* 포커스 테두리 바깥 빛, 선택 링 채움 */
+  --primary-shadow: rgba(29, 78, 216, .22); /* 파랑 버튼, 말풍선 그림자 */
   --focus: #111827;            /* 포커스 테두리 */
   --ok: #16A34A;
   --ok-text: #15803D;
@@ -1026,7 +1026,7 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
   border-radius: 50%;
 }
 .timeline-item:first-child .timeline-icon,
-.timeline-item:last-child .timeline-icon { border-color: var(--on-primary); background: var(--primary); }
+.timeline-item:last-child .timeline-icon { color: var(--on-primary); border-color: var(--primary); background: var(--primary); }
 .timeline-label { font-size: var(--fs-label); color: var(--text-2); min-width: 0; }
 /* 엘리베이터 문제가 있는 단계 (REQ-TIME-004) */
 .timeline-item.has-warn { align-items: start; }
@@ -1138,7 +1138,7 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
   border: 0;
 }
 .filter-tab.active { color: var(--text); font-weight: var(--fw-bold); }
-/* 고른 탭 밑줄. 흰 바탕 위 얇은 선이라 노랑 대신 차콜 (노랑 사용 규칙) */
+/* 고른 탭 밑줄은 흰 바탕에서도 구분되는 브랜드 파랑 */
 .filter-tab.active::after {
   content: "";
   position: absolute;
@@ -1147,7 +1147,7 @@ html:not(.ms-ready) .station-row:not(:has(.chevron))::after { color: transparent
   bottom: -1px;
   height: 3px;
   border-radius: 3px 3px 0 0;
-  background: var(--on-primary);
+  background: var(--primary);
 }
 .filter-tab[aria-expanded="true"] > .ms { transform: rotate(180deg); }
 /* 호선 칩 두 줄 (REQ-ELV-005) */
@@ -1770,7 +1770,7 @@ body[data-active-tab="login"] .app-header { display: none; }
   color: var(--text-2);
 }
 .fontsize-chip:hover { border-color: var(--focus); }
-.fontsize-chip.active { border-color: var(--on-primary); background: var(--primary); color: var(--on-primary); font-weight: var(--fw-bold); }
+.fontsize-chip.active { border-color: var(--primary); background: var(--primary); color: var(--on-primary); font-weight: var(--fw-bold); }
 .auth-signout-btn { margin-top: var(--sp-4); background: var(--logout-blue); color: var(--on-logout); border: 0; }
 .auth-signout-btn:hover { background: var(--logout-blue-press); }
 

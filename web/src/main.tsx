@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
-import App from './App'
+import Welcome from './views/welcome/Welcome'
 import { missingServices } from './legacy/services'
 
 const missing = missingServices()
@@ -11,5 +11,5 @@ if (missing.length) {
   root.render(<p role="alert">서비스 스크립트를 불러오지 못했습니다: {missing.join(', ')}</p>)
 } else {
   // 첫 화면과 window.App을 DOMContentLoaded 전에 준비한다(기존 app.js와 같은 시점, 브라우저 테스트가 의존).
-  flushSync(() => root.render(<StrictMode><App /></StrictMode>))
+  flushSync(() => root.render(<StrictMode><Welcome /></StrictMode>))
 }
