@@ -613,7 +613,7 @@ body.fullscreen .demo-panel.show { display: block; }
 .btn-ghost { color: var(--text-2); background: var(--surface); border-color: var(--border); }
 .btn-ghost:hover { background: var(--surface-2); border-color: var(--border-strong); }
 
-.btn-sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: 10px; gap: 4px; }
+.btn-sm { min-height: 44px; padding: 0 12px; font-size: 13px; border-radius: 10px; gap: 4px; }
 .btn-block { display: flex; width: 100%; }
 .btn-block + .btn-block { margin-top: 8px; }
 
@@ -1030,6 +1030,8 @@ button.summary-card:active { transform: scale(.97); }
   transition: transform .35s var(--ease), box-shadow .2s var(--ease);
 }
 .swap-btn:active { transform: rotate(180deg) scale(.92); }
+.station-pair { flex-direction: column; align-items: stretch; gap: 8px; }
+.station-pair .swap-btn { align-self: center; width: 44px; height: 44px; margin: 0; }
 
 .switch {
   display: inline-flex;
@@ -1260,8 +1262,7 @@ button.summary-card:active { transform: scale(.97); }
    -------------------------------------------------------------------------- */
 
 /* ── 공통 ─────────────────────────────────────────── */
-.auth-state[hidden]  { display: none; }
-.auth-loading[hidden]{ display: none; }
+[hidden] { display: none !important; }
 
 /* ── 세션 확인 중 로딩 (real 모드) ───────────────── */
 .auth-loading {

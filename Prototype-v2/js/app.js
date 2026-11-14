@@ -1287,7 +1287,7 @@
     function render(q) {
       if (q === undefined) q = input ? input.value.trim() : '';
       if (!q) {
-        current = allStations().sort(function (a, b) { return koCompare(a.name, b.name); }).slice(0, 20);
+        current = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
       } else {
         current = searchStations(q);
       }
@@ -1320,7 +1320,8 @@
     }
 
     if (input) {
-      input.addEventListener('focus', function () { clear(); render(); });
+      input.addEventListener('focus', function () { input.select(); render(''); });
+      input.addEventListener('click', function () { if (results.hidden) render(committed ? '' : undefined); });
       input.addEventListener('input', function () { clear(); render(); });
       input.addEventListener('blur', function () { setTimeout(function () { results.hidden = true; setAria(false); }, 180); });
       input.addEventListener('keydown', function (e) {

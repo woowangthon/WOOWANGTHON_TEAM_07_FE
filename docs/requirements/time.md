@@ -9,7 +9,7 @@
 
 ### REQ-TIME-001 출발역·도착역을 검색해서 고르기
 
-- 상태: 대기
+- 상태: 진행중
 - 우선순위: P1 (제안)
 - 등록일: 2026-11-11
 - 대상:
@@ -45,6 +45,12 @@
 - 관련: REQ-COM-004 (바텀시트 두 단계 높이), REQ-DS-003, REQ-DS-006
 
 **작업 기록**
+- 2026-11-14 (PR #48 브랜치, 이슈 #28)
+  - `Prototype-v2/index.html`: `#originComboBtn`, `#destComboBtn`, `#originSelect`, `#destSelect` 제거. 검색 입력(`#originSearch`, `#destSearch`), 결과 목록(`#originResults`, `#destResults`), 숨은 입력(`#originValue`, `#destValue`)으로 교체. 출발·도착 행은 세로 배치(`.station-pair`), 교환 버튼 44px.
+  - `Prototype-v2/js/app.js`: `initStationCombo`(포커스 시 전체 목록, 입력 시 검색, 선택 시 역 이름만 표시), `submitTime`·`openTime`은 `getIdSafe`·`set`으로 연결.
+  - `Prototype-v2/css/style.css`: `.station-combo-*`, `.combo-*`, `.station-pair`.
+- 요구사항과의 차이 (결정 필요): 요구 1은 바텀시트 검색을 정했고, 최근 고른 역(요구 5)과 결과의 엘리베이터 상태 아이콘(요구 1)은 아직 없다. 2026-11-14 요청은 입력창 안 자동완성으로 정했다. 둘 중 어느 쪽으로 갈지 정해야 한다.
+- 검증: 스크래치패드 `test-round3.js` 1-1~1-11 통과, `test-ux.js` 22개 통과.
 
 ### REQ-TIME-002 "도착 시각 맞추기 / 지금 출발"을 선택 버튼으로
 
