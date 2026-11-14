@@ -1299,7 +1299,7 @@
       input.value = st ? yeok(st) : '';
       close();
     }
-    function pick(id) { set(id); if (select.value) rememberStation(id); }
+    function pick(id) { set(id); if (select.value) rememberStation(id); invalidateTimeResult(); }
     input.addEventListener('focus', function () { input.select(); render(''); });
     input.addEventListener('click', function () { if (results.hidden) render(''); });
     input.addEventListener('input', function () { select.value = ''; render(input.value.trim()); });
@@ -1325,6 +1325,53 @@
     return { set: set, close: close };
   }
 
+  var departureMinuteFields = [
+    { id: 'walkToStationMinutes', label: '역까지 이동', max: 120, value: 7 },
+    { id: 'stationEntryMinutes', label: '역 안에서 승강장까지', max: 120, value: 3 },
+    { id: 'exitWalkMinutes', label: '도착역에서 목적지까지', max: 120, value: 3 },
+    { id: 'bufferMinutes', label: '추가 여유시간', max: 240, value: 5 }
+  ];
+
+  function invalidateTimeResult() {
+    timeLiveSeq += 1;
+    var res = byId('timeResult'), form = byId('timeForm');
+    var btn = form && form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = false;
+    if (res) {
+      res.removeAttribute('aria-busy');
+      res.innerHTML = '<div class="empty" role="status">입력이 바뀌었어요. 다시 계산해 주세요.</div>';
+    }
+  }
+
+  function readDepartureMinutes(focusError) {
+    var opts = {}, invalid = null;
+    departureMinuteFields.forEach(function (f) {
+      var el = byId(f.id), raw = el ? el.value : String(f.value);
+      var value = raw.trim() === '' ? NaN : Number(raw);
+      var valid = Number.isInteger(value) && value >= 0 && value <= f.max;
+      if (el) el.setAttribute('aria-invalid', valid ? 'false' : 'true');
+      if (!valid && !invalid) invalid = { field: f, el: el };
+      opts[f.id] = value;
+    });
+    var error = byId('departureMinutesError');
+    if (error) {
+      error.hidden = !invalid;
+      error.textContent = invalid ? invalid.field.label + ' 시간을 0~' + invalid.field.max + ' 사이의 정수(분)로 입력해 주세요.' : '';
+    }
+    var summary = byId('departureMinutesSummary');
+    if (summary) {
+      var defaults = departureMinuteFields.every(function (f) { return opts[f.id] === f.value; });
+      summary.textContent = invalid ? '이동 시간 입력을 확인해 주세요.' :
+        (defaults ? '기본 추정값' : '직접 정한 시간') + ' · 역까지 ' + opts.walkToStationMinutes + '분 · 역 안 ' + opts.stationEntryMinutes + '분 · 하차 후 ' + opts.exitWalkMinutes + '분 · 여유 ' + opts.bufferMinutes + '분';
+    }
+    if (invalid && focusError) {
+      var details = byId('departureMinutes');
+      if (details) details.open = true;
+      if (invalid.el) invalid.el.focus();
+    }
+    return invalid ? null : opts;
+  }
+
   function initTimeTab() {
     var o = byId('originSelect'), d = byId('destSelect');
     var stations = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
@@ -1345,6 +1392,7 @@
     if (swap && o && d) swap.addEventListener('click', function () {
       var t = o.value; o.value = d.value; d.value = t;
       renderStationFields();
+      invalidateTimeResult();
     });
     renderStationFields();
     var modeNow = byId('modeNow'), seg = byId('timeMode');
@@ -1353,11 +1401,28 @@
       if (!b) return;
       modeNow.checked = b.getAttribute('data-mode') === 'now';
       syncTimeMode();
+      invalidateTimeResult();
     });
     syncTimeMode();
 
     var form = byId('timeForm');
     if (form) form.addEventListener('submit', function (e) { e.preventDefault(); submitTime(); });
+    if (form) {
+      form.addEventListener('input', function () { readDepartureMinutes(false); invalidateTimeResult(); });
+      form.addEventListener('change', function () { readDepartureMinutes(false); invalidateTimeResult(); });
+      form.addEventListener('click', function (e) {
+        var preset = e.target.closest('[data-departure-buffer]');
+        if (preset) {
+          byId('bufferMinutes').value = preset.getAttribute('data-departure-buffer');
+          readDepartureMinutes(false); invalidateTimeResult();
+        }
+      });
+    }
+    var reset = byId('departureMinutesReset');
+    if (reset) reset.addEventListener('click', function () {
+      departureMinuteFields.forEach(function (f) { var el = byId(f.id); if (el) el.value = f.value; });
+      readDepartureMinutes(false); invalidateTimeResult();
+    });
 
     var res = byId('timeResult');
     if (res) {
@@ -1373,6 +1438,12 @@
     var o = byId('originSelect'), d = byId('destSelect'), arrive = byId('arriveBy'), modeNow = byId('modeNow');
     var res = byId('timeResult');
     if (!res || !o || !d) return;
+    timeLiveSeq += 1;
+    var submitBtn = byId('timeForm').querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = false;
+    res.removeAttribute('aria-busy');
+    var minutes = readDepartureMinutes(true);
+    if (!minutes) { res.innerHTML = '<div class="empty">이동 시간 입력을 확인해 주세요.</div>'; return; }
     var originId = o.value, destId = d.value;
     if (!originId || !destId) { res.innerHTML = '<div class="empty">출발역과 도착역을 선택해 주세요.</div>'; return; }
     if (originId === destId) { res.innerHTML = '<div class="empty">출발역과 도착역이 같아요. 다른 역을 골라 주세요.</div>'; return; }
@@ -1380,9 +1451,9 @@
     var tc = TC();
     if (!tc || !tc.calculateDeparture) { res.innerHTML = '<div class="empty">출발 시각 계산기를 불러오지 못했어요.</div>'; return; }
     // 실데이터 모드: BE 경로·출발 시각 API를 쓴다. 모의 계산으로 되돌아가지 않는다.
-    if (window.ApiClient && window.ApiClient.isApiMode()) { submitTimeLive(tc, res, originId, destId, arriveBy); return; }
+    if (window.ApiClient && window.ApiClient.isApiMode()) { submitTimeLive(tc, res, originId, destId, arriveBy, minutes); return; }
     var r = safe('calculateDeparture', function () {
-      return tc.calculateDeparture({ originId: originId, destId: destId, arriveBy: arriveBy, now: new Date() });
+      return tc.calculateDeparture(Object.assign({ originId: originId, destId: destId, arriveBy: arriveBy, now: new Date() }, minutes));
     });
     if (!r) {
       res.innerHTML = '<div class="empty">경로를 찾지 못했어요. 다른 역 조합으로 다시 시도해 주세요.</div>';
@@ -1405,7 +1476,7 @@
   }
 
   // API 모드: 로딩 표시 + 제출 버튼 잠금 → BE 결과 렌더. 나중에 시작한 요청만 화면에 반영한다.
-  function submitTimeLive(tc, res, originId, destId, arriveBy) {
+  function submitTimeLive(tc, res, originId, destId, arriveBy, minutes) {
     var form = byId('timeForm');
     var btn = form ? form.querySelector('button[type="submit"]') : null;
     var seq = ++timeLiveSeq;
@@ -1413,7 +1484,7 @@
     res.setAttribute('aria-busy', 'true');
     res.innerHTML = '<div class="empty" role="status">' + icon('hourglass_top') + ' 서버에서 경로와 출발 시각을 계산하고 있어요…</div>';
     var run = tc.calculateDepartureLive
-      ? tc.calculateDepartureLive({ originId: originId, destId: destId, arriveBy: arriveBy, now: new Date() })
+      ? tc.calculateDepartureLive(Object.assign({ originId: originId, destId: destId, arriveBy: arriveBy, now: new Date() }, minutes))
       : Promise.reject(new Error('출발 시각 계산기를 불러오지 못했어요.'));
     run.then(function (r) {
       if (seq !== timeLiveSeq) return;
@@ -1500,6 +1571,7 @@
       '<div class="big-time">' + bigTimeHtml(r.leaveAt) + '</div>' + sub +
       (info.length ? '<div class="card-row muted">' + info.join(' · ') + '</div>' : '') +
       (r.live ? liveBasisHtml(r) : '') +
+      (r.inputMinutes ? '<div class="card-row muted">계산에 반영한 시간 · 역까지 ' + escapeHtml(r.inputMinutes.walk) + '분 · 역 안 ' + escapeHtml(r.inputMinutes.entry) + '분 · 하차 후 ' + escapeHtml(r.inputMinutes.exit) + '분 · 여유 ' + escapeHtml(r.inputMinutes.buffer) + '분</div>' : '') +
       '</div>';
 
     if (r.live) html += liveWarningHtml(r, originId, destId);

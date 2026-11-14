@@ -89,6 +89,7 @@ export function TimeResultView({ m }: { m: ResultModel }) {
         <Sub r={r} />
         {info.length ? <div className="card-row muted">{info.join(' · ')}</div> : null}
         {r.live ? <LiveBasis r={r} /> : null}
+        {r.inputMinutes ? <div className="card-row muted">반영한 이동 시간 · 역까지 {r.inputMinutes.walk}분 · 역 안 {r.inputMinutes.entry}분 · 하차 후 목적지까지 {r.inputMinutes.exit}분 · 여유 {r.inputMinutes.buffer}분</div> : null}
       </div>
       {r.live ? <LiveWarnings m={m} /> : m.warnings.map(({ w, routeHtml }, i) => (
         <div className="card" key={i}>

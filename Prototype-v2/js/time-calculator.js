@@ -248,7 +248,7 @@
   }
 
   // 탑승 시각부터 출구 도착까지 (고정 소요)
-  function afterBoarding(route, boardAt) {
+  function afterBoarding(route, boardAt, minutes) {
     var T = timing();
     var events = [];
     var t = boardAt, transfer = 0, ride = 0;
@@ -264,7 +264,7 @@
     });
     var arriveTrain = t;
     events.push({ time: arriveTrain, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 하차', icon: 'flag' });
-    t += T.exitWalk;
+    t += minutes.exit;
     events.push({ time: t, label: stationLabel(route.legs[route.legs.length - 1].to) + ' 출구 도착', icon: 'door_front', elevStation: route.legs[route.legs.length - 1].to });
     return { events: events, ride: ride, transfer: transfer, arriveAt: t };
   }
@@ -276,14 +276,15 @@
 
   function calculateDeparture(opts) {
     opts = opts || {};
+    var minutes = normalizeDepartureMinutes(opts);
     var originId = opts.originId, destId = opts.destId;
     var route = findRoute(originId, destId);
     if (!route) return null;
-    var T = timing();
     var nowMin = nowMinutes(opts.now);
     var first = route.legs[0];
     var sp = serviceParams(originId, first.track, first.lineId);
-    var pre = T.walkToStation + T.stationEntry;
+    // 여유 시간은 승강장 도착 후 확보한다. 배차 때문에 생긴 대기는 별도로 더한다.
+    var pre = minutes.walk + minutes.entry + minutes.buffer;
 
     function forward(leaveMin) {
       var platform = leaveMin + pre;
@@ -291,7 +292,7 @@
       var wait = board - platform;
       // 첫차 전 등 대기가 길면 그냥 늦게 출발하도록 조정
       if (wait > 30) { leaveMin = board - pre; wait = 0; }
-      return { leave: leaveMin, board: board, wait: wait, after: afterBoarding(route, board) };
+      return { leave: leaveMin, board: board, wait: wait, after: afterBoarding(route, board, minutes) };
     }
 
     var plan = null, late = false, arriveByMin = null;
@@ -306,11 +307,11 @@
     if (arriveByMin != null) {
       // 이미 12시간 이상 지난 시각이면 내일로 해석 (예: 23시에 "08:00")
       if (arriveByMin < nowMin && nowMin - arriveByMin > 12 * 60) arriveByMin += DAY;
-      var probe = afterBoarding(route, 0);
+      var probe = afterBoarding(route, 0, minutes);
       var fixed = probe.arriveAt; // 탑승 → 출구 소요
       var board = prevDeparture(sp, arriveByMin - fixed);
       if (board != null && board - pre >= nowMin) {
-        plan = { leave: board - pre, board: board, wait: 0, after: afterBoarding(route, board) };
+        plan = { leave: board - pre, board: board, wait: 0, after: afterBoarding(route, board, minutes) };
       } else {
         late = true;
         plan = forward(nowMin);
@@ -322,7 +323,7 @@
 
     var timeline = [
       { time: fmt(plan.leave), label: '집에서 출발', icon: 'accessible' },
-      { time: fmt(plan.leave + T.walkToStation), label: stationLabel(originId) + ' 도착 · 엘리베이터 이용', icon: 'elevator', elevStation: originId },
+      { time: fmt(plan.leave + minutes.walk), label: stationLabel(originId) + ' 도착 · 엘리베이터 이용', icon: 'elevator', elevStation: originId },
       { time: fmt(plan.board), label: lineName(first.lineId) + ' 탑승 (' + stationName(originId) + ')', icon: 'subway', lineId: first.lineId, stops: first.stops, kind: 'board' }
     ];
     plan.after.events.forEach(function (ev) {
@@ -357,13 +358,14 @@
       lateByMinutes: (late && arriveByMin != null) ? Math.max(0, plan.after.arriveAt - arriveByMin) : 0,
       arriveBy: arriveByMin != null ? fmt(arriveByMin) : null,
       route: route,
+      inputMinutes: minutes,
       breakdown: {
-        walk: T.walkToStation,
-        entry: T.stationEntry,
-        wait: plan.wait,
+        walk: minutes.walk,
+        entry: minutes.entry,
+        wait: plan.wait + minutes.buffer,
         ride: plan.after.ride,
         transfer: plan.after.transfer,
-        exitWalk: T.exitWalk
+        exitWalk: minutes.exit
       },
       timeline: timeline,
       elevatorWarnings: warnings
@@ -375,6 +377,25 @@
   // 모의 BFS·배차 모델은 쓰지 않는다. 실패해도 모의 계산으로 되돌아가지 않는다(대회 규칙: 시연에서 Mock 금지).
   // 오류는 Error(.code): 'UNMAPPED_STATION'(.slug), 'SAME_STATION', 'BAD_TIME', 또는 ApiClient 오류(NETWORK/TIMEOUT/NOT_FOUND/VALIDATION_ERROR, .status).
   var LIVE_MINUTES = { walk: 7, entry: 3, buffer: 5, exit: 3 }; // BE 기본값과 같다. 명시해서 보낸다(AI와 같은 방식)
+  // 몸 상태를 분류하거나 속도를 추정하지 않고, 사용자가 정한 구간별 분만 받는다.
+  function normalizeDepartureMinutes(opts) {
+    opts = opts || {};
+    var out = {};
+    [
+      ['walkToStationMinutes', 'walk', '출발지에서 역 입구까지', 120],
+      ['stationEntryMinutes', 'entry', '역 입구에서 승강장까지', 120],
+      ['exitWalkMinutes', 'exit', '하차 후 도착 지점까지', 120],
+      ['bufferMinutes', 'buffer', '추가 여유 시간', 240]
+    ].forEach(function (field) {
+      var value = opts[field[0]];
+      if (value === undefined) value = LIVE_MINUTES[field[1]];
+      if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > field[3]) {
+        throw liveError(field[2] + ' 시간은 0~' + field[3] + '분 사이의 정수로 입력해 주세요', 'BAD_MINUTES', { field: field[0] });
+      }
+      out[field[1]] = value;
+    });
+    return out;
+  }
   var idMapLoading = null;
   function isDate(d) { return Object.prototype.toString.call(d) === '[object Date]'; } // 다른 realm의 Date도 허용
 
@@ -416,7 +437,8 @@
   // 도착 희망 시각 → KST ISO. arriveBy가 없으면(지금 출발) 지금 + 총 소요 + 1분으로 잡아 권장 출발이 지금 근처가 되게 한다.
   // arriveBy 해석은 모의 경로와 같다: 이미 12시간 넘게 지난 시각이면 내일로 본다(예: 23시에 "00:30" → 내일 00:30).
   // 12시간 이내로 지난 시각은 오늘 그대로 보내고, BE가 already_past로 알려 준다.
-  function buildArrivalIso(arriveBy, travelMinutes, now) {
+  function buildArrivalIso(arriveBy, travelMinutes, now, opts) {
+    var minutes = normalizeDepartureMinutes(opts);
     var n = isDate(now) && !isNaN(now.getTime()) ? now : new Date();
     var k = kstParts(n);
     var arrMin;
@@ -426,7 +448,7 @@
       if (arrMin == null) throw liveError('도착 시각 형식을 알 수 없습니다', 'BAD_TIME');
       if (arrMin < k.min && k.min - arrMin > 12 * 60) arrMin += DAY;
     } else {
-      arrMin = k.min + LIVE_MINUTES.walk + LIVE_MINUTES.entry + LIVE_MINUTES.buffer + travelMinutes + LIVE_MINUTES.exit + 1;
+      arrMin = k.min + minutes.walk + minutes.entry + minutes.buffer + travelMinutes + minutes.exit + 1;
     }
     return kstIso(k.y, k.mo, k.d, arrMin);
   }
@@ -506,6 +528,7 @@
   // 비동기(API 모드 전용). opts: {originId, destId (FE 슬러그), arriveBy, now, api?, idMap?, fetch?}
   async function calculateDepartureLive(opts) {
     opts = opts || {};
+    var minutes = normalizeDepartureMinutes(opts);
     if (!opts.originId || !opts.destId || opts.originId === opts.destId) throw liveError('출발역과 도착역이 같습니다', 'SAME_STATION');
     var api = liveApi(opts);
     if (!api) throw liveError('API 클라이언트를 불러오지 못했습니다', 'NETWORK');
@@ -520,17 +543,19 @@
     if (!(travel >= 1)) throw liveError('경로 소요 시간을 알 수 없습니다', 'BAD_RESPONSE');
     var now = isDate(opts.now) && !isNaN(opts.now.getTime()) ? opts.now : new Date();
     var body = {
-      arrival_at: buildArrivalIso(opts.arriveBy, travel, now),
+      arrival_at: buildArrivalIso(opts.arriveBy, travel, now, opts),
       travel_minutes: travel,
-      buffer_minutes: LIVE_MINUTES.buffer,
-      walk_to_station_minutes: LIVE_MINUTES.walk,
-      station_entry_minutes: LIVE_MINUTES.entry,
-      exit_walk_minutes: LIVE_MINUTES.exit,
+      buffer_minutes: minutes.buffer,
+      walk_to_station_minutes: minutes.walk,
+      station_entry_minutes: minutes.entry,
+      exit_walk_minutes: minutes.exit,
       from_station_id: fromId,
       to_station_id: toId
     };
     var dep = await api.postJSON('be', '/api/departure-time', body, callOpts);
-    return adaptLive(route, dep, map, now);
+    var result = adaptLive(route, dep, map, now);
+    result.inputMinutes = minutes;
+    return result;
   }
 
   // ---------- 한국어 시각 파싱 ----------
@@ -583,6 +608,7 @@
   }
 
   window.TimeCalculator = {
+    normalizeDepartureMinutes: normalizeDepartureMinutes,
     findRoute: findRoute,
     calculateDeparture: calculateDeparture,
     calculateDepartureLive: calculateDepartureLive,
