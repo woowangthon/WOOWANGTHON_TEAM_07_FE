@@ -19,13 +19,22 @@ const ELEV_FILTERS = [
 ]
 const STATUS_RANK: Record<string, number> = { UNAVAILABLE: 0, PARTIAL: 1, AVAILABLE: 2, UNKNOWN: 3 }
 
-interface Item { station: ReturnType<typeof allStations>[number]; status: string; total: number; down: number }
+interface Item { station: ReturnType<typeof allStations>[number]; status: string; total: number | null; down: number; unknown: number; countsConfirmed: boolean }
 
 function dataStations(): Item[] {
   const live = apiMode()
+  const es = ES()
   return allStations().filter((s) => live || hasData(s.id)).map((s) => {
     const elevs = getElevators(s.id)
-    return { station: s, status: stationStatus(s.id), total: elevs.length, down: elevs.filter(isDown).length }
+    const info = live && es ? es.getStationInfo(s.id) : null
+    const detailsReady = !live || es?.getElevatorsState(s.id) === 'ready'
+    const total = typeof info?.total === 'number' ? info.total : (detailsReady ? elevs.length : null)
+    const unknown = typeof info?.unknown === 'number' ? info.unknown : elevs.filter((e) => e.status === 'UNKNOWN').length
+    const status = stationStatus(s.id)
+    return {
+      station: s, status, total, down: elevs.filter(isDown).length, unknown,
+      countsConfirmed: detailsReady && status !== 'UNKNOWN' && total !== null && total > 0 && total === elevs.length && unknown === 0,
+    }
   })
 }
 
@@ -103,6 +112,13 @@ export function ElevatorView() {
   let summary
   if (lsum && lsum.phase !== 'ready') {
     summary = <div className="empty">{lsum.phase === 'loading' ? '엘리베이터 상태를 확인 중이에요' : '연결 실패 · 모든 역을 정보 없음으로 표시해요'}</div>
+  } else if (live && counts.UNKNOWN > 0 && counts.AVAILABLE + counts.PARTIAL + counts.UNAVAILABLE === 0) {
+    summary = <div className="summary-card unknown" role="status" style={{ gridColumn: '1 / -1' }}>
+      <div className="summary-icon"><Icon name="help" /></div>
+      <div className="summary-label">운행 상태 정보 없음</div>
+      <div className="summary-body"><span className="summary-num">{counts.UNKNOWN}</span><span className="summary-unit">역</span></div>
+      <div className="card-sub">최신 운행 상태를 확인할 수 없어요. 역을 눌러 설비 목록과 수집 시각을 확인해 주세요.</div>
+    </div>
   } else {
     summary = <>
       {cards.map((c) => (
@@ -121,7 +137,7 @@ export function ElevatorView() {
     const sl = x.station.lines || []
     if (activeCustom.length && !sl.some((id) => activeCustom.includes(id))) return false
     switch (filter) {
-      case 'problem': return x.down > 0
+      case 'problem': return x.status === 'PARTIAL' || x.status === 'UNAVAILABLE'
       case 'transfer': return sl.length > 1
       case 'lines': return sl.some((l) => lines.includes(l))
       default: return true
@@ -197,21 +213,22 @@ export function ElevatorView() {
         <div id="elevatorList" className="station-list">
           {!items.length ? <div className="empty">선택한 조건에 맞는 역이 없어요</div> : items.map((x) => {
             const s = x.station
-            const up = x.total - x.down
+            const up = x.countsConfirmed && x.total !== null ? x.total - x.down : null
             const where = stoppedWhere(s.id)
-            const unk = x.status === 'UNKNOWN'
-            const sentence = yeok(s) + ', ' + (s.lines || []).join(', ') + '호선, ' + (unk ? '엘리베이터 정보 없음' : '엘리베이터 ' + x.total + '대 중 ' + up + '대 운행') +
-              (where ? ', 멈춤 ' + where : '')
+            const notes = [where ? '멈춤: ' + where : '', x.unknown > 0 ? '미확인: ' + x.unknown + '대' : ''].filter(Boolean).join(' · ')
+            const sentence = yeok(s) + ', ' + (s.lines || []).join(', ') + '호선, ' +
+              (up !== null ? '엘리베이터 ' + x.total + '대 중 ' + up + '대 운행' : '운행 상태 ' + statusLabel(x.status) + (x.total !== null ? ', 설비 ' + x.total + '대' : '')) +
+              (notes ? ', ' + notes : '')
             return (
               <div className="station-row elev-row" key={s.id} data-id={s.id} role="button" tabIndex={0} aria-label={sentence}
                 onClick={() => openStation(s.id)} onKeyDown={(e) => onRowKey(e, s.id)}>
                 <div className="elev-row-name" aria-hidden="true"><strong>{yeok(s)}</strong> <LineBadges station={s} /></div>
                 <div className={'elev-row-op ' + (STATUS_CLASS[x.status] || 'unknown')} aria-hidden="true">
                   <Icon name={statusIcon(x.status)} />
-                  {unk ? <span>{statusLabel('UNKNOWN')}</span> : <span><b>{up}</b>/{x.total}대</span>}
+                  {up !== null ? <span><b>{up}</b>/{x.total}대</span> : <span>{statusLabel(x.status)}{x.total !== null ? ' · 설비 ' + x.total + '대' : ''}</span>}
                 </div>
                 <span className="chevron ms" aria-hidden="true">chevron_right</span>
-                {where && <div className="elev-row-stop" aria-hidden="true">멈춤: {where}</div>}
+                {notes && <div className="elev-row-stop" aria-hidden="true">{notes}</div>}
               </div>
             )
           })}
