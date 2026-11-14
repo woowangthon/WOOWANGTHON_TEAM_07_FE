@@ -1,35 +1,15 @@
 import { ExpiringHtml } from '../../components/ExpiringHtml'
-// AI 챗봇 탭(#view-chat). 원본 app.js 챗봇 구간(welcome, 말풍선, 도구 칩, 액션 버튼, 제안 칩, 전송/busy)을 옮겼다.
+// AI 챗봇 탭(#view-chat). 말풍선·액션 버튼·제안·전송 상태를 표시한다.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useApp } from '../../app/context'
 import { Icon } from '../../components/Icon'
 import type { ChatAction, ChatResponse } from '../../legacy/globals'
-import { apiMode, getStation, mapCall, safe } from '../../lib/stations'
+import { apiMode, mapCall, safe } from '../../lib/stations'
 
 type Msg =
   | { key: number; kind: 'user'; text: string }
   | { key: number; kind: 'typing' }
   | { key: number; kind: 'bot'; resp: ChatResponse }
-
-function formatArgVal(v: unknown): string | null {
-  if (v === null || v === undefined || v === '') return null
-  if (Array.isArray(v)) return v.map(formatArgVal).filter(Boolean).join('·')
-  if (typeof v === 'object') { try { return JSON.stringify(v) } catch { return String(v) } }
-  if (typeof v === 'string') { const s = getStation(v); return s ? s.name : v }
-  return String(v)
-}
-
-function formatToolCall(tc: { name?: string; args?: unknown } | null | undefined): string {
-  if (!tc) return ''
-  const args = tc.args
-  let argStr = ''
-  if (args && typeof args === 'object' && !Array.isArray(args)) {
-    argStr = Object.keys(args).map((k) => formatArgVal((args as Record<string, unknown>)[k])).filter(Boolean).join(', ')
-  } else {
-    argStr = formatArgVal(args) || ''
-  }
-  return (tc.name || 'tool') + '(' + argStr + ')'
-}
 
 /** 원본 formatText: 이스케이프 + 줄바꿈 <br>. React가 이스케이프하므로 줄 단위로 <br>만 넣는다. */
 function Text({ text }: { text: string }) {
@@ -150,7 +130,6 @@ export function ChatView() {
           const actions = (r.actions || []).filter((a) => a.type !== 'showAlternative')
           return (
             <div key={m.key} className="msg bot">
-              {(r.toolCalls || []).map((tc, i) => <div key={i} className="tool-chip"><Icon name="build" />{formatToolCall(tc)}</div>)}
               {r.text ? <div className="bubble"><Text text={r.text} /></div> : null}
               {/* mock 모드 AIAgent가 만든 신뢰된 카드 HTML. 서버 문자열은 절대 여기에 넣지 않는다. */}
               {r.html && !apiMode() ? <ExpiringHtml html={r.html} /> : null}

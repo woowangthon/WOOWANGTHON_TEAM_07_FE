@@ -7,6 +7,22 @@ const $ = (sel: string) => document.querySelector(sel) as HTMLElement | null
 afterEach(() => { cleanup(); vi.restoreAllMocks(); document.body.removeAttribute('data-active-tab') })
 
 describe('챗 탭', () => {
+  it('도구 호출 영역을 렌더링하지 않고 답변과 역 상세 버튼을 유지한다', async () => {
+    vi.spyOn(window.AIAgent, 'processMessage').mockResolvedValue({
+      text: '강남역 정보를 확인했어요.',
+      toolCalls: [{ name: 'resolve_station', args: { query: '강남' } }, { name: 'get_elevator_status', args: { station_id: 'gangnam' } }],
+      actions: [{ type: 'openStation', label: '강남역 상세 보기', payload: { stationId: 'gangnam' } }],
+    })
+    render(<App />)
+    fireEvent.change($('#chatInput')!, { target: { value: '강남역 상태 알려줘' } })
+    fireEvent.submit($('#chatForm')!)
+    await waitFor(() => expect($('#chatMessages')?.textContent).toContain('강남역 정보를 확인했어요.'))
+    expect($('#chatMessages .tool-chip')).toBeNull()
+    expect($('#chatMessages')?.textContent).not.toMatch(/resolve_station|get_elevator_status/)
+    fireEvent.click($('#chatMessages .msg-actions button')!)
+    expect($('#sheetContent .sheet-title')?.textContent).toContain('강남역')
+  })
+
   it('환영 메시지와 제안 칩', () => {
     render(<App />)
     expect(document.querySelectorAll('#chatMessages .msg.bot').length).toBe(1)
