@@ -478,6 +478,7 @@
   ];
 
   function getWelcome() {
+    if (isApiMode()) return apiWelcome();
     var w = resp(
       '안녕하세요! 지하철 엘리베이터 도우미예요.\n' +
       '역 엘리베이터 운행 상태 확인, 고장 시 지하철 우회 경로의 접근성 확인, 엘리베이터를 고려한 출발 시각 계산을 도와드릴게요. 무엇이든 편하게 물어보세요.',
@@ -714,7 +715,132 @@
     return result || fallbackResponse();
   }
 
+
+  // ---------------------------------------------------------------------------
+  // API 모드: AI 서버(POST /api/chat)로 답한다. 로컬 규칙 엔진(Mock 데이터)은 쓰지 않는다.
+  // 서버가 준 문자열은 모두 plain text로만 다룬다(html 필드를 만들지 않는다).
+  // ---------------------------------------------------------------------------
+  var sessionId = null;
+  var API_ERROR_TEXT = '지금은 답변할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+  var API_TIMEOUT_MS = 5000;
+  var TOOL_ID_KEYS = { station_id: 1, start_id: 1, end_id: 1 };
+
+  function isApiMode() {
+    return !!(window.ApiClient && window.ApiClient.isApiMode && window.ApiClient.isApiMode());
+  }
+
+  function newSessionId() {
+    var c = (typeof crypto !== 'undefined') ? crypto : null;
+    if (c && c.randomUUID) return 'fe-' + c.randomUUID();
+    return 'fe-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+  function getSessionId() {
+    if (!sessionId) sessionId = newSessionId();
+    return sessionId;
+  }
+
+  function hhmm(d) {
+    d = d || new Date();
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function apiWelcome() {
+    var w = resp(
+      '안녕하세요! 지하철 엘리베이터 도우미예요.\n' +
+      '역 엘리베이터 운행 상태와 출발 시각을 물어보세요. 확인하지 못한 정보는 확인할 수 없다고 알려드려요.',
+      '', [], [], []);
+    w.suggestions = ['강남역 엘리베이터 돼?', '지금 고장난 역 알려줘', '신도림에서 잠실까지 3시까지 가려면?'];
+    return w;
+  }
+
+  function errorResponse() {
+    return resp(API_ERROR_TEXT, '', [], [], []);
+  }
+
+  // BE 역 ID -> FE 슬러그. 매핑이 비어 있으면 한 번 불러오려 시도한다(실패해도 조용히 넘어감).
+  async function ensureStationMap() {
+    var m = window.StationIdMap;
+    if (!m) return;
+    if (m.getResult && m.getResult()) return;
+    try { await m.load(); } catch (e) { /* 매핑 없이 진행: 역 이동 버튼은 빠진다 */ }
+  }
+  function toSlug(id) {
+    var m = window.StationIdMap;
+    if (id === null || id === undefined || id === '' || !m || !m.toSlug) return null;
+    return m.toSlug(String(id)) || null;
+  }
+  function isObj(v) { return v && typeof v === 'object' && !Array.isArray(v); }
+
+  // 액션 변환. 이동할 역을 FE에서 찾을 수 없으면 null(= 버튼을 만들지 않는다).
+  // 눌러도 아무 일도 없는 버튼보다 없는 편이 낫고, 역 이름은 본문에 이미 있다.
+  function mapAction(a) {
+    if (!isObj(a) || typeof a.label !== 'string' || !a.label) return null;
+    var p = isObj(a.payload) ? a.payload : {};
+    if (a.type === 'openStation') {
+      var slug = toSlug(p.station_id !== undefined ? p.station_id : p.stationId);
+      return slug ? { label: a.label, type: 'openStation', payload: { stationId: slug } } : null;
+    }
+    if (a.type === 'openTime') {
+      var o = toSlug(p.originId), d = toSlug(p.destId);
+      if (!o || !d) return null;
+      var out = { originId: o, destId: d };
+      if (typeof p.arriveBy === 'string' && /^\d{2}:\d{2}$/.test(p.arriveBy)) out.arriveBy = p.arriveBy;
+      else if (p.arriveBy === null) out.arriveBy = null;
+      return { label: a.label, type: 'openTime', payload: out };
+    }
+    if (a.type === 'showAlternative') {
+      var f = toSlug(p.from), t = toSlug(p.to);
+      if (!f || !t) return null;
+      return { label: a.label, type: 'showAlternative', payload: { from: f, to: t, path: [f, t] } };
+    }
+    return null;
+  }
+
+  function mapToolCall(tc) {
+    if (!isObj(tc) || typeof tc.name !== 'string') return null;
+    var args = {};
+    if (isObj(tc.args)) {
+      Object.keys(tc.args).forEach(function (k) {
+        var v = tc.args[k];
+        args[k] = (TOOL_ID_KEYS[k] && (typeof v === 'string' || typeof v === 'number')) ? (toSlug(v) || String(v)) : v;
+      });
+    }
+    return { name: tc.name, args: args };
+  }
+
+  function dataTimeNote(iso) {
+    var m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/.exec(String(iso || ''));
+    return m ? '데이터 기준 시각 ' + m[1] + ' ' + m[2] : null;
+  }
+
+  // 응답 모양이 다르면 null(= 오류 안내)
+  function mapApiResponse(d) {
+    if (!isObj(d) || typeof d.text !== 'string' || !d.text.trim()) return null;
+    var text = d.text;
+    var note = isObj(d.metadata) ? dataTimeNote(d.metadata.data_updated_at) : null;
+    if (note) text += '\n' + note;
+    var tools = (Array.isArray(d.tool_calls) ? d.tool_calls : []).map(mapToolCall).filter(Boolean);
+    var sugg = (Array.isArray(d.suggestions) ? d.suggestions : []).filter(function (x) { return typeof x === 'string' && x; });
+    var acts = (Array.isArray(d.actions) ? d.actions : []).map(mapAction).filter(Boolean);
+    return resp(text, '', tools, sugg, acts); // html은 항상 빈 값
+  }
+
+  async function apiProcess(text) {
+    try {
+      await ensureStationMap();
+      var data = await window.ApiClient.postJSON('chat', '/api/chat',
+        { session_id: getSessionId(), message: String(text), current_time: hhmm(new Date()) },
+        { timeoutMs: API_TIMEOUT_MS });
+      return mapApiResponse(data) || errorResponse();
+    } catch (e) {
+      if (typeof console !== 'undefined' && console.error) console.error('[AIAgent] AI 서버 호출 실패:', e && e.code, e && e.message);
+      return errorResponse();
+    }
+  }
+
   function processMessage(text) {
+    if (isApiMode()) return apiProcess(text);
     var delay = 400 + Math.floor(Math.random() * 500);
     return new Promise(function (resolve) {
       setTimeout(function () {
@@ -732,6 +858,7 @@
   }
 
   function reset() {
+    sessionId = null;
     ctx.lastIntent = null;
     ctx.focusId = null;
     ctx.lastStations = [];
