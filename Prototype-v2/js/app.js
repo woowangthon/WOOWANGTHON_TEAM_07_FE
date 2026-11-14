@@ -350,6 +350,8 @@
     var bs = byId('bottomSheet'), bd = byId('sheetBackdrop');
     if (bs) { bs.classList.remove('open'); bs.style.transform = ''; bs.style.transition = ''; }
     if (bd) bd.classList.remove('show');
+    var demoAnim = byId('subwayDemoAnim');
+    if (demoAnim) demoAnim.classList.remove('running');
     sheet.open = false;
     sheet.mode = null;
     sheet.stationId = null;
@@ -646,39 +648,30 @@
   }
 
   function renderCustomFilterChips() {
-    var row = byId('customFilterRow');
-    if (!row) return;
+    var slot = byId('customFilterSlot');
+    if (!slot) return;
     var auth = AUTH();
     var session = auth ? auth.getSession() : null;
-    if (!session) { row.hidden = true; return; }
-    elevCustomFilters = loadElevCustomFilters();
-    row.hidden = false;
-    var html = elevCustomFilters.map(function (lineId) {
-      var l = getLine(lineId);
-      return '<span class="custom-filter-chip" data-custom-filter="' + escapeHtml(lineId) + '" ' +
-        'style="--line-color:' + escapeHtml(l.color) + '">' +
-        '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + escapeHtml(l.color) + ';flex:none" aria-hidden="true"></span>' +
-        escapeHtml(l.name) +
-        '<button type="button" class="chip-x" data-remove-filter="' + escapeHtml(lineId) + '" aria-label="' + escapeHtml(l.name) + ' 필터 제거">×</button>' +
-        '</span>';
-    }).join('');
-    html += '<button type="button" class="chip-add-btn" id="addFilterBtn">＋ 노선</button>';
-    row.innerHTML = html;
-    if (!row.dataset.listenerAdded) {
-      row.dataset.listenerAdded = '1';
-      row.addEventListener('click', function (e) {
-        var rmBtn = e.target.closest('[data-remove-filter]');
-        if (rmBtn) {
-          var lineId = rmBtn.getAttribute('data-remove-filter');
-          elevCustomFilters = elevCustomFilters.filter(function (x) { return x !== lineId; });
-          saveElevCustomFilters(elevCustomFilters);
-          renderCustomFilterChips();
-          renderElevatorList();
-          return;
-        }
-        if (e.target.closest('#addFilterBtn')) { openFilterPicker(); }
-      });
+    if (!session) {
+      var hadFilters = elevCustomFilters.length > 0;
+      elevCustomFilters = [];
+      if (hadFilters) { saveElevCustomFilters([]); renderElevatorList(); }
+      slot.hidden = true;
+      slot.innerHTML = '';
+      return;
     }
+    elevCustomFilters = loadElevCustomFilters();
+    slot.hidden = false;
+    slot.innerHTML = '<button type="button" class="chip-add-btn" id="addFilterBtn">＋ 노선</button>' +
+      elevCustomFilters.map(function (lineId) {
+        var l = getLine(lineId);
+        return '<span class="custom-filter-chip" data-custom-filter="' + escapeHtml(lineId) + '" ' +
+          'style="--line-color:' + escapeHtml(l.color) + '">' +
+          '<span class="custom-filter-dot" aria-hidden="true"></span>' +
+          escapeHtml(l.name) +
+          '<button type="button" class="chip-x" data-remove-filter="' + escapeHtml(lineId) + '" aria-label="' + escapeHtml(l.name) + ' 필터 제거">×</button>' +
+          '</span>';
+      }).join('');
   }
 
   function openFilterPicker() {
@@ -732,8 +725,18 @@
         return '<button type="button" class="chip' + (x.id === elevFilter ? ' active' : '') + '" data-filter="' + x.id + '"' +
           (x.title ? ' title="' + escapeHtml(x.title) + '"' : '') + '>' +
           escapeHtml(x.label) + '</button>';
-      }).join('');
+      }).join('') + '<span id="customFilterSlot" class="custom-filter-slot" hidden></span>';
       f.addEventListener('click', function (e) {
+        var rmBtn = e.target.closest('[data-remove-filter]');
+        if (rmBtn) {
+          var lineId = rmBtn.getAttribute('data-remove-filter');
+          elevCustomFilters = elevCustomFilters.filter(function (x) { return x !== lineId; });
+          saveElevCustomFilters(elevCustomFilters);
+          renderCustomFilterChips();
+          renderElevatorList();
+          return;
+        }
+        if (e.target.closest('#addFilterBtn')) { openFilterPicker(); return; }
         var chip = e.target.closest('.chip[data-filter]');
         if (!chip) return;
         elevFilter = chip.getAttribute('data-filter');
@@ -1319,7 +1322,7 @@
     function render(q) {
       if (q === undefined) q = input ? input.value.trim() : '';
       if (!q) {
-        current = allStations().sort(function (a, b) { return koCompare(a.name, b.name); }).slice(0, 20);
+        current = allStations().sort(function (a, b) { return koCompare(a.name, b.name); });
       } else {
         current = searchStations(q);
       }
@@ -1352,7 +1355,8 @@
     }
 
     if (input) {
-      input.addEventListener('focus', function () { clear(); render(); });
+      input.addEventListener('focus', function () { input.select(); render(''); });
+      input.addEventListener('click', function () { if (results.hidden) render(committed ? '' : undefined); });
       input.addEventListener('input', function () { clear(); render(); });
       input.addEventListener('blur', function () { setTimeout(function () { results.hidden = true; setAria(false); }, 180); });
       input.addEventListener('keydown', function (e) {
@@ -1499,13 +1503,19 @@
           '</div>'
         : '';
 
+      var detailBtn = favEditMode
+        ? ''
+        : '<button class="fav-detail-btn" type="button" data-fav-open="' + escapeHtml(fav.id) + '" aria-label="장소 상세 보기">' +
+            '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+          '</button>';
+
       return '<li class="fav-item' + (favEditMode ? ' editing' : '') + '" data-fav-id="' + escapeHtml(fav.id) + '">' +
-        '<button class="fav-name-btn fav-name" type="button"' + (favEditMode ? ' disabled' : '') +
-          ' data-fav-open="' + escapeHtml(fav.id) + '">' +
+        '<div class="fav-info fav-name">' +
           '<span class="fav-primary">' + primary + '</span>' +
           secondary +
-        '</button>' +
+        '</div>' +
         editButtons +
+        detailBtn +
         '</li>';
     }).join('');
   }
@@ -1531,8 +1541,8 @@
         '<div class="section-label">지하철 이동 (데모)</div>' +
         '<div class="subway-demo-anim" id="subwayDemoAnim" aria-label="지하철 이동 데모">' +
           '<div class="subway-track"><span class="subway-train" aria-hidden="true">🚇</span></div>' +
-          '<p class="subway-demo-label">실제 열차 위치 연동 대기 중</p>' +
-          '<button type="button" class="btn btn-sm btn-ghost" id="subwayDemoPlay" style="margin-top:8px">▶ 데모 보기</button>' +
+          '<p class="subway-demo-label">시연용 애니메이션 · 실제 열차 위치가 아닙니다</p>' +
+          '<button type="button" class="btn btn-sm btn-ghost" id="subwayDemoPlay">▶ 데모 보기</button>' +
         '</div>' +
       '</div>' +
       '<div class="sheet-section">' +
@@ -1567,7 +1577,7 @@
     var fav = null;
     for (var i = 0; i < favs.length; i++) { if (favs[i].id === favId) { fav = favs[i]; break; } }
     if (!fav) return;
-    var nameBtn  = item.querySelector('.fav-name-btn');
+    var nameBtn  = item.querySelector('.fav-name');
     var editAct  = item.querySelector('.fav-edit-actions');
     var input = document.createElement('input');
     input.type = 'text';
@@ -1672,13 +1682,16 @@
     var nameEditCancel  = byId('nameEditCancel');
 
     function startNameEdit() {
-      var currentName = (byId('authProfileName') || {}).textContent || '';
-      if (nameEditInput) nameEditInput.value = currentName;
-      if (nameEditRow)  nameEditRow.hidden = false;
-      if (editNameBtn)  editNameBtn.hidden = true;
+      var nameEl = byId('authProfileName');
+      if (nameEditInput) nameEditInput.value = nameEl ? nameEl.textContent : '';
+      if (nameEl)        nameEl.hidden = true;
+      if (nameEditRow)   nameEditRow.hidden = false;
+      if (editNameBtn)   editNameBtn.hidden = true;
       if (nameEditInput) nameEditInput.focus();
     }
     function cancelNameEdit() {
+      var nameEl = byId('authProfileName');
+      if (nameEl)       nameEl.hidden = false;
       if (nameEditRow)  nameEditRow.hidden = true;
       if (editNameBtn)  editNameBtn.hidden = false;
     }

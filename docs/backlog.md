@@ -7,7 +7,7 @@
 
 | 대기 | 진행중 | 완료 | 보류 |
 |---|---|---|---|
-| 32 | 0 | 7 | 0 |
+| 30 | 2 | 7 | 0 |
 
 ## 구현 순서
 
@@ -34,11 +34,11 @@
 | [REQ-MAP-005](requirements/map.md#req-map-005-노선-필터를-호선--버튼-하나로-바꾸고-고르면-그-노선으로-이동) | 노선 필터를 `호선 ▼` 버튼 하나로 바꾸고, 고르면 그 노선으로 이동 | P1 | 대기 | 2026-11-11 |
 | [REQ-MAP-006](requirements/map.md#req-map-006-지도-위-역-이름을-화면-기준-13px-이상으로) | 지도 위 역 이름을 화면 기준 13px 이상으로 | P1 | 대기 | 2026-11-11 |
 | [REQ-MAP-007](requirements/map.md#req-map-007-고장점검-역을-한눈에-보여-주는-버튼-추가) | 고장·점검 역을 한눈에 보여 주는 버튼 추가 | P1 | 대기 | 2026-11-11 |
-| [REQ-ELV-001](requirements/elevator.md#req-elv-001-상단-고정-필터-바로-역-목록-개편) | 상단 고정 필터 바로 역 목록 개편 | P1 | 대기 | 2026-11-11 |
+| [REQ-ELV-001](requirements/elevator.md#req-elv-001-상단-고정-필터-바로-역-목록-개편) | 상단 고정 필터 바로 역 목록 개편 | P1 | 진행중 | 2026-11-11 |
 | [REQ-ELV-002](requirements/elevator.md#req-elv-002-요약-카드-높이-어긋남-고치기와-이름-정리) | 요약 카드 높이 어긋남 고치기와 이름 정리 | P0 | 완료 | 2026-11-11 |
 | [REQ-ELV-003](requirements/elevator.md#req-elv-003-엘리베이터-정보-기준-시각을-작게-표시) | 엘리베이터 정보 기준 시각을 작게 표시 | P2 | 대기 | 2026-11-11 |
 | [REQ-ELV-004](requirements/elevator.md#req-elv-004-역-목록-한-줄을-운행-대수--멈춘-위치로-정리) | 역 목록 한 줄을 "운행 대수 + 멈춘 위치"로 정리 | P1 | 대기 | 2026-11-11 |
-| [REQ-TIME-001](requirements/time.md#req-time-001-출발역도착역을-검색해서-고르기) | 출발역·도착역을 검색해서 고르기 | P1 | 대기 | 2026-11-11 |
+| [REQ-TIME-001](requirements/time.md#req-time-001-출발역도착역을-검색해서-고르기) | 출발역·도착역을 검색해서 고르기 | P1 | 진행중 | 2026-11-11 |
 | [REQ-TIME-002](requirements/time.md#req-time-002-도착-시각-맞추기--지금-출발을-선택-버튼으로) | "도착 시각 맞추기 / 지금 출발"을 선택 버튼으로 | P1 | 대기 | 2026-11-11 |
 | [REQ-TIME-003](requirements/time.md#req-time-003-경로-카드를-없애고-타임라인-하나로-합치기) | "경로" 카드를 없애고 타임라인 하나로 합치기 | P2 | 대기 | 2026-11-11 |
 | [REQ-TIME-004](requirements/time.md#req-time-004-타임라인에-엘리베이터-문제를-함께-표시) | 타임라인에 엘리베이터 문제를 함께 표시 | P1 | 대기 | 2026-11-11 |
@@ -66,5 +66,3 @@
 | [#49](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/49) | 마이페이지 사용자 이름 변경 기능 | P1 | 완료 | 2026-11-14 |
 | [#50](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/50) | 즐겨찾기 장소 상세 바텀시트 | P1 | 완료 | 2026-11-14 |
 | [#51](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/51) | 지하철 이동 애니메이션 (데모) | P2 | 완료 | 2026-11-14 |
-| REQ-TIME-001 (부분) | 출발역·도착역 콤보박스 (역 선택 피커) | P1 | 완료 | 2026-11-14 |
-| REQ-ELV-001 (부분) | 엘리베이터 필터 2개로 축소 + 커스텀 노선 필터 (로그인) | P1 | 완료 | 2026-11-14 |

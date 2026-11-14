@@ -83,7 +83,6 @@
             <h2 class="view-title">엘리베이터 현황</h2>
             <div id="elevatorSummary" class="summary-grid"></div>
             <div id="elevatorFilter" class="chip-row"></div>
-            <div id="customFilterRow" class="custom-filter-row" hidden></div>
             <div id="elevatorList" class="station-list"></div>
           </div>
         </section>
@@ -93,7 +92,7 @@
           <div class="view-scroll">
             <h2 class="view-title">출발 시각 계산</h2>
             <form id="timeForm" class="card time-form">
-              <div class="form-row">
+              <div class="form-row station-pair">
                 <div class="form-field">
                   <label class="form-label" for="originSearch">출발역</label>
                   <div class="station-combo" id="originCombo">
@@ -178,12 +177,12 @@
                   <div class="auth-profile-info">
                     <div class="auth-profile-name-row">
                       <p id="authProfileName" class="auth-profile-name">게스트 사용자</p>
-                      <button id="editNameBtn" class="btn btn-sm btn-ghost edit-name-btn" type="button" aria-label="이름 편집">편집</button>
-                    </div>
-                    <div id="nameEditRow" class="name-edit-row" hidden>
-                      <input id="nameEditInput" type="text" class="name-edit-input" autocomplete="off" maxlength="30" />
-                      <button id="nameEditConfirm" class="btn btn-sm btn-primary" type="button">저장</button>
-                      <button id="nameEditCancel" class="btn btn-sm btn-ghost" type="button">취소</button>
+                      <div id="nameEditRow" class="name-edit-row" hidden>
+                        <input id="nameEditInput" type="text" class="name-edit-input" autocomplete="off" maxlength="30" aria-label="사용자 이름" />
+                        <button id="nameEditConfirm" class="btn btn-sm btn-primary" type="button">저장</button>
+                        <button id="nameEditCancel" class="btn btn-sm btn-ghost" type="button">취소</button>
+                      </div>
+                      <button id="editNameBtn" class="btn btn-sm btn-ghost" type="button" aria-label="이름 편집">편집</button>
                     </div>
                     <p class="auth-provider-sub">
                       <span id="authProviderBadge" class="auth-provider-badge"></span>
@@ -206,7 +205,7 @@
                 <!-- 추가 입력 행 (기본 숨김) -->
                 <div id="favAddRow" class="fav-add-row" hidden>
                   <input id="favAddInput" type="text" class="fav-rename-input" placeholder="장소 이름 입력" autocomplete="off" maxlength="20" />
-                  <button id="favAddConfirm" class="btn btn-sm btn-primary" type="button">추가</button>
+                  <button id="favAddConfirm" class="btn btn-sm btn-primary" type="button">저장</button>
                   <button id="favAddCancel" class="btn btn-sm btn-ghost" type="button">취소</button>
                 </div>
                 <ul id="favList" class="fav-list"></ul>
