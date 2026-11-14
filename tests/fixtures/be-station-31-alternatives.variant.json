@@ -1,0 +1,57 @@
+{
+ "_source": "VARIANT derived from the real recording of GET /api/stations/31/alternatives (BE d3cab6c, DB copy, which returned no candidates); alternatives edited by hand incl. one candidate id 999999 that FE cannot map. NOT real data.",
+ "station": {
+  "station_id": 31,
+  "station_name": "강남"
+ },
+ "station_status": {
+  "status": "UNAVAILABLE",
+  "data_fresh": true,
+  "total_elevator_count": 4,
+  "unknown_elevator_count": 0
+ },
+ "alternatives": [
+  {
+   "station_id": 30,
+   "station_name": "역삼",
+   "lines": [
+    {
+     "line_id": "2",
+     "line_name": "2호선"
+    }
+   ],
+   "distance": 1,
+   "same_line": true,
+   "station_status": {
+    "status": "AVAILABLE",
+    "data_fresh": true,
+    "total_elevator_count": 3,
+    "unknown_elevator_count": 0
+   }
+  },
+  {
+   "station_id": 999999,
+   "station_name": "가상역",
+   "lines": [
+    {
+     "line_id": "9",
+     "line_name": "9호선"
+    }
+   ],
+   "distance": 2,
+   "same_line": false,
+   "station_status": {
+    "status": "PARTIAL",
+    "data_fresh": false,
+    "total_elevator_count": 2,
+    "unknown_elevator_count": 1
+   }
+  }
+ ],
+ "count": 2,
+ "search_depth": 2,
+ "empty_reason": null,
+ "limitations": [
+  "대체역은 역 간 연결 데이터 기준의 추천이며 실제 접근 가능한 경로와 환승 가능 여부는 검증되지 않음"
+ ]
+}

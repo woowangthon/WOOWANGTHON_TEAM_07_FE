@@ -1,0 +1,20 @@
+{
+ "_source": "Recorded 2026-11-15 from BE branch feat/station-status-list commit d3cab6c (worktree wt/be-station-status), local uvicorn on a copy of the dev DB (all elevator statuses stale, so every station status is null); GET /api/stations/31/alternatives",
+ "station": {
+  "station_id": 31,
+  "station_name": "강남"
+ },
+ "station_status": {
+  "status": null,
+  "data_fresh": false,
+  "total_elevator_count": 4,
+  "unknown_elevator_count": 4
+ },
+ "alternatives": [],
+ "count": 0,
+ "search_depth": 2,
+ "empty_reason": "탐색 범위 안에 가동중인 엘리베이터가 확인된 인접역이 없음",
+ "limitations": [
+  "대체역은 역 간 연결 데이터 기준의 추천이며 실제 접근 가능한 경로와 환승 가능 여부는 검증되지 않음"
+ ]
+}

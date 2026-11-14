@@ -218,26 +218,35 @@
 
   function getElevators(stationId) {
     ensureInit();
+    if (liveOn()) { var le = live.elevators[stationId]; return le && le.state === 'ready' ? le.list : []; }
     return state.elevators[stationId] || [];
   }
 
   // 화면에 보여 줄 순서: 멈춘 엘리베이터(고장·점검) → 정상. 같은 상태 안에서는 데이터 순서 유지 (REQ-COM-005)
   function sortForDisplay(list) {
-    return (list || []).map(function (e, i) { return { e: e, i: i, down: !e || e.status !== 'AVAILABLE' }; })
-      .sort(function (a, b) { return (b.down - a.down) || (a.i - b.i); })
+    function rank(e) { return !e ? 0 : (e.status === 'AVAILABLE' ? 2 : (e.status === 'UNKNOWN' ? 1 : 0)); }
+    return (list || []).map(function (e, i) { return { e: e, i: i, r: rank(e) }; })
+      .sort(function (a, b) { return (a.r - b.r) || (a.i - b.i); })
       .map(function (x) { return x.e; });
   }
 
   function hasElevatorData(stationId) {
     ensureInit();
+    if (liveOn()) {
+      var le = live.elevators[stationId];
+      if (le && le.state === 'ready' && le.list.length) return true;
+      return liveStatus(stationId) !== 'UNKNOWN';
+    }
     var e = state.elevators[stationId];
     return !!(e && e.length);
   }
 
-  function isDown(e) { return e.status !== 'AVAILABLE'; }
+  // 정보 없음(UNKNOWN)은 멈춘 것도 정상도 아니다. 멈춤으로도 정상으로도 세지 않는다.
+  function isDown(e) { return e.status !== 'AVAILABLE' && e.status !== 'UNKNOWN'; }
 
   function getStationStatus(stationId) {
     ensureInit();
+    if (liveOn()) return liveStatus(stationId);
     var list = state.elevators[stationId];
     if (!list || !list.length) return 'UNKNOWN';
     var down = list.filter(isDown).length;
@@ -264,6 +273,7 @@
   // ---------- 변경 ----------
   function toggleElevator(stationId, elevatorId) {
     ensureInit();
+    if (liveOn()) return null; // 실데이터 모드에는 가상 고장 전환이 없다
     var list = state.elevators[stationId];
     if (!list) return null;
     var el = null;
@@ -282,6 +292,7 @@
 
   function setStationBroken(stationId, broken) {
     ensureInit();
+    if (liveOn()) return;
     if (broken) {
       var list = state.elevators[stationId];
       if (!list || !list.length) {
@@ -301,8 +312,183 @@
 
   function reset() {
     ensureInit();
+    if (liveOn()) return;
     state.elevators = deepCopy(original);
     notify(null);
+  }
+
+  // ---------- 실데이터(BE) 어댑터: API 모드에서만 쓴다 ----------
+  // 지도 좌표·노선 모양은 FE 상수(MOCK)이고 상태는 전부 BE 값이다. 모르면 UNKNOWN이며 정상으로 채우지 않는다.
+  var REFRESH_MS = 5 * 60 * 1000;
+  var live = freshLive();
+  var liveTimer = null;
+  var liveSeq = 0;
+  var liveFetch = null;
+
+  function freshLive() {
+    // phase: idle | loading | ready | error. status: slug → {status, dataFresh, total, unknown}
+    return { phase: 'idle', status: {}, limitations: [], elevators: {}, error: null };
+  }
+  function liveOn() {
+    var c = typeof window !== 'undefined' ? window.ApiClient : null;
+    return !!(c && c.isApiMode && c.isApiMode());
+  }
+  function fopts() { return liveFetch ? { fetch: liveFetch } : undefined; }
+  function liveStatus(slug) {
+    if (live.phase !== 'ready') return 'UNKNOWN';
+    var s = live.status[slug];
+    return s && s.status ? s.status : 'UNKNOWN';
+  }
+  function normStatus(st) {
+    var v = st && st.status;
+    return (v === 'AVAILABLE' || v === 'PARTIAL' || v === 'UNAVAILABLE') ? v : null;
+  }
+  function stInfo(st) {
+    return { status: normStatus(st), dataFresh: !!(st && st.data_fresh),
+      total: (st && st.total_elevator_count) || 0, unknown: (st && st.unknown_elevator_count) || 0 };
+  }
+  var UNKNOWN_REASON_TEXT = { STALE: '상태 확인이 오래돼 지금 상태를 알 수 없어요', NO_DATA: '상태 정보가 없어요' };
+  function mapElevator(e) {
+    var st = e.status === '가동중' ? 'AVAILABLE' : (e.status === '가동 안됨' ? 'UNAVAILABLE' : 'UNKNOWN');
+    // 설비 종류(출구/승강장)는 BE가 주지 않으므로 type을 만들지 않는다.
+    return {
+      id: 'be-' + e.elevator_id,
+      location: e.location_description || e.elevator_name || '위치 정보 없음',
+      name: e.elevator_name || '',
+      floors: e.operation_section || '',
+      status: st,
+      unknownReason: st === 'UNKNOWN' ? (e.unknown_reason || 'NO_DATA') : null,
+      reason: st === 'UNKNOWN' ? (UNKNOWN_REASON_TEXT[e.unknown_reason] || UNKNOWN_REASON_TEXT.NO_DATA) : '',
+      fetchedAt: e.fetched_at || null
+    };
+  }
+
+  // 역 상태 목록을 불러온다. 실패하면 이전 값을 지우고 전부 UNKNOWN으로 둔다(낡은 값을 새 값처럼 보이지 않게).
+  async function loadStatuses() {
+    var seq = ++liveSeq;
+    if (live.phase !== 'ready') { live.phase = 'loading'; notify(null); }
+    try {
+      await window.StationIdMap.load(fopts());
+      var data = await window.ApiClient.getJSON('be', '/api/stations/status', fopts());
+      if (seq !== liveSeq) return;
+      var map = {};
+      (data.stations || []).forEach(function (b) {
+        var slug = window.StationIdMap.toSlug(b.station_id);
+        if (slug) map[slug] = stInfo(b.station_status);
+      });
+      live.status = map;
+      live.limitations = data.limitations || [];
+      live.error = null;
+      live.phase = 'ready';
+    } catch (err) {
+      if (seq !== liveSeq) return;
+      live.status = {}; live.elevators = {}; live.limitations = [];
+      live.error = err; live.phase = 'error';
+    }
+    notify(null);
+  }
+
+  function startLive(o) {
+    o = o || {};
+    if (!liveOn()) return Promise.resolve();
+    ensureInit();
+    liveFetch = o.fetch || null;
+    if (liveTimer && typeof clearInterval === 'function') clearInterval(liveTimer);
+    var ms = o.refreshMs === undefined ? REFRESH_MS : o.refreshMs;
+    liveTimer = (ms > 0 && typeof setInterval === 'function') ? setInterval(function () { refreshLive(); }, ms) : null;
+    return loadStatuses();
+  }
+  function refreshLive() {
+    if (!liveOn()) return Promise.resolve();
+    var open = Object.keys(live.elevators);
+    return loadStatuses().then(function () {
+      if (live.phase !== 'ready') return;
+      return Promise.all(open.map(function (slug) { return fetchStationElevators(slug); }));
+    });
+  }
+
+  // 역을 열 때 호출. 설비 목록과 역 단위 한계(limitations)를 받는다.
+  async function fetchStationElevators(slug) {
+    if (!liveOn()) return;
+    var beId = window.StationIdMap && window.StationIdMap.toBeId(slug);
+    if (beId === undefined || beId === null) {
+      live.elevators[slug] = { state: 'unmapped', list: [], limitations: [], fetchedAt: null };
+      notify(slug);
+      return;
+    }
+    var prev = live.elevators[slug];
+    live.elevators[slug] = { state: 'loading', list: [], limitations: [], fetchedAt: null };
+    if (!prev || prev.state !== 'ready') notify(slug);
+    try {
+      var d = await window.ApiClient.getJSON('be', '/api/stations/' + beId + '/elevators', fopts());
+      if (live.phase === 'error') return; // 그 사이 상태 목록 갱신이 실패했으면 이 값도 버린다
+      var list = (d.elevators || []).map(mapElevator);
+      var times = list.map(function (e) { return e.fetchedAt; }).filter(Boolean).sort();
+      live.elevators[slug] = { state: 'ready', list: list, limitations: d.limitations || [], fetchedAt: times.length ? times[times.length - 1] : null };
+      if (live.phase === 'ready' && d.station_status) live.status[slug] = stInfo(d.station_status);
+    } catch (err) {
+      live.elevators[slug] = { state: 'error', list: [], limitations: [], fetchedAt: null, error: err };
+    }
+    notify(slug);
+  }
+
+  // phase: ready(목업 모드 포함) | loading | error
+  function getLiveState() {
+    return { live: liveOn(), phase: liveOn() ? (live.phase === 'idle' ? 'loading' : live.phase) : 'ready',
+      error: live.error ? (live.error.code || 'ERROR') : null };
+  }
+  // idle | loading | ready | error | unmapped (목업 모드는 항상 ready)
+  function getElevatorsState(slug) {
+    if (!liveOn()) return 'ready';
+    var le = live.elevators[slug];
+    return le ? le.state : 'idle';
+  }
+  function getStationInfo(slug) {
+    if (!liveOn()) return null;
+    var s = live.phase === 'ready' ? live.status[slug] : null;
+    return s ? { status: s.status || 'UNKNOWN', dataFresh: s.dataFresh, total: s.total, unknown: s.unknown } : null;
+  }
+  function getLimitations(slug) {
+    var le = liveOn() ? live.elevators[slug] : null;
+    return le && le.state === 'ready' ? le.limitations.slice() : [];
+  }
+  function getGlobalLimitations() { return liveOn() ? live.limitations.slice() : []; }
+  // BE가 가져온 시각(ISO 문자열). slug가 없으면 불러온 역들 중 가장 최근 값. 없으면 null
+  function getDataTime(slug) {
+    if (!liveOn()) return null;
+    if (slug) { var le = live.elevators[slug]; return le && le.state === 'ready' ? le.fetchedAt : null; }
+    var all = Object.keys(live.elevators).map(function (k) { return live.elevators[k].fetchedAt; }).filter(Boolean).sort();
+    return all.length ? all[all.length - 1] : null;
+  }
+
+  // 대체역(API). 반환 모양은 findAlternativeStation과 같다. 후보가 없으면 null.
+  // BE id를 FE 역으로 바꾸지 못하면 station은 {id:null, name, unmapped:true}이며 path엔 출발역만 있다(지도에 못 그림).
+  async function findAlternativeStationAsync(slug) {
+    if (!liveOn()) return findAlternativeStation(slug);
+    var beId = window.StationIdMap.toBeId(slug);
+    if (beId === undefined || beId === null) return null;
+    var d = await window.ApiClient.getJSON('be', '/api/stations/' + beId + '/alternatives', fopts());
+    var origin = getStation(slug);
+    var originLines = (origin && origin.lines) || [];
+    var cands = (d.alternatives || []).map(function (a) {
+      var altSlug = window.StationIdMap.toSlug(a.station_id);
+      var lines = (a.lines || []).map(function (l) { return String(l.line_id); });
+      var shared = lines.filter(function (l) { return originLines.indexOf(l) !== -1; });
+      var station = altSlug ? getStation(altSlug) : null;
+      return {
+        station: station || { id: null, name: a.station_name, lines: lines, unmapped: true },
+        stops: a.distance, path: station ? [slug, altSlug] : [slug],
+        lineId: shared[0] || lines[0] || null, walkMinutes: null, tip: '',
+        accessibilityStatus: 'UNCONFIRMED', source: 'BE',
+        sameLine: !!a.same_line, stationStatus: normStatus(a.station_status) || 'UNKNOWN',
+        dataFresh: !!(a.station_status && a.station_status.data_fresh)
+      };
+    });
+    if (!cands.length) return null;
+    var best = cands[0];
+    best.candidates = cands;
+    best.limitations = d.limitations || [];
+    return best;
   }
 
   // ---------- 그래프 ----------
@@ -383,6 +569,16 @@
   function getOutages() {
     ensureInit();
     var out = [];
+    if (liveOn()) {
+      Object.keys(live.status).forEach(function (id) {
+        var st = getStation(id), status = live.phase === 'ready' ? live.status[id].status : null;
+        if (!st || (status !== 'PARTIAL' && status !== 'UNAVAILABLE')) return;
+        var le = live.elevators[id];
+        out.push({ station: st, status: status, broken: le && le.state === 'ready' ? le.list.filter(isDown) : [] });
+      });
+      out.sort(outageOrder);
+      return out;
+    }
     Object.keys(state.elevators).forEach(function (id) {
       var st = getStation(id);
       if (!st) return;
@@ -390,12 +586,13 @@
       if (status !== 'PARTIAL' && status !== 'UNAVAILABLE') return;
       out.push({ station: st, status: status, broken: state.elevators[id].filter(isDown) });
     });
-    out.sort(function (a, b) {
-      var ra = a.status === 'UNAVAILABLE' ? 0 : 1, rb = b.status === 'UNAVAILABLE' ? 0 : 1;
-      if (ra !== rb) return ra - rb;
-      return String(a.station.name).localeCompare(String(b.station.name), 'ko');
-    });
+    out.sort(outageOrder);
     return out;
+  }
+  function outageOrder(a, b) {
+    var ra = a.status === 'UNAVAILABLE' ? 0 : 1, rb = b.status === 'UNAVAILABLE' ? 0 : 1;
+    if (ra !== rb) return ra - rb;
+    return String(a.station.name).localeCompare(String(b.station.name), 'ko');
   }
 
   function subscribe(fn) {
@@ -424,6 +621,17 @@
     reset: reset,
     getNeighbors: getNeighbors,
     findAlternativeStation: findAlternativeStation,
+    findAlternativeStationAsync: findAlternativeStationAsync,
+    startLive: startLive,
+    refreshLive: refreshLive,
+    fetchStationElevators: fetchStationElevators,
+    isLive: liveOn,
+    getLiveState: getLiveState,
+    getElevatorsState: getElevatorsState,
+    getStationInfo: getStationInfo,
+    getLimitations: getLimitations,
+    getGlobalLimitations: getGlobalLimitations,
+    getDataTime: getDataTime,
     getAccessibleRouteSnapshot: getAccessibleRouteSnapshot,
     getOutages: getOutages,
     subscribe: subscribe
