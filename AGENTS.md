@@ -8,10 +8,11 @@
 우왕톤 7팀 프론트엔드. "엘리베이터 지하철" 모바일 웹 프로토타입. 휠체어·유모차 이용자가 노선도에서 엘리베이터 상태를 보고, 대체역과 출발 시각을 확인하고, AI 챗봇에 묻는다.
 - `Prototype/`: 정적 HTML/CSS/JS 프로토타입 원본 (빌드 없음, `Prototype/index.html`을 브라우저로 열어 확인). **수정하지 않는다.**
 - `Prototype-v2/`: 현재 작업 대상. 노선도를 공식 노선도 배치로 바꾸고 1~8호선만 남김. `Prototype-v2/index.html`로 확인. 화면은 노선도(`#view-map`), 엘리베이터(`#view-elevator`), 출발계산(`#view-time`), AI 챗봇(`#view-chat`)과 계정/즐겨찾기다.
+- `web/`: **React 이전 작업 중**(Vite + React + TypeScript, 2026-11-15 시작). `Prototype-v2`의 화면(`app.js`)만 React로 다시 쓰고, 서비스 JS(`Prototype-v2/js`)와 CSS는 고치지 않고 그대로 불러온다. DOM id·클래스를 기존과 같게 유지해 기존 브라우저 테스트로 동등성을 확인한다. 기능이 다 옮겨질 때까지 `Prototype-v2`가 기준 앱이다. 명령어는 [web/README.md](web/README.md).
 - `docs/`: 디자인 요구사항 문서
 - `tests/`: 테스트 (§4)
 
-기술: 순수 HTML/CSS/JS(번들러·패키지 매니저 없음). 지도·엘리베이터 상태·출발 계산 로직은 `Prototype-v2/js/`의 모듈이다.
+기술: `Prototype-v2`는 순수 HTML/CSS/JS(번들러 없음), `web/`은 Vite + React + TS(npm). 지도·엘리베이터 상태·출발 계산 로직은 `Prototype-v2/js/`의 모듈이며 두 앱이 함께 쓴다. **`Prototype-v2/js`·`css`를 고치면 `web/`도 영향을 받는다.**
 
 ## 2. 지금 BE·AI와 연결되어 있는가 (중요)
 
