@@ -534,8 +534,7 @@
         openStation(btn.getAttribute('data-id'));
         break;
       case 'calc-time': {
-        var originSel = byId('originSelect');
-        var origin = originSel ? originSel.value : '';
+        var origin = originComboCtrl ? originComboCtrl.getId() : '';
         var opts = { destId: sid };
         if (!origin || origin === sid) opts.originId = sid === 'sindorim' ? 'gangnam' : 'sindorim';
         openTime(opts);
@@ -892,23 +891,23 @@
   }
 
   function initTimeTab() {
-    setComboValue('origin', 'sindorim');
-    setComboValue('dest', 'gangnam');
+    originComboCtrl = initStationCombo('originSearch', 'originResults', 'originValue');
+    destComboCtrl   = initStationCombo('destSearch',   'destResults',   'destValue');
 
-    var originBtn = byId('originComboBtn');
-    var destBtn = byId('destComboBtn');
-    if (originBtn) originBtn.addEventListener('click', function () { openStationPicker('origin', '출발역 선택'); });
-    if (destBtn) destBtn.addEventListener('click', function () { openStationPicker('dest', '도착역 선택'); });
+    originComboCtrl.set('sindorim');
+    destComboCtrl.set('gangnam');
 
     var arrive = byId('arriveBy');
     if (arrive) arrive.value = defaultArriveBy();
 
     var swap = byId('swapBtn');
     if (swap) swap.addEventListener('click', function () {
-      var oVal = (byId('originSelect') || {}).value || '';
-      var dVal = (byId('destSelect') || {}).value || '';
-      setComboValue('origin', dVal);
-      setComboValue('dest', oVal);
+      var oId   = originComboCtrl.getId();
+      var oName = (byId('originSearch') || {}).value || '';
+      var dId   = destComboCtrl.getId();
+      var dName = (byId('destSearch') || {}).value || '';
+      originComboCtrl.setRaw(dId, dName);
+      destComboCtrl.setRaw(oId, oName);
     });
 
     var modeNow = byId('modeNow');
@@ -929,10 +928,11 @@
   }
 
   function submitTime() {
-    var o = byId('originSelect'), d = byId('destSelect'), arrive = byId('arriveBy'), modeNow = byId('modeNow');
+    var arrive = byId('arriveBy'), modeNow = byId('modeNow');
     var res = byId('timeResult');
     if (!res) return;
-    var originId = o ? o.value : '', destId = d ? d.value : '';
+    var originId = originComboCtrl ? originComboCtrl.getIdSafe() : '';
+    var destId   = destComboCtrl   ? destComboCtrl.getIdSafe()   : '';
     if (!originId || !destId) { res.innerHTML = '<div class="empty">출발역과 도착역을 선택해 주세요.</div>'; return; }
     if (originId === destId) { res.innerHTML = '<div class="empty">출발역과 도착역이 같아요. 다른 역을 골라 주세요.</div>'; return; }
     var arriveBy = modeNow && modeNow.checked ? null : (arrive && arrive.value ? arrive.value : null);
@@ -1014,8 +1014,8 @@
     closeSheet();
     switchTab('time');
     var arrive = byId('arriveBy'), modeNow = byId('modeNow');
-    if (opts.originId) setComboValue('origin', opts.originId);
-    if (opts.destId) setComboValue('dest', opts.destId);
+    if (opts.originId && originComboCtrl) originComboCtrl.set(opts.originId);
+    if (opts.destId   && destComboCtrl)   destComboCtrl.set(opts.destId);
     if (Object.prototype.hasOwnProperty.call(opts, 'arriveBy')) {
       if (opts.arriveBy) {
         if (modeNow) modeNow.checked = false;
@@ -1269,6 +1269,128 @@
   }
 
   // ---------------------------------------------------------------------------
+  // 출발 시각 계산 탭 — 역 선택 콤보박스
+  // ---------------------------------------------------------------------------
+  var originComboCtrl = null, destComboCtrl = null;
+
+  function initStationCombo(searchId, resultsId, valueId) {
+    var input   = byId(searchId);
+    var results = byId(resultsId);
+    var hidden  = byId(valueId);
+    var committed = false;
+    var current   = [];
+
+    function setAria(open) {
+      if (input) input.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    function render(q) {
+      if (q === undefined) q = input ? input.value.trim() : '';
+      if (!q) {
+        current = allStations().sort(function (a, b) { return koCompare(a.name, b.name); }).slice(0, 20);
+      } else {
+        current = searchStations(q);
+      }
+      if (!current.length) {
+        results.innerHTML = '<div class="combo-empty">역을 찾지 못했어요</div>';
+      } else {
+        results.innerHTML = current.map(function (s) {
+          return '<div class="combo-item" data-id="' + escapeHtml(s.id) + '" role="option" tabindex="-1">' +
+            '<span class="combo-name">' + escapeHtml(yeok(s)) + '</span>' +
+            '<span class="combo-badges">' + lineBadges(s) + '</span>' +
+            '</div>';
+        }).join('');
+      }
+      results.hidden = false;
+      setAria(true);
+    }
+
+    function pick(id, displayName) {
+      if (hidden) hidden.value = id;
+      if (input)  input.value  = displayName;
+      committed = true;
+      results.hidden = true;
+      setAria(false);
+      current = [];
+    }
+
+    function clear() {
+      if (hidden) hidden.value = '';
+      committed = false;
+    }
+
+    if (input) {
+      input.addEventListener('focus', function () { clear(); render(); });
+      input.addEventListener('input', function () { clear(); render(); });
+      input.addEventListener('blur', function () { setTimeout(function () { results.hidden = true; setAria(false); }, 180); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { results.hidden = true; setAria(false); }
+        else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          var first = results.querySelector('.combo-item');
+          if (first) first.focus();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (!committed && current.length) pick(current[0].id, yeok(current[0]));
+        }
+      });
+    }
+
+    if (results) {
+      results.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      results.addEventListener('click', function (e) {
+        var item = e.target.closest('.combo-item[data-id]');
+        if (item) {
+          var id = item.getAttribute('data-id');
+          var st = getStation(id);
+          pick(id, st ? yeok(st) : id);
+          if (input) input.focus();
+        }
+      });
+      results.addEventListener('keydown', function (e) {
+        var item = e.target.closest('.combo-item');
+        if (!item) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          var id = item.getAttribute('data-id');
+          var st = getStation(id);
+          pick(id, st ? yeok(st) : id);
+          if (input) input.focus();
+        } else if (e.key === 'ArrowDown') {
+          var next = item.nextElementSibling;
+          if (next) next.focus();
+          e.preventDefault();
+        } else if (e.key === 'ArrowUp') {
+          var prev = item.previousElementSibling;
+          if (prev) prev.focus(); else if (input) input.focus();
+          e.preventDefault();
+        } else if (e.key === 'Escape') {
+          results.hidden = true;
+          setAria(false);
+          if (input) input.focus();
+        }
+      });
+    }
+
+    function getId()     { return hidden ? hidden.value : ''; }
+    function getIdSafe() { return committed ? getId() : ''; }
+
+    function set(stationId) {
+      var st = getStation(stationId);
+      if (st) pick(stationId, yeok(st));
+    }
+    function setRaw(id, displayName) {
+      if (hidden) hidden.value = id;
+      if (input)  input.value  = displayName;
+      committed = !!id;
+      results.hidden = true;
+      setAria(false);
+    }
+
+    return { getId: getId, getIdSafe: getIdSafe, set: set, setRaw: setRaw };
+  }
+
+  // ---------------------------------------------------------------------------
   // 글자 크기 설정 (로그인과 무관한 접근성 설정, localStorage 사용)
   // ---------------------------------------------------------------------------
   var FONTSIZE_KEY = 'elevSubway.fontSize.v1';
@@ -1307,6 +1429,7 @@
   // 즐겨찾기 (sessionStorage, 로그인 중에만 유효)
   // ---------------------------------------------------------------------------
   var FAV_KEY = 'elevSubway.demoFavorites.v1';
+  var favEditMode = false;
 
   function loadFavs() {
     try { var r = sessionStorage.getItem(FAV_KEY); return r ? JSON.parse(r) : []; } catch (e) { return []; }
@@ -1321,25 +1444,36 @@
   }
 
   function renderFavorites() {
-    var list = byId('favList');
-    var empty = byId('favEmptyMsg');
+    var list    = byId('favList');
+    var empty   = byId('favEmptyMsg');
+    var editBtn = byId('favEditBtn');
     if (!list) return;
     var favs = loadFavs();
     if (empty) empty.hidden = favs.length > 0;
+    if (editBtn) editBtn.textContent = favEditMode ? '완료' : '수정';
+
     if (!favs.length) { list.innerHTML = ''; return; }
+
     list.innerHTML = favs.map(function (fav) {
-      var primary = escapeHtml(fav.alias || fav.placeName);
-      var hasAlias = fav.alias && fav.alias !== fav.placeName;
-      var secondary = hasAlias ? '<div class="fav-original">' + escapeHtml(fav.placeName) + '</div>' : '';
-      return '<li class="fav-item" data-fav-id="' + escapeHtml(fav.id) + '">' +
-        '<div class="fav-info">' +
-          '<button class="fav-name fav-name-btn" type="button" data-fav-id="' + escapeHtml(fav.id) + '">' + primary + '</button>' +
+      var primary   = escapeHtml(fav.alias || fav.placeName);
+      var hasAlias  = fav.alias && fav.alias !== fav.placeName;
+      var secondary = hasAlias
+        ? '<span class="fav-original">' + escapeHtml(fav.placeName) + '</span>' : '';
+
+      var editButtons = favEditMode
+        ? '<div class="fav-edit-actions">' +
+            '<button class="btn btn-sm fav-rename-btn" type="button" data-fav-rename="' + escapeHtml(fav.id) + '">변경</button>' +
+            '<button class="btn btn-sm fav-delete-btn" type="button" data-fav-delete="' + escapeHtml(fav.id) + '">삭제</button>' +
+          '</div>'
+        : '';
+
+      return '<li class="fav-item' + (favEditMode ? ' editing' : '') + '" data-fav-id="' + escapeHtml(fav.id) + '">' +
+        '<button class="fav-name-btn fav-name" type="button"' + (favEditMode ? ' disabled' : '') +
+          ' data-fav-open="' + escapeHtml(fav.id) + '">' +
+          '<span class="fav-primary">' + primary + '</span>' +
           secondary +
-        '</div>' +
-        '<div class="fav-actions">' +
-          '<button class="btn btn-sm btn-ghost" type="button" data-fav-rename="' + escapeHtml(fav.id) + '">이름 변경</button>' +
-          '<button class="btn btn-sm btn-ghost" type="button" data-fav-delete="' + escapeHtml(fav.id) + '">삭제</button>' +
-        '</div>' +
+        '</button>' +
+        editButtons +
         '</li>';
     }).join('');
   }
@@ -1401,8 +1535,8 @@
     var fav = null;
     for (var i = 0; i < favs.length; i++) { if (favs[i].id === favId) { fav = favs[i]; break; } }
     if (!fav) return;
-    var infoEl = item.querySelector('.fav-info');
-    var actionsEl = item.querySelector('.fav-actions');
+    var nameBtn  = item.querySelector('.fav-name-btn');
+    var editAct  = item.querySelector('.fav-edit-actions');
     var input = document.createElement('input');
     input.type = 'text';
     input.className = 'fav-rename-input';
@@ -1436,12 +1570,11 @@
       if (e.key === 'Escape') cancelRename();
     });
 
-    if (infoEl) infoEl.style.display = 'none';
-    if (actionsEl) actionsEl.style.display = 'none';
-    var anchor = infoEl || actionsEl;
-    item.insertBefore(input, anchor);
-    item.insertBefore(confirmBtn, anchor);
-    item.insertBefore(cancelBtn, anchor);
+    if (nameBtn) nameBtn.style.display = 'none';
+    if (editAct) editAct.style.display = 'none';
+    item.appendChild(input);
+    item.appendChild(confirmBtn);
+    item.appendChild(cancelBtn);
     input.focus();
     input.select();
   }
@@ -1486,6 +1619,16 @@
       favAddInput.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); commitFavAdd(); }
         if (e.key === 'Escape') closeFavAdd();
+      });
+    }
+
+    /* 즐겨찾기 편집 모드 토글 */
+    var favEditBtn = byId('favEditBtn');
+    if (favEditBtn) {
+      favEditBtn.addEventListener('click', function () {
+        favEditMode = !favEditMode;
+        closeFavAdd();
+        renderFavorites();
       });
     }
 
@@ -1544,7 +1687,7 @@
     var favList = byId('favList');
     if (favList) {
       favList.addEventListener('click', function (e) {
-        // 이름 버튼/삭제 버튼이 아닌 경우 → 장소 이름 클릭 → 상세
+        /* 편집 모드: 변경/삭제 버튼 */
         var renameBtn = e.target.closest('[data-fav-rename]');
         if (renameBtn) { startFavRename(renameBtn.getAttribute('data-fav-rename')); return; }
         var deleteBtn = e.target.closest('[data-fav-delete]');
@@ -1558,9 +1701,10 @@
           if (removed) toast('"' + (removed.alias || removed.placeName) + '" 즐겨찾기에서 삭제했어요');
           return;
         }
-        var nameBtn = e.target.closest('.fav-name-btn[data-fav-id]');
-        if (nameBtn) {
-          var favId = nameBtn.getAttribute('data-fav-id');
+        /* 일반 모드: 이름 클릭 → 상세 */
+        var openBtn = e.target.closest('[data-fav-open]');
+        if (openBtn && !favEditMode) {
+          var favId = openBtn.getAttribute('data-fav-open');
           var allFavs = loadFavs();
           var target = null;
           for (var i = 0; i < allFavs.length; i++) { if (allFavs[i].id === favId) { target = allFavs[i]; break; } }
@@ -1621,6 +1765,7 @@
         avatarEl.textContent = displayName.charAt(0).toUpperCase() || '?';
         avatarEl.setAttribute('data-provider', session.provider || '');
       }
+      favEditMode = false;
       renderFavorites();
     }
 

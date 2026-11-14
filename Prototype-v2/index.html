@@ -84,15 +84,25 @@
             <form id="timeForm" class="card time-form">
               <div class="form-row">
                 <div class="form-field">
-                  <label class="form-label" for="originComboBtn">출발역</label>
-                  <button type="button" class="combobox-btn" id="originComboBtn" aria-haspopup="dialog">역 선택</button>
-                  <input type="hidden" id="originSelect" />
+                  <label class="form-label" for="originSearch">출발역</label>
+                  <div class="station-combo" id="originCombo">
+                    <input id="originSearch" type="search" class="station-combo-input"
+                           placeholder="역 이름 검색" autocomplete="off" role="combobox"
+                           aria-expanded="false" aria-controls="originResults" aria-autocomplete="list" />
+                    <div id="originResults" class="station-combo-results" role="listbox" hidden></div>
+                    <input id="originValue" type="hidden" />
+                  </div>
                 </div>
                 <button id="swapBtn" class="icon-btn swap-btn" type="button" aria-label="출발/도착 바꾸기">⇅</button>
                 <div class="form-field">
-                  <label class="form-label" for="destComboBtn">도착역</label>
-                  <button type="button" class="combobox-btn" id="destComboBtn" aria-haspopup="dialog">역 선택</button>
-                  <input type="hidden" id="destSelect" />
+                  <label class="form-label" for="destSearch">도착역</label>
+                  <div class="station-combo" id="destCombo">
+                    <input id="destSearch" type="search" class="station-combo-input"
+                           placeholder="역 이름 검색" autocomplete="off" role="combobox"
+                           aria-expanded="false" aria-controls="destResults" aria-autocomplete="list" />
+                    <div id="destResults" class="station-combo-results" role="listbox" hidden></div>
+                    <input id="destValue" type="hidden" />
+                  </div>
                 </div>
               </div>
               <div class="form-row">
@@ -177,7 +187,10 @@
                 <div class="mypage-section-header">
                   <span class="mypage-section-icon" aria-hidden="true">⭐</span>
                   <span class="mypage-section-title">즐겨찾기 장소</span>
-                  <button id="favAddBtn" class="btn btn-sm btn-ghost fav-add-open-btn" type="button">＋ 추가</button>
+                  <div class="fav-header-actions">
+                    <button id="favAddBtn" class="btn btn-sm btn-ghost" type="button">＋ 추가</button>
+                    <button id="favEditBtn" class="btn btn-sm btn-ghost" type="button">수정</button>
+                  </div>
                 </div>
                 <!-- 추가 입력 행 (기본 숨김) -->
                 <div id="favAddRow" class="fav-add-row" hidden>
