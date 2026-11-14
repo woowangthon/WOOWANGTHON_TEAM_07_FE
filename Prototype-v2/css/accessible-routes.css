@@ -1,0 +1,65 @@
+/* Issue #63. Existing color/radius/shadow tokens; local spacing follows the
+   documented 4px scale. Font sizes always honor the app's --fs-scale. */
+.accessible-routes {
+  --route-space-xs: 4px;
+  --route-space-sm: 8px;
+  --route-space-md: 12px;
+  --route-space-lg: 16px;
+  --route-touch-min: 44px;
+  display: grid;
+  gap: var(--route-space-md);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text);
+  font-size: calc(15px * var(--fs-scale, 1));
+  line-height: 1.6;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.accessible-routes *, .accessible-routes *::before, .accessible-routes *::after { box-sizing: border-box; min-width: 0; max-width: 100%; }
+.accessible-routes h3, .accessible-routes h4 { margin: 0; color: var(--text); font-size: calc(17px * var(--fs-scale, 1)); line-height: 1.5; }
+.accessible-routes p { margin: var(--route-space-sm) 0 0; }
+.accessible-route {
+  padding: var(--route-space-lg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.accessible-route--verified { border-color: var(--ok-text); }
+.accessible-route--verified .accessible-route-state { color: var(--ok-text); font-weight: 700; }
+.accessible-route--unconfirmed, .accessible-route--missing { border-style: dashed; background: var(--surface-2); }
+.accessible-route--unconfirmed .accessible-route-state { color: var(--warn-text); font-weight: 700; }
+.accessible-route--rejected { border-color: var(--bad-text); }
+.accessible-route--rejected .accessible-route-state { color: var(--bad-text); font-weight: 700; }
+.accessible-route-note { color: var(--text-2); }
+.accessible-route-itinerary, .accessible-route-proposed, .accessible-route-reasons, .accessible-route-facilities ul {
+  margin: var(--route-space-md) 0 0;
+  padding-left: var(--route-space-lg);
+}
+.accessible-route-itinerary li, .accessible-route-proposed li, .accessible-route-facilities li { padding-block: var(--route-space-xs); }
+.accessible-route-itinerary span, .accessible-route-itinerary strong { display: block; }
+.accessible-route-itinerary span { color: var(--text-2); }
+.accessible-route-facilities { margin-top: var(--route-space-md); padding-top: var(--route-space-md); border-top: 1px solid var(--border); }
+.accessible-route-metrics { display: grid; gap: var(--route-space-sm); margin: var(--route-space-md) 0 0; }
+.accessible-route-metrics > div { display: flex; flex-wrap: wrap; column-gap: var(--route-space-sm); }
+.accessible-route-metrics dt { flex: 1 1 50%; color: var(--text-2); }
+.accessible-route-metrics dd { flex: 1 1 35%; margin: 0; font-weight: 700; }
+.accessible-route-checks { margin-top: var(--route-space-md); border-top: 1px solid var(--border); }
+.accessible-route-checks summary {
+  min-height: var(--route-touch-min);
+  padding-block: var(--route-space-sm);
+  cursor: pointer;
+  font-weight: 700;
+}
+.accessible-route-checks summary:focus-visible { outline-color: var(--text); }
+.accessible-route-checks ul { list-style: none; margin: 0; padding: 0; }
+.accessible-route-check { display: flex; flex-wrap: wrap; column-gap: var(--route-space-sm); padding-block: var(--route-space-sm); border-top: 1px solid var(--border); }
+.accessible-route-check > span { flex: 1 1 60%; }
+.accessible-route-check > strong { flex: 1 1 30%; }
+.accessible-route-check--verified > strong { color: var(--ok-text); }
+.accessible-route-check--failed > strong { color: var(--bad-text); }
+.accessible-route-check--unknown > strong { color: var(--text-2); }
