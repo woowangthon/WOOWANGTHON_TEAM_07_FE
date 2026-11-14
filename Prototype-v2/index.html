@@ -276,7 +276,25 @@
     </div>
   </div>
 
+  <!-- 환경별 API 주소 설정. 모든 앱 스크립트보다 먼저 로드한다.
+       로컬 개발: apiBase: 'http://localhost:8000'; 배포: apiBase: 'https://api.example.com'
+       같은 오리진(기본값): apiBase를 '' 으로 둔다. API 키·Secret은 여기에 넣지 않는다. -->
+  <script>
+    /* 환경 설정. API 키·OAuth Secret은 여기에 넣지 않는다.
+     * authMode:   'demo' — 데모 로그인(기본) | 'real' — FastAPI 백엔드 로그인
+     * apiBase:    인증(auth.js) 전용 주소. '' = 같은 오리진
+     * dataSource: 'api'(BE/AI 실데이터) | 'mock'(window.MOCK). file://로 열면 BE CORS가 Origin null을 막아
+     *             실데이터가 동작하지 않으므로 mock이다(브라우저 테스트가 이 경로). 실데이터는 정적 서버로 연다.
+     * beBase:     BE(FastAPI) 데이터 API 주소
+     * chatBase:   AI 챗봇 서버 주소 */
+    window.APP_CONFIG = {
+      authMode: 'demo', apiBase: '',
+      dataSource: location.protocol === 'file:' ? 'mock' : 'api', beBase: 'http://127.0.0.1:8000', chatBase: 'http://127.0.0.1:8001'
+    };
+  </script>
   <script src="js/mock-data.js"></script>
+  <script src="js/api-client.js"></script>
+  <script src="js/station-id-map.js"></script>
   <script src="js/elevator-service.js"></script>
   <script src="js/time-calculator.js"></script>
   <script src="js/metro-map.js"></script>
@@ -285,18 +303,6 @@
   <script src="js/accessible-route-view.js"></script>
   <script src="js/accessible-route-expiry.js"></script>
   <script src="js/ai-agent.js"></script>
-  <!-- 환경별 API 주소 설정.
-       로컬 개발: window.APP_CONFIG = { apiBase: 'http://localhost:8000' };
-       배포:      window.APP_CONFIG = { apiBase: 'https://api.example.com' };
-       같은 오리진(기본값): apiBase를 '' 으로 두면 된다. API 키·Secret은 여기에 넣지 않는다. -->
-  <script>
-    /* 환경 설정. API 키·OAuth Secret은 여기에 넣지 않는다.
-     * authMode: 'demo'  — 데모 로그인 (기본값, 프로토타입용)
-     *           'real'  — FastAPI 백엔드 연동 (배포 시 변경)
-     * apiBase:  ''      — 같은 오리진 (기본값)
-     *           'http://localhost:8000' 등으로 변경 가능 */
-    window.APP_CONFIG = { authMode: 'demo', apiBase: '' };
-  </script>
   <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
 </body>
