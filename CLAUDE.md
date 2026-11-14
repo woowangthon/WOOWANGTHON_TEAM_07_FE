@@ -1,45 +1,5 @@
 # CLAUDE.md
 
-## 프로젝트
+이 레포의 에이전트 작업 가이드는 AGENTS.md 하나로 관리한다. 내용을 여기에 복제하지 않는다.
 
-우왕톤 7팀 프론트엔드. "엘리베이터 지하철" 모바일 웹 프로토타입.
-- `Prototype/`: 정적 HTML/CSS/JS 프로토타입 (빌드 없음, `Prototype/index.html`을 브라우저로 열어 확인)
-- `Prototype-v2/`: v2 프로토타입. 노선도를 공식 노선도 배치로 바꾸고 1~8호선만 남김 (REQ-MAP-001, 002). `Prototype-v2/index.html`로 확인
-- `docs/`: 디자인 요구사항 문서
-
-## 디자인 요구사항 문서 (docs/)
-
-디자인이나 UI 관련 작업을 하기 전에 반드시 [docs/README.md](docs/README.md)를 먼저 읽는다.
-
-### 사용자가 디자인을 지적할 때 (기록)
-
-1. 지적 내용을 영역별 문서에 요구사항으로 기록한다. 양식: [docs/requirements/_template.md](docs/requirements/_template.md)
-   - 공통 요소 → `requirements/common.md` (`REQ-COM-xxx`)
-   - 노선도 → `requirements/map.md` (`REQ-MAP-xxx`)
-   - 엘리베이터 → `requirements/elevator.md` (`REQ-ELV-xxx`)
-   - 출발계산 → `requirements/time.md` (`REQ-TIME-xxx`)
-   - AI 챗봇 → `requirements/chat.md` (`REQ-CHAT-xxx`)
-   - 전역 기준(색상, 폰트, 간격 등) → `design-system.md` (`REQ-DS-xxx`)
-2. 번호는 해당 영역의 마지막 번호 + 1. 삭제된 번호는 재사용하지 않는다.
-3. [docs/backlog.md](docs/backlog.md) 목록과 현황 숫자를 함께 갱신한다.
-4. 대상 파일과 셀렉터는 코드를 확인해서 정확히 적는다.
-5. 지적이 모호하면 추측해서 적지 말고 확인 질문을 한다. 우선순위를 말하지 않았으면 기준(P0/P1/P2)에 따라 제안한다.
-6. 스크린샷을 받으면 `docs/assets/<영역 소문자>/<REQ-ID>_<설명>.png`로 저장하고 문서에서 참조한다.
-7. 기록만 요청받았으면 코드는 수정하지 않는다.
-
-### 요구사항을 구현할 때 (개발)
-
-1. 요구사항 ID로 지시받으면 해당 영역 문서에서 상세 내용을 읽는다.
-2. 디자인 값은 [docs/design-system.md](docs/design-system.md)의 토큰을 쓴다. 하드코딩 금지. 새 값이 필요하면 토큰을 추가하고 문서에 기록한다.
-3. 시작 시 상태를 `진행중`으로, 완료 조건을 모두 충족하면 `완료`로 바꾼다. 영역 문서와 backlog.md를 함께 갱신한다.
-4. 완료 시 요구사항의 `작업 기록`에 수정한 파일과 변경 요약을 남긴다.
-5. 요구사항끼리 충돌하면 사용자에게 묻는다.
-
-## FE 통합·GitHub 작업
-
-- 공통 UI 변경은 main에 반영된 디자인 토큰·컴포넌트를 기준으로 수행한다. 파일 전체를 이전 브랜치 버전으로 대체하지 않는다.
-- 관련 Issue를 먼저 확인하고 독립 브랜치에서 변경한다. 커밋은 필요한 파일만 명시적으로 stage하고 영어 메시지와 Issue 번호를 쓴다.
-- PR의 CLEAN은 코드·디자인 보존 검증을 대신하지 않는다. 실제 브라우저·접근성 정책·최종 main 트리 검증을 수행한다.
-- 사용자가 명시 승인한 PR만 병합한다. force push, 기존 worktree 삭제/초기화는 하지 않는다.
-- 백엔드는 다른 팀원 작업 중이므로 코드/worktree/Commit/Push/Issue/PR/Merge를 변경하지 않는다.
-- 디자인 기준과 최신 기능의 통합 근거는 docs/design-reintegration-2026-11-15.md에 있다. 원본 Prototype/는 수정하지 않는다.
+@AGENTS.md
