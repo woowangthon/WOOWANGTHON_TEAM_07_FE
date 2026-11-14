@@ -780,6 +780,11 @@
     var items = dataStations();
     var counts = { AVAILABLE: 0, PARTIAL: 0, UNAVAILABLE: 0 };
     items.forEach(function (x) { if (counts[x.status] !== undefined) counts[x.status]++; });
+    var SUMMARY_ICONS = {
+      ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M8 12.5l2.5 2.5L16 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.2v.1" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
+      bad: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+    };
     var cards = [
       { key: 'AVAILABLE', cls: 'ok', label: '정상' },
       { key: 'PARTIAL', cls: 'warn', label: '일부 운행' },
@@ -787,8 +792,10 @@
     ];
     el.innerHTML = cards.map(function (c) {
       return '<div class="summary-card ' + c.cls + '">' +
-        '<div class="summary-num">' + counts[c.key] + '<span class="summary-unit">역</span></div>' +
-        '<div class="summary-label">' + escapeHtml(c.label) + '</div></div>';
+        '<div class="summary-head"><span class="summary-icon">' + SUMMARY_ICONS[c.cls] + '</span>' +
+          '<span class="summary-label">' + escapeHtml(c.label) + '</span></div>' +
+        '<div class="summary-body"><div class="summary-num">' + counts[c.key] + '<span class="summary-unit">역</span></div></div>' +
+        '</div>';
     }).join('');
   }
 
