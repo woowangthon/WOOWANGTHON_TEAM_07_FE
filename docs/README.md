@@ -17,6 +17,9 @@ AI와 개발자가 이 문서를 보고 수정 작업을 진행합니다.
 | [requirements/elevator.md](requirements/elevator.md) | 엘리베이터 화면 (`#view-elevator`) |
 | [requirements/time.md](requirements/time.md) | 출발계산 화면 (`#view-time`) |
 | [requirements/chat.md](requirements/chat.md) | AI 챗봇 화면 (`#view-chat`) |
+| [chat-voice-integration.md](chat-voice-integration.md) | 챗봇 음성 통합·방면 분석 범위·안드로이드 실기기 확인 |
+| [chat-speech-recognition.md](chat-speech-recognition.md) | 한국어 음성 인식 동작·개인정보·브라우저 제약 |
+| [chat-text-to-speech.md](chat-text-to-speech.md) | 한국어 답변 읽기·접근성·음성 처리 제약 |
 | [assets/](assets/) | 요구사항에 첨부하는 스크린샷 |
 
 ## 요구사항 ID 규칙

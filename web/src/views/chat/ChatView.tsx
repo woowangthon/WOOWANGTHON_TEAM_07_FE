@@ -5,9 +5,13 @@ import { useApp } from '../../app/context'
 import { Icon } from '../../components/Icon'
 import type { ChatAction, ChatResponse } from '../../legacy/globals'
 import { apiMode, mapCall, safe } from '../../lib/stations'
+import { VoiceInput } from './voice/recognition/VoiceInput'
+import { SpeechControls, SpeechSettings, useChatSpeech } from './voice/tts'
+import { responseSpeechText } from './responseSpeechText'
+import './chat-accessibility.css'
 
 type Msg =
-  | { key: number; kind: 'user'; text: string }
+  | { key: number; kind: 'user'; text: string; voice?: boolean }
   | { key: number; kind: 'typing' }
   | { key: number; kind: 'bot'; resp: ChatResponse }
 
@@ -34,6 +38,15 @@ export function ChatView() {
   })
   const [busy, setBusy] = useState(false)
   const [text, setText] = useState('')
+  const [listening, setListening] = useState(false)
+  const [interim, setInterim] = useState('')
+  const [announcement, setAnnouncement] = useState('')
+  const speech = useChatSpeech()
+  const speechRef = useRef(speech)
+  speechRef.current = speech
+  const activeRef = useRef(currentTab === 'chat')
+  activeRef.current = currentTab === 'chat'
+  const mountedRef = useRef(true)
   const busyRef = useRef(false)
   const keyRef = useRef(1)
   const refocusRef = useRef(false)
@@ -45,6 +58,13 @@ export function ChatView() {
   }, [])
   useEffect(() => { scrollChat() }, [msgs, scrollChat])
   useEffect(() => subscribeTabChange((t) => { if (t === 'chat') scrollChat() }), [subscribeTabChange, scrollChat])
+  useEffect(() => {
+    if (currentTab !== 'chat') speechRef.current.stop()
+  }, [currentTab])
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   const addBot = useCallback((resp: ChatResponse, replaceKey?: number) => {
     setMsgs((cur) => {
@@ -55,13 +75,16 @@ export function ChatView() {
     if (resp && resp.suggestions && resp.suggestions.length) setSuggestions(resp.suggestions)
   }, [])
 
-  const send = useCallback((raw: string, refocus?: boolean) => {
+  const send = useCallback((raw: string, refocus?: boolean, voice = false) => {
     const t = String(raw || '').trim()
     if (!t || busyRef.current) return
+    speechRef.current.stop()
+    setAnnouncement('답변을 확인하고 있어요.')
     const ai = window.AIAgent
-    setMsgs((cur) => [...cur, { key: keyRef.current++, kind: 'user', text: t }])
+    setMsgs((cur) => [...cur, { key: keyRef.current++, kind: 'user', text: t, voice }])
     if (!ai || !ai.processMessage) {
       addBot({ text: 'AI 비서를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.' })
+      setAnnouncement('AI 비서를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
       return
     }
     busyRef.current = true
@@ -69,9 +92,17 @@ export function ChatView() {
     const typingKey = keyRef.current++
     setMsgs((cur) => [...cur, { key: typingKey, kind: 'typing' }])
     const done = (resp: ChatResponse) => {
+      if (!mountedRef.current) return
       busyRef.current = false
       setBusy(false)
       addBot(resp, typingKey)
+      const s = speechRef.current
+      const autoRead = activeRef.current && document.visibilityState !== 'hidden'
+        && s.ready && (s.mode === 'always' || (voice && s.mode === 'voice'))
+      if (autoRead) {
+        setAnnouncement('답변이 도착했어요. 소리로 읽어 드릴게요.')
+        s.speak(typingKey, responseSpeechText(resp))
+      } else setAnnouncement(resp.text || '답변이 도착했어요.')
       refocusRef.current = !!refocus
     }
     let p: Promise<ChatResponse>
@@ -114,7 +145,7 @@ export function ChatView() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!text.trim() || busyRef.current) return
+    if (!text.trim() || busyRef.current || listening) return
     const t = text
     setText('')
     send(t, true)
@@ -124,7 +155,7 @@ export function ChatView() {
     <section id="view-chat" className={'view' + (currentTab === 'chat' ? ' active' : '')} data-view="chat">
       <div id="chatMessages" className="chat-messages" ref={listRef}>
         {msgs.map((m) => {
-          if (m.kind === 'user') return <div key={m.key} className="msg user"><div className="bubble"><Text text={m.text} /></div></div>
+          if (m.kind === 'user') return <div key={m.key} className="msg user"><div className="bubble">{m.voice ? <span className="chat-voice-origin">말로 보낸 질문</span> : null}<Text text={m.text} /></div></div>
           if (m.kind === 'typing') return <div key={m.key} className="msg bot"><div className="typing"><span></span><span></span><span></span></div></div>
           const r = m.resp || ({} as ChatResponse)
           const actions = (r.actions || []).filter((a) => a.type !== 'showAlternative')
@@ -133,6 +164,7 @@ export function ChatView() {
               {r.text ? <div className="bubble"><Text text={r.text} /></div> : null}
               {/* mock 모드 AIAgent가 만든 신뢰된 카드 HTML. 서버 문자열은 절대 여기에 넣지 않는다. */}
               {r.html && !apiMode() ? <ExpiringHtml html={r.html} /> : null}
+              {!listening && <SpeechControls messageKey={m.key} text={responseSpeechText(r)} speech={speech} />}
               {actions.length ? (
                 <div className="msg-actions">
                   {actions.map((a, i) => (
@@ -145,15 +177,22 @@ export function ChatView() {
         })}
       </div>
       <div className="chat-composer">
+        <details className="chat-voice-settings"><summary>음성 설정</summary><SpeechSettings speech={speech} /></details>
+        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
         <div id="chatSuggestions" className="chip-row chat-suggestions">
           {suggestions.map((t, i) => (
-            <button key={t + i} type="button" className="chip" data-suggest={t} disabled={busy} onClick={() => { if (!busyRef.current) send(t) }}>{t}</button>
+            <button key={t + i} type="button" className="chip" data-suggest={t} disabled={busy || listening} onClick={() => { if (!busyRef.current) send(t) }}>{t}</button>
           ))}
         </div>
         <form id="chatForm" className="chat-form" onSubmit={onSubmit}>
-          <input id="chatInput" type="text" placeholder="예) 강남역 엘리베이터 돼?" autoComplete="off" ref={inputRef}
-            value={text} disabled={busy} onChange={(e) => setText(e.target.value)} />
-          <button className="btn btn-primary" type="submit" aria-label="보내기" disabled={busy}><Icon name="arrow_upward" size="lg" /></button>
+          <label className="sr-only" htmlFor="chatInput">AI에게 질문하기</label>
+          <input id="chatInput" type="text" placeholder={listening ? '듣고 있어요…' : '예) 강남역 엘리베이터 돼?'} autoComplete="off" ref={inputRef}
+            value={listening ? interim : text} readOnly={listening} disabled={busy} onChange={(e) => setText(e.target.value)} />
+          <div onClickCapture={() => speechRef.current.stop()}><VoiceInput disabled={busy || currentTab !== 'chat'}
+            onTranscript={(value) => { setInterim(''); send(value, false, true) }}
+            onListeningChange={(value) => { setListening(value); if (value) { speechRef.current.stop(); setInterim('') } }}
+            onInterimText={setInterim} /></div>
+          <button className="btn btn-primary" type="submit" aria-label="보내기" disabled={busy || listening}><Icon name="arrow_upward" size="lg" /></button>
         </form>
       </div>
     </section>
