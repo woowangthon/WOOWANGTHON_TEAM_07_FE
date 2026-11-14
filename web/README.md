@@ -16,6 +16,17 @@ npm run build:mock && npm run test:browser   # 기존 브라우저 테스트를 
 npm run lint
 ```
 
+## 외부 LLM 실제 호출 검증
+
+실제 FactChat과 BE 데이터를 사용하는 별도 평가는 [외부 LLM 검증 기록](../docs/external-llm-validation-2026-11-15.md)을 따른다. API 사용량과 데이터 외부 전송이 발생하므로 승인된 환경에서 명시적 플래그로 실행한다.
+
+```sh
+npm run test:llm:checks
+npm run test:llm:live -- --allow-external-llm
+```
+
+기본 template 방식의 실제 LLM 질문 12개와 직접 문장 생성 비교 4개, 두 방식의 React 동작 버튼을 검증했다. 재현에는 문서에 안내한 별도 Python 검증 환경과 등록된 제공자 키가 필요하다. 결과·스크린샷은 `artifacts/external-llm/`, `artifacts/external-llm-prose/`에 저장하며 검증 서버는 실행 후 종료한다.
+
 ## 화면 이전 및 검증 상태 (2026-11-15)
 
 다섯 화면을 통합하고 React 테스트 31개·서비스 테스트 84개, 기존 브라우저 테스트 5개, 실제 BE·AI 연결을 검증했다. [복구·통합 기록](../docs/react-migration-recovery-2026-11-15.md)을 참고한다. 통합본은 PR #73으로 main에 반영됐으며 배포 전환은 별도다.
