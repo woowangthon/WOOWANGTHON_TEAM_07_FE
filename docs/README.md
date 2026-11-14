@@ -8,6 +8,7 @@ AI와 개발자가 이 문서를 보고 수정 작업을 진행합니다.
 | 경로 | 내용 |
 |---|---|
 | [design-system.md](design-system.md) | 색상, 폰트, 간격, 모서리, 그림자 등 전역 디자인 기준 |
+| [accessible-route-api-proposal.md](accessible-route-api-proposal.md) | 지하철 우회 접근성 필드 협의 초안 (미연동) |
 | [backlog.md](backlog.md) | 전체 요구사항 목록과 상태 (진행 현황판) |
 | [requirements/_template.md](requirements/_template.md) | 요구사항 작성 양식 |
 | [requirements/common.md](requirements/common.md) | 공통 요소: 상태바, 검색 헤더, 탭바, 바텀시트, 데모 패널 |

@@ -157,17 +157,13 @@
       '</div>';
   }
 
-  function altBoxHtml(alt, brokenId, titlePrefix) {
-    if (!alt || !alt.station) return '';
-    var a = alt.station;
-    var meta = [];
-    if (typeof alt.stops === 'number') meta.push(alt.lineId ? lineName(alt.lineId) + ' ' + alt.stops + '개역' : alt.stops + '개역');
-    if (typeof alt.walkMinutes === 'number') meta.push('도보 약 ' + alt.walkMinutes + '분');
-    return '<div class="alt-box">' +
-      '<div class="alt-title">' + esc(titlePrefix || '대체역') + ': ' + esc(stName(a)) + ' ' + lineBadges(a) + ' ' + pill(getStatus(a.id)) + '</div>' +
-      (meta.length ? '<div class="card-sub">' + esc(stName(brokenId)) + '에서 ' + esc(meta.join(' · ')) + '</div>' : '') +
-      (alt.tip ? '<div class="alt-tip">💡 ' + esc(alt.tip) + '</div>' : '') +
-      '</div>';
+  function accessibleRouteHtml(stationId, originId, destinationId) {
+    var context = { affectedStationId: stationId, stationName: stName(stationId) };
+    if (originId !== undefined) context.originStationId = originId;
+    if (destinationId !== undefined) context.destinationStationId = destinationId;
+    var es = ES();
+    var snapshot = es && es.getAccessibleRouteSnapshot ? es.getAccessibleRouteSnapshot(context) : null;
+    return window.AccessibleRouteView.render(snapshot, context);
   }
 
   function routeLegsHtml(route) {
@@ -200,167 +196,36 @@
     });
   }
 
-  // 데이터가 있는 가장 가까운 역 (BFS)
-  function nearestWithData(id) {
-    var visited = {};
-    visited[id] = true;
-    var queue = [id];
-    var guard = 0;
-    while (queue.length && guard < 500) {
-      guard++;
-      var cur = queue.shift();
-      var nbrs = safe(function () { return ES().getNeighbors(cur); }, []);
-      for (var i = 0; i < nbrs.length; i++) {
-        var nid = nbrs[i] && nbrs[i].id;
-        if (!nid || visited[nid]) continue;
-        visited[nid] = true;
-        if (hasData(nid)) return getStation(nid);
-        queue.push(nid);
-      }
-    }
-    return null;
-  }
-
-  function findAlternative(id) {
-    var alt = safe(function () { return ES().findAlternativeStation(id); }, null);
-    return alt && alt.station ? alt : null;
-  }
-
-  // ---------------------------------------------------------------------------
-  // 도구 (tools)
-  // ---------------------------------------------------------------------------
   function toolCheckElevator(st) {
-    var id = st.id;
-    var status = getStatus(id);
-    var elevs = getElevators(id);
-    var toolCalls = [{ name: 'check_elevator', args: { stationId: id } }];
-    var actions = [{ label: stName(st) + ' 상세 보기', type: 'openStation', payload: id }];
+    var id = st.id, status = getStatus(id), elevs = getElevators(id);
     ctx.focusId = id;
-
-    if (status === 'UNKNOWN' || !elevs.length) {
-      var near = nearestWithData(id);
-      var html = '<div class="card">' + stationHeaderHtml(st, 'UNKNOWN') +
-        '<div class="card-sub muted">이 역은 아직 엘리베이터 운행 정보가 제공되지 않아요.</div>';
-      var text = stName(st) + '은 아직 엘리베이터 정보가 없어요.';
-      if (near) {
-        var nStatus = getStatus(near.id);
-        html += '<div class="card-row">' +
-          '<span class="muted">가까운 정보 제공 역</span>' +
-          '<span class="card-title">' + esc(stName(near)) + '</span> ' + lineBadges(near) + ' ' + pill(nStatus) +
-          '</div>';
-        text += ' 가까운 ' + stName(near) + '은 현재 ' + statusLabel(nStatus) + ' 상태예요.';
-        actions.push({ label: stName(near) + ' 상세 보기', type: 'openStation', payload: near.id });
-      }
-      html += '</div>';
-      return resp(text, html, toolCalls,
-        [near ? stName(near) + ' 엘리베이터 돼?' : null, '지금 고장난 역 알려줘', '강남역 엘리베이터 돼?'], actions);
-    }
-
-    var total = elevs.length;
-    var okCount = elevs.filter(function (e) { return !isDown(e); }).length;
-    var downList = elevs.filter(isDown);
-    var html2 = '<div class="card">' + stationHeaderHtml(st, status) +
-      '<div class="card-sub">엘리베이터 ' + total + '대 중 ' + okCount + '대 이용 가능</div>' +
-      elevListHtml(elevs);
-
-    var text2;
-    var suggestions;
-    if (status === 'AVAILABLE') {
-      text2 = stName(st) + ' 엘리베이터 ' + total + '대 중 ' + total + '대가 정상 운행 중이에요. 편하게 이용하셔도 돼요.';
-      suggestions = [stName(st) + '까지 3시까지 가려면?', '지금 고장난 역 알려줘', '신도림에서 ' + (st.name || '') + ' 가는 길'];
-    } else {
-      var alt = findAlternative(id);
-      toolCalls.push({ name: 'find_alternative', args: { stationId: id } });
-      var downDesc = downList.slice(0, 2).map(function (e) {
-        return (e.location || '엘리베이터') + '(' + elevStatusWord(e) + ')';
-      }).join(', ');
-      if (status === 'UNAVAILABLE') {
-        text2 = '⚠️ ' + stName(st) + ' 엘리베이터 ' + total + '대가 모두 이용 불가예요.';
-      } else {
-        text2 = stName(st) + ' 엘리베이터 ' + total + '대 중 ' + okCount + '대만 운행 중이에요. 이용 불가: ' + downDesc +
-          (downList.length > 2 ? ' 외 ' + (downList.length - 2) + '대' : '') + '.';
-      }
-      if (alt) {
-        text2 += ' 가까운 대체역은 ' + stName(alt.station) + '이에요.';
-        html2 += altBoxHtml(alt, id, '가까운 대체역');
-        actions.push({
-          label: '지도에서 우회 경로 보기', type: 'showAlternative',
-          payload: { from: id, to: alt.station.id, path: alt.path || [id, alt.station.id] }
-        });
-      }
-      suggestions = [stName(st) + ' 대체역은?', '지금 고장난 역 알려줘', alt ? stName(alt.station) + ' 엘리베이터 돼?' : null];
-    }
-    html2 += '</div>';
-    return resp(text2, html2, toolCalls, suggestions, actions);
+    var ok = elevs.filter(function (e) { return !isDown(e); }).length;
+    var text = stName(st) + (elevs.length ? ' 엘리베이터 ' + elevs.length + '대 중 ' + ok + '대가 운행 상태로 표시돼요.' : '은 엘리베이터 운행 정보가 없어요.');
+    text += ' 역별 상태만으로 승강장·환승·출구까지 계단 없는 경로를 확인할 수는 없어요.';
+    var html = '<div class="card">' + stationHeaderHtml(st, status) +
+      '<div class="card-sub">역별 설비 상태 · 전체 경로 접근성은 별도 확인이 필요해요.</div>' + elevListHtml(elevs);
+    if (status !== 'AVAILABLE') html += accessibleRouteHtml(id);
+    html += '</div>';
+    return resp(text, html, [{ name: 'check_elevator', args: { stationId: id } }],
+      [stName(st) + ' 대체 경로는?', '지금 고장난 역 알려줘'],
+      [{ label: stName(st) + ' 상세 보기', type: 'openStation', payload: id }]);
   }
 
   function toolFindAlternative(st) {
-    var id = st.id;
-    var status = getStatus(id);
-    var toolCalls = [
-      { name: 'check_elevator', args: { stationId: id } },
-      { name: 'find_alternative', args: { stationId: id } }
-    ];
+    var id = st.id, status = getStatus(id);
     ctx.focusId = id;
-    var alt = findAlternative(id);
-    var elevs = getElevators(id);
-    var downList = elevs.filter(isDown);
-
-    var html = '<div class="card">' + stationHeaderHtml(st, status);
-    var prefix = '';
-    if (status === 'AVAILABLE') {
-      prefix = '현재 데이터상으로는 ' + stName(st) + ' 엘리베이터가 정상 운행 중으로 표시돼요. 그래도 이용이 어려우시다면 ';
-      html += '<div class="card-sub muted">현재 데이터상 정상 운행 중으로 표시돼요. 실제와 다르면 역무실(☎ 1577-1234)에 알려주세요.</div>';
-    } else if (status === 'UNKNOWN') {
-      prefix = stName(st) + '은 엘리베이터 정보가 없어요. ';
-      html += '<div class="card-sub muted">엘리베이터 운행 정보가 제공되지 않는 역이에요.</div>';
-    } else {
-      html += '<div class="card-sub warn-text">이용 불가 ' + downList.length + '대 / 전체 ' + elevs.length + '대</div>';
-      html += elevListHtml(downList);
-    }
-
-    if (!alt) {
-      html += '<div class="card-sub muted">근처에서 엘리베이터 이용 가능한 대체역을 찾지 못했어요.</div></div>';
-      return resp(prefix + '아쉽게도 근처에서 엘리베이터를 이용할 수 있는 대체역을 찾지 못했어요. 역무실 도움을 요청해 주세요.',
-        html, toolCalls, ['지금 고장난 역 알려줘', stName(st) + ' 엘리베이터 돼?'],
-        [{ label: stName(st) + ' 상세 보기', type: 'openStation', payload: id }]);
-    }
-
-    var a = alt.station;
-    html += altBoxHtml(alt, id, '추천 대체역') + '</div>';
-
-    var how = [];
-    if (typeof alt.stops === 'number') how.push((alt.lineId ? lineName(alt.lineId) + ' ' : '') + alt.stops + '개역 거리');
-    if (typeof alt.walkMinutes === 'number') how.push('도보 약 ' + alt.walkMinutes + '분');
-    var text;
-    if (status === 'AVAILABLE') {
-      text = prefix + stName(a) + '을 대체역으로 이용해 보세요' + (how.length ? ' (' + how.join(', ') + ').' : '.');
-    } else if (status === 'UNKNOWN') {
-      text = prefix + '엘리베이터가 확인된 가장 가까운 역은 ' + stName(a) + '이에요' + (how.length ? ' (' + how.join(', ') + ').' : '.');
-    } else {
-      text = stName(st) + ' 엘리베이터가 ' + (status === 'UNAVAILABLE' ? '모두 이용 불가' : '일부 이용 불가') + '라서 ' +
-        stName(a) + '을 추천드려요' + (how.length ? ' (' + how.join(', ') + ').' : '.') +
-        (alt.tip ? '\n' + alt.tip : '');
-    }
-
-    return resp(text, html, toolCalls,
-      [stName(a) + ' 엘리베이터 돼?', stName(a) + '까지 3시까지 가려면?', '지금 고장난 역 알려줘'],
-      [
-        { label: '지도에서 우회 경로 보기', type: 'showAlternative', payload: { from: id, to: a.id, path: alt.path || [id, a.id] } },
-        { label: '대체역 상세 보기', type: 'openStation', payload: a.id }
-      ]);
+    var html = '<div class="card">' + stationHeaderHtml(st, status) +
+      '<div class="card-sub">계단 없이 이동할 수 있는 지하철 경로를 우선 확인해요.</div>' +
+      accessibleRouteHtml(id) + '</div>';
+    return resp(stName(st) + '의 대체 경로는 지하철 우회를 우선으로 확인해요. 아래 접근성 검증 상태를 확인해 주세요. 역별 상태만으로 전체 경로의 접근성이 확인되는 것은 아니에요.',
+      html, [{ name: 'check_elevator', args: { stationId: id } }, { name: 'check_accessible_routes', args: { stationId: id } }],
+      [stName(st) + ' 엘리베이터 돼?', '지금 고장난 역 알려줘'],
+      [{ label: '역 정보 보기', type: 'openStation', payload: id }]);
   }
 
   function warningStation(w) {
     if (!w) return null;
     return w.stationId || (w.station && w.station.id) || null;
-  }
-
-  function normalizeAlt(alt) {
-    if (!alt) return null;
-    if (alt.station) return alt;
-    if (alt.id) return { station: alt };
-    return null;
   }
 
   function toolCalculateDeparture(originId, destId, arriveBy, notes) {
@@ -428,15 +293,8 @@
       if (!sid || warnIds.indexOf(sid) >= 0) return;
       warnIds.push(sid);
       var status = w.status || getStatus(sid);
-      var alt = normalizeAlt(w.alternative) || findAlternative(sid);
       warnHtml += '<div class="card-row warn-text">⚠️ ' + esc(stName(sid)) + ' 엘리베이터 ' + esc(statusLabel(status)) + ' ' + pill(status) + '</div>';
-      if (alt) {
-        warnHtml += altBoxHtml(alt, sid, '대체역');
-        if (actions.length < 1) {
-          actions.push({ label: '지도에서 우회 경로 보기', type: 'showAlternative',
-            payload: { from: sid, to: alt.station.id, path: alt.path || [sid, alt.station.id] } });
-        }
-      }
+      warnHtml += accessibleRouteHtml(sid, originId, destId);
     });
     if (route && Array.isArray(route.legs)) {
       route.legs.slice(0, -1).forEach(function (leg) {
@@ -445,7 +303,7 @@
         var s = getStatus(tid);
         if (s === 'PARTIAL' || s === 'UNAVAILABLE') {
           warnIds.push(tid);
-          warnHtml += '<div class="card-row warn-text">⚠️ 환승역 ' + esc(stName(tid)) + ' 엘리베이터 ' + esc(statusLabel(s)) + ' ' + pill(s) + '</div>';
+          warnHtml += '<div class="card-row warn-text">⚠️ 환승역 ' + esc(stName(tid)) + ' 엘리베이터 ' + esc(statusLabel(s)) + ' ' + pill(s) + '</div>' + accessibleRouteHtml(tid, originId, destId);
         }
       });
     }
@@ -574,13 +432,8 @@
     var actions = [{ label: '출발 시각 계산하기', type: 'openTime', payload: { originId: originId, destId: destId, arriveBy: null } }];
     if (problems.length) {
       var p = problems[0];
-      var alt = findAlternative(p);
       html += '<div class="card-sub warn-text">⚠️ ' + esc(problems.map(stName).join(', ')) + ' 엘리베이터 이용에 제한이 있어요.</div>';
-      if (alt) {
-        html += altBoxHtml(alt, p, stName(p) + ' 대체역');
-        actions.push({ label: '지도에서 우회 경로 보기', type: 'showAlternative',
-          payload: { from: p, to: alt.station.id, path: alt.path || [p, alt.station.id] } });
-      }
+      html += accessibleRouteHtml(p, originId, destId);
     }
     html += '</div>';
 
@@ -590,7 +443,7 @@
       (transferIds.length ? ' (' + transferIds.map(stName).join(', ') + ' 환승).' : '.');
     text += problems.length
       ? '\n⚠️ ' + problems.map(stName).join(', ') + ' 엘리베이터에 이용 불가 구간이 있어요.'
-      : ' 경로상 엘리베이터는 모두 이용 가능해요.';
+      : ' 확인된 역별 설비에는 고장이 표시되지 않아요. 전체 경로의 계단 없는 이동은 별도 확인이 필요해요.';
 
     return resp(text, html, toolCalls,
       [(dest.name || '') + '까지 3시까지 가려면?', problems.length ? stName(problems[0]) + ' 대체역은?' : stName(dest) + ' 엘리베이터 돼?', '지금 고장난 역 알려줘'],
@@ -610,7 +463,7 @@
   function getWelcome() {
     var w = resp(
       '안녕하세요! 지하철 엘리베이터 도우미예요 🛗\n' +
-      '역 엘리베이터 운행 상태 확인, 고장 시 가까운 대체역 안내, 엘리베이터를 고려한 출발 시각 계산을 도와드릴게요. 무엇이든 편하게 물어보세요.',
+      '역 엘리베이터 운행 상태 확인, 고장 시 지하철 우회 경로의 접근성 확인, 엘리베이터를 고려한 출발 시각 계산을 도와드릴게요. 무엇이든 편하게 물어보세요.',
       '', [], [], []);
     w.suggestions = WELCOME_SUGGESTIONS.slice();
     return w;
@@ -620,7 +473,7 @@
     var html = '<div class="card">' +
       '<div class="card-title">이런 걸 할 수 있어요</div>' +
       '<div class="card-row">🛗 <span>역 엘리베이터 운행 상태 확인 <span class="muted">"강남역 엘리베이터 돼?"</span></span></div>' +
-      '<div class="card-row">🔁 <span>고장 시 대체역·우회 경로 안내 <span class="muted">"시청역 고장났는데 어디로 가?"</span></span></div>' +
+      '<div class="card-row">🔁 <span>지하철 우회 경로의 검증 상태 확인 <span class="muted">"시청역 고장났는데 어디로 가?"</span></span></div>' +
       '<div class="card-row">⏱️ <span>도착 시각에 맞춘 출발 시각 계산 <span class="muted">"신도림에서 잠실까지 3시까지"</span></span></div>' +
       '<div class="card-row">🗺️ <span>경로와 환승역 엘리베이터 확인 <span class="muted">"홍대 가는 길 알려줘"</span></span></div>' +
       '<div class="card-row">📋 <span>전체 고장 현황 <span class="muted">"지금 고장난 역 알려줘"</span></span></div>' +

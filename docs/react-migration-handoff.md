@@ -222,3 +222,13 @@ REQ-DS-007 (Material Symbols 계획)보다 react-icons를 우선하기로 결정
 - [ ] 지하철 애니메이션 → 열차 도착 API 연동 후 실제 진행률 계산
 - [ ] 이모지 아이콘 → react-icons (위 매핑 표 참고)
 - [ ] REQ-DS-007 Material Symbols 계획 → react-icons로 대체 결정됨
+
+
+## 2026-11-15 출발 그래픽·접근성 경로 (#62, #63)
+
+- 출발 그래픽은 DepartureGraphic.render를 시간 계산·챗봇이 공유한다. 큰 시각 유지, 출발→탑승만 출력하며 실제 열차 위치를 표시하지 않는다. reduced-motion/네 글자 크기 지원.
+- 접근성은 AccessibleRoutes.evaluateRoutes(순수 정책) → AccessibleRouteView.render(escape된 UI) → accessible-route-expiry.js(표시 중 만료 시 회수)로 분리했다. React에서는 순수 정책을 유지하고 만료 cleanup을 effect로 옮길 수 있다.
+- 현재 ElevatorService.getAccessibleRouteSnapshot은 null이다. 실제 경로 탐색 API/데이터가 없어 확인 필요를 표시한다. 기존 역별 정상 상태로 추천하던 대체역·고정 도보/버스·지도 강조는 사용하지 않는다.
+- API 계약은 [협의용 제안](accessible-route-api-proposal.md)이다. 실제 BE 제공/합의/연동으로 오해하지 말 것. 노선/방향·복귀·승강장/환승·개별 설비·목적지 출구·연결 근거가 필요하다. 타입별 역 ID를 임의 변환하지 않는다.
+- tests fixtures는 제품 데이터에 넣지 않는다. 검증 라벨은 공급된 API 근거의 계약 충족을 뜻하며 FE가 물리적 안전성을 독립 검증했다는 뜻이 아니다.
+- 검증: [2026-11-15 QA](qa-2026-11-15.md). BE 코드·worktree·GitHub 변경 금지와 PR 무승인 병합 금지를 유지한다.

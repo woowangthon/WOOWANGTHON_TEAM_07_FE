@@ -496,3 +496,8 @@ UI 아이콘이 이모지 20여 종이다. 기기(iOS, 안드로이드, 윈도�
 | label-size / time-size / note-size | 15px / 17px / 13px (fs-scale 적용) |
 | line-height / strong-weight | 1.5 / 600 |
 | motion-duration / motion-distance | 650ms / 8px (1회, reduced-motion에서 없음) |
+
+
+## 접근성 경로 카드 토큰 (REQ-ELV-007)
+
+`.accessible-routes` 범위에서 `--route-space-xs/sm/md/lg`는 4/8/12/16px, `--route-touch-min`은 44px이다. 본문15px·제목17px에 fs-scale을 적용한다. 검증 완료는 기존 ok-text 테두리/명시적 라벨, 미확인은 점선·surface-2/확인 필요, 제외는 bad-text/조건 불충족으로 색상과 문구를 함께 쓴다.

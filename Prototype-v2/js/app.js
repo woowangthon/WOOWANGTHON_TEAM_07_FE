@@ -131,24 +131,20 @@
 
   function koCompare(a, b) { return String(a).localeCompare(String(b), 'ko'); }
 
-  function findAlternative(id) {
+  function accessibleRouteHtml(stationId, originId, destinationId) {
+    var context = { affectedStationId: stationId, stationName: yeok(stationId) };
+    if (originId !== undefined) context.originStationId = originId;
+    if (destinationId !== undefined) context.destinationStationId = destinationId;
+    // 현재 서비스는 역별 데모 상태만 보유한다. 경로 근거가 없으면 확인 필요로 표시한다.
     var es = ES();
-    if (!es || !es.findAlternativeStation) return null;
-    return safe('findAlternativeStation', function () { return es.findAlternativeStation(id); }) || null;
+    var snapshot = es && es.getAccessibleRouteSnapshot ? es.getAccessibleRouteSnapshot(context) : null;
+    return window.AccessibleRouteView.render(snapshot, context);
   }
 
   function isDown(elev) { return elev && elev.status !== 'AVAILABLE'; }
 
   var ELEV_STATUS_TEXT = { AVAILABLE: '정상', UNAVAILABLE: '고장', MAINTENANCE: '점검 중' };
   var ELEV_TYPE_TEXT = { exit: '출구', platform: '승강장', transfer: '환승' };
-
-  function altSummary(alt) {
-    if (!alt || !alt.station) return '';
-    var parts = [];
-    if (typeof alt.stops === 'number') parts.push(alt.stops + '개역');
-    if (typeof alt.walkMinutes === 'number') parts.push('도보 약 ' + alt.walkMinutes + '분');
-    return escapeHtml(yeok(alt.station)) + (parts.length ? ' (' + parts.join(' · ') + ')' : '');
-  }
 
   function nowHHMM(d) {
     d = d || new Date();
@@ -415,14 +411,7 @@
     var sid = lastStationId;
     es.setStationBroken(sid, broken);
     toast(yeok(sid) + ' 엘리베이터가 ' + (broken ? '모두 고장 상태로 전환되었어요' : '모두 복구되었어요'));
-    if (broken) {
-      var alt = findAlternative(sid);
-      if (alt && alt.station) {
-        setTimeout(function () { mapCall('highlightAlternative', sid, alt.station.id, alt.path); }, 300);
-      }
-    } else {
-      mapCall('clearHighlights');
-    }
+    mapCall('clearHighlights');
   }
 
   function demoToggleElevator(eid) {
@@ -479,26 +468,12 @@
     var elevSection = html.slice(elevStart);
     html = html.slice(0, elevStart);
 
-    // 대체역 (이용 불가일 때 헤더 바로 아래에 보여준다)
+    // 역별 설비 상태와 전체 경로 접근성을 구분한다.
     sheet.alt = null;
-    if (status === 'PARTIAL' || status === 'UNAVAILABLE' || status === 'UNKNOWN') {
-      var alt = findAlternative(id);
-      sheet.alt = alt;
-      if (alt && alt.station) {
-        var title = status === 'UNKNOWN'
-          ? '정보가 확인된 가까운 역: ' + altSummary(alt)
-          : '추천 대체역: ' + altSummary(alt);
-        html += '<div class="sheet-section"><div class="alt-box">' +
-          '<div class="alt-title">' + (status === 'UNKNOWN' ? 'ℹ️ ' : '⚠️ ') + title + '</div>' +
-          (alt.tip ? '<div class="alt-tip">' + escapeHtml(alt.tip) + '</div>' : '') +
-          '<div class="msg-actions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
-            '<button type="button" class="btn btn-sm btn-primary" data-act="detour">지도에서 우회 경로 보기</button>' +
-            '<button type="button" class="btn btn-sm btn-ghost" data-act="open-station" data-id="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' +
-          '</div></div></div>';
-      } else if (status !== 'UNKNOWN') {
-        html += '<div class="sheet-section"><div class="alt-box"><div class="alt-title">⚠️ 주변에 이용 가능한 대체역을 찾지 못했어요</div>' +
-          '<div class="alt-tip">역무원 호출 또는 다산콜센터(120)에 문의해 주세요.</div></div></div>';
-      }
+    if (status !== 'AVAILABLE') {
+      html += '<div class="sheet-section">' + accessibleRouteHtml(id) + '</div>';
+    } else {
+      html += '<p class="sheet-sub">역별 설비 상태예요. 승강장·환승·출구까지 계단 없는 경로가 확인된 것은 아니에요.</p>';
     }
 
     html += elevSection;
@@ -549,11 +524,10 @@
     var act = btn.getAttribute('data-act');
     var sid = sheet.stationId;
     switch (act) {
-      case 'detour': {
-        var a = sheet.alt;
-        if (a && a.station) mapCall('highlightAlternative', sid, a.station.id, a.path);
+      case 'detour':
+        mapCall('clearHighlights');
+        toast('접근성이 검증된 경로 데이터가 필요해요');
         break;
-      }
       case 'open-station':
         openStation(btn.getAttribute('data-id'));
         break;
@@ -1023,16 +997,12 @@
       (info.length ? '<div class="card-row muted">' + info.join(' · ') + '</div>' : '') +
       '</div>';
 
-    // 엘리베이터 경고
+    // 접근성 근거가 없는 가까운 역을 추천하지 않는다.
     (r.elevatorWarnings || []).forEach(function (w) {
-      var alt = w.alternative;
-      html += '<div class="alt-box">' +
-        '<div class="alt-title">⚠️ ' + escapeHtml(yeok(w.stationId)) + ' 엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</div>' +
-        (alt && alt.station ? '<div class="alt-tip">추천 대체역: ' + altSummary(alt) + (alt.tip ? '<br>' + escapeHtml(alt.tip) : '') + '</div>' : '') +
-        '<div class="msg-actions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
-          '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(w.stationId) + '">역 정보 보기</button>' +
-          (alt && alt.station ? '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(alt.station.id) + '">대체역 보기</button>' : '') +
-        '</div></div>';
+      html += '<div class="card"><div class="card-title">⚠️ ' + escapeHtml(yeok(w.stationId)) +
+        ' 엘리베이터 ' + escapeHtml(statusLabel(w.status)) + '</div>' +
+        accessibleRouteHtml(w.stationId, originId, destId) +
+        '<button type="button" class="btn btn-sm btn-ghost" data-open-station="' + escapeHtml(w.stationId) + '">역 정보 보기</button></div>';
     });
 
     // 경로
@@ -1135,16 +1105,10 @@
         openStation(typeof p === 'object' && p ? (p.stationId || p.id) : p);
         break;
       case 'showAlternative':
-        if (!p || !p.from) return;
-        openStation(p.from);
-        setTimeout(function () {
-          var path = p.path;
-          if (!path || !path.length) {
-            var alt = findAlternative(p.from);
-            if (alt && alt.station && alt.station.id === p.to) path = alt.path;
-          }
-          mapCall('highlightAlternative', p.from, p.to, path);
-        }, 400);
+        // 오래된 챗봇 action의 임의 path도 접근성 근거가 되지 않는다.
+        mapCall('clearHighlights');
+        if (p && p.from) openStation(p.from);
+        toast('접근성 검증 상태를 먼저 확인해 주세요');
         break;
       case 'openTime':
         openTime(p || {});
@@ -1273,10 +1237,7 @@
     es.setStationBroken(stationId, true);
     openStation(stationId);
     toast(yeok(stationId) + ' 엘리베이터가 모두 고장 상태로 전환되었어요');
-    setTimeout(function () {
-      var alt = findAlternative(stationId);
-      if (alt && alt.station) mapCall('highlightAlternative', stationId, alt.station.id, alt.path);
-    }, 500);
+    mapCall('clearHighlights');
   }
 
   function resetDemo() {
