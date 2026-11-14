@@ -4,7 +4,7 @@ import path from 'node:path'
 
 const LEGACY_JS = path.resolve(__dirname, '../../../Prototype-v2/js')
 const ORDER = ['mock-data', 'api-client', 'station-id-map', 'elevator-service', 'time-calculator', 'metro-map',
-  'departure-graphic', 'accessible-routes', 'accessible-route-view', 'accessible-route-expiry', 'ai-agent', 'auth']
+  'departure-graphic', 'accessible-routes', 'accessible-route-view', 'ai-agent', 'auth']
 
 window.APP_CONFIG = { authMode: 'demo', apiBase: '', dataSource: 'mock', beBase: 'http://127.0.0.1:8000', chatBase: 'http://127.0.0.1:8001' }
 for (const name of ORDER) {

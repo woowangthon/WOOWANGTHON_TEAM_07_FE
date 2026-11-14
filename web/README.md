@@ -15,3 +15,9 @@ npm run test:legacy    # 기존 노드 테스트(../tests/*.test.cjs)
 npm run build:mock && npm run test:browser   # 기존 브라우저 테스트를 React mock 빌드에 실행 (Chrome 필요, CHROME_PATH로 경로 지정 가능)
 npm run lint
 ```
+
+## 화면 이전 및 검증 상태 (2026-11-15)
+
+다섯 화면을 통합하고 React 테스트 31개·서비스 테스트 84개, 기존 브라우저 테스트 5개, 실제 BE·AI 연결을 검증했다. [복구·통합 기록](../docs/react-migration-recovery-2026-11-15.md)을 참고한다. main과 배포 전환은 리뷰 후 수행한다.
+
+npm run build:mock 이후 npm run test:visual로 원본/React 18쌍을 비교한다. npm run test:live로 운영 DB 복사본과 별도 포트의 실제 BE·AI를 검증한다. 결과는 artifacts/migration과 artifacts/live에 저장한다. 화면 비교는 외부 폰트·애니메이션을 끈 조건이며 live 검증에서는 외부 LLM 호출을 비활성화한다. 실제 OAuth는 검증하지 않는다. live 검증에는 BE의 기존 Python 가상환경이 필요하다.

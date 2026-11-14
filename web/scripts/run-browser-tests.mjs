@@ -50,7 +50,7 @@ for (const f of files) {
   const r = await run(f)
   const tail = r.out.trim().split('\n').filter((l) => !/^\s+at /.test(l)).slice(-3).join(' | ')
   console.log((r.code === 0 ? 'PASS ' : 'FAIL ') + f + ' :: ' + tail)
-  if (r.code !== 0) failed += 1
+  if (r.code !== 0) { failed += 1; console.error(r.out) }
 }
 stop()
 process.exit(failed ? 1 : 0)

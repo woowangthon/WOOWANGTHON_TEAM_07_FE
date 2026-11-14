@@ -25,3 +25,7 @@ PUPPETEER_MODULE=/absolute/path/to/puppeteer node tests/browser-account-filters.
 ```
 
 디자인 검증은 외부 폰트를 차단한 경우의 대체 표시도 확인한다. 계정 검증의 비동기 복구는 가상 인증 응답만 쓰며 실제 백엔드/OAuth에 요청하지 않는다. 직접 실행 결과는 [#43 재통합 기록](../docs/design-reintegration-2026-11-15.md)에 있다.
+
+## React 앱 검증
+
+web에서 npm run build:mock 후 npm run test:browser를 실행하면 기존 브라우저 테스트 5개를 React 빌드에 적용한다. npm run test:visual은 원본/React 화면 18쌍과 차이 이미지를 web/artifacts/migration에 저장한다. npm run test:live는 실제 BE·AI 연결을 별도 포트와 운영 DB 복사본으로 확인한다. 외부 LLM과 실제 OAuth는 검증하지 않는다. 자세한 결과는 [복구·통합 기록](../docs/react-migration-recovery-2026-11-15.md)을 참고한다.

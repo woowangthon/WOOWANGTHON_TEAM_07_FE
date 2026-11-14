@@ -4,7 +4,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const puppeteer = require(process.env.PUPPETEER_MODULE || 'puppeteer');
 const configuredFile = process.env.APP_FILE;
-const appURL = configuredFile && configuredFile.startsWith('file:') ? configuredFile : pathToFileURL(path.resolve(configuredFile || 'Prototype-v2/index.html')).href;
+const appURL = configuredFile && /^(file|https?):/.test(configuredFile) ? configuredFile : pathToFileURL(path.resolve(configuredFile || 'Prototype-v2/index.html')).href;
 const failures = [];
 let passed=0;
 const near = (actual, expected, label, tolerance = 0.6) => assert.ok(Math.abs(actual - expected) <= tolerance, `${label}: ${actual}, expected ${expected}`);
@@ -16,7 +16,8 @@ const near = (actual, expected, label, tolerance = 0.6) => assert.ok(Math.abs(ac
   await page.setViewport({ width: 375, height: 812, deviceScaleFactor: 1 });
   // Local assets run normally; external fonts are deliberately unavailable to exercise icon fallback.
   await page.setRequestInterception(true);
-  page.on('request', request => /^https?:/.test(request.url()) ? request.abort() : request.continue());
+  const appOrigin = /^https?:/.test(appURL) ? new URL(appURL).origin : null; // 앱이 http로 서비스되면 앱 자체 요청은 허용하고 외부(폰트 CDN 등)만 막는다
+  page.on('request', request => /^https?:/.test(request.url()) && !(appOrigin && request.url().startsWith(appOrigin + '/')) ? request.abort() : request.continue());
   const check = async (name, run) => {
     try { await run(); passed++; console.log(`PASS ${name}`); }
     catch (error) { failures.push(`${name}: ${error.message}`); console.error(`FAIL ${name}: ${error.message}`); }
