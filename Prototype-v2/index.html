@@ -152,7 +152,15 @@
                 <div class="auth-profile">
                   <div id="authProfileAvatar" class="auth-avatar" aria-hidden="true">G</div>
                   <div class="auth-profile-info">
-                    <p id="authProfileName" class="auth-profile-name">게스트 사용자</p>
+                    <div class="auth-profile-name-row">
+                      <p id="authProfileName" class="auth-profile-name">게스트 사용자</p>
+                      <button id="editNameBtn" class="btn btn-sm btn-ghost edit-name-btn" type="button" aria-label="이름 편집">편집</button>
+                    </div>
+                    <div id="nameEditRow" class="name-edit-row" hidden>
+                      <input id="nameEditInput" type="text" class="name-edit-input" autocomplete="off" maxlength="30" />
+                      <button id="nameEditConfirm" class="btn btn-sm btn-primary" type="button">저장</button>
+                      <button id="nameEditCancel" class="btn btn-sm btn-ghost" type="button">취소</button>
+                    </div>
                     <p class="auth-provider-sub">
                       <span id="authProviderBadge" class="auth-provider-badge"></span>
                       <span>계정으로 로그인됨</span>
@@ -161,21 +169,21 @@
                 </div>
               </div>
 
-              <!-- 즐겨찾기 역 -->
+              <!-- 즐겨찾기 장소 -->
               <div id="favSection" class="card mypage-section">
                 <div class="mypage-section-header">
                   <span class="mypage-section-icon" aria-hidden="true">⭐</span>
-                  <span class="mypage-section-title">즐겨찾기 역</span>
+                  <span class="mypage-section-title">즐겨찾기 장소</span>
                   <button id="favAddBtn" class="btn btn-sm btn-ghost fav-add-open-btn" type="button">＋ 추가</button>
                 </div>
                 <!-- 추가 입력 행 (기본 숨김) -->
                 <div id="favAddRow" class="fav-add-row" hidden>
-                  <input id="favAddInput" type="text" class="fav-rename-input" placeholder="역 이름 입력" autocomplete="off" maxlength="20" />
+                  <input id="favAddInput" type="text" class="fav-rename-input" placeholder="장소 이름 입력" autocomplete="off" maxlength="20" />
                   <button id="favAddConfirm" class="btn btn-sm btn-primary" type="button">추가</button>
                   <button id="favAddCancel" class="btn btn-sm btn-ghost" type="button">취소</button>
                 </div>
                 <ul id="favList" class="fav-list"></ul>
-                <p id="favEmptyMsg" class="mypage-empty-hint">즐겨찾기한 역이 없습니다.</p>
+                <p id="favEmptyMsg" class="mypage-empty-hint">즐겨찾기한 장소가 없습니다.</p>
               </div>
 
               <!-- 글자 크기 설정 -->

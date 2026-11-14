@@ -555,6 +555,9 @@
       case 'demo-fullscreen':
         toggleFullscreen();
         break;
+      case 'close-sheet':
+        closeSheet();
+        break;
       default:
         break;
     }
@@ -1167,13 +1170,49 @@
     list.innerHTML = favs.map(function (fav) {
       var display = escapeHtml(fav.alias || fav.placeName);
       return '<li class="fav-item" data-fav-id="' + escapeHtml(fav.id) + '">' +
-        '<span class="fav-name">' + display + '</span>' +
+        '<button class="fav-name fav-name-btn" type="button" data-fav-id="' + escapeHtml(fav.id) + '">' + display + '</button>' +
         '<div class="fav-actions">' +
           '<button class="btn btn-sm btn-ghost" type="button" data-fav-rename="' + escapeHtml(fav.id) + '">이름 변경</button>' +
           '<button class="btn btn-sm btn-ghost" type="button" data-fav-delete="' + escapeHtml(fav.id) + '">삭제</button>' +
         '</div>' +
         '</li>';
     }).join('');
+  }
+
+  /* 즐겨찾기 장소 상세 바텀시트 */
+  function openFavDetail(fav) {
+    sheet.mode = 'favDetail';
+    sheet.stationId = null;
+    var name = escapeHtml(fav.alias || fav.placeName);
+    var html =
+      '<div class="sheet-header">' +
+        '<div class="sheet-title">⭐ ' + name + '</div>' +
+        '<div class="card-sub">즐겨찾기 장소 상세</div>' +
+      '</div>' +
+      '<div class="sheet-section">' +
+        '<div class="section-label">주변 지하철역 정보</div>' +
+        '<div class="alt-box fav-detail-notice">' +
+          '<div class="alt-title">ℹ️ 위치 정보 미연결</div>' +
+          '<div class="alt-tip">실제 위치 정보가 연결되지 않아 정확한 주변 역 거리를 표시할 수 없습니다.<br>React 마이그레이션 및 위치 API 연동 후 실제 정보가 표시됩니다.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sheet-section">' +
+        '<div class="section-label">지하철 이동 (데모)</div>' +
+        '<div class="subway-demo-anim" aria-label="지하철 이동 데모">' +
+          '<div class="subway-track"><span class="subway-train" aria-hidden="true">🚇</span></div>' +
+          '<p class="subway-demo-label">실제 열차 위치 연동 대기 중</p>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sheet-section">' +
+        '<button type="button" class="btn btn-ghost btn-block" data-act="close-sheet">닫기</button>' +
+      '</div>';
+    setSheetHtml(html, false);
+    openSheetShell();
+  }
+
+  /* renderFavStations stub — 위치 API 연동 후 구현 */
+  function renderFavStations(fav) { // eslint-disable-line no-unused-vars
+    // TODO: 실제 위치 좌표로 주변 역 목록을 렌더링
   }
 
   function startFavRename(favId) {
@@ -1251,7 +1290,7 @@
     }
     function commitFavAdd() {
       var val = favAddInput ? favAddInput.value.trim() : '';
-      if (!val) { toast('역 이름을 입력해 주세요'); if (favAddInput) favAddInput.focus(); return; }
+      if (!val) { toast('장소 이름을 입력해 주세요'); if (favAddInput) favAddInput.focus(); return; }
       var favs = loadFavs();
       favs.push({ id: genFavId(), placeName: val, alias: '' });
       saveFavs(favs);
@@ -1270,10 +1309,62 @@
       });
     }
 
+    /* 사용자 이름 편집 */
+    var editNameBtn     = byId('editNameBtn');
+    var nameEditRow     = byId('nameEditRow');
+    var nameEditInput   = byId('nameEditInput');
+    var nameEditConfirm = byId('nameEditConfirm');
+    var nameEditCancel  = byId('nameEditCancel');
+
+    function startNameEdit() {
+      var currentName = (byId('authProfileName') || {}).textContent || '';
+      if (nameEditInput) nameEditInput.value = currentName;
+      if (nameEditRow)  nameEditRow.hidden = false;
+      if (editNameBtn)  editNameBtn.hidden = true;
+      if (nameEditInput) nameEditInput.focus();
+    }
+    function cancelNameEdit() {
+      if (nameEditRow)  nameEditRow.hidden = true;
+      if (editNameBtn)  editNameBtn.hidden = false;
+    }
+    function commitNameEdit() {
+      var val = nameEditInput ? nameEditInput.value.trim() : '';
+      if (!val) { toast('이름을 입력해 주세요'); if (nameEditInput) nameEditInput.focus(); return; }
+      var authSvc = AUTH();
+      var sess = authSvc ? authSvc.getSession() : null;
+      if (sess && sess.isDemoUser) {
+        // 데모 모드: sessionStorage 업데이트
+        sess.name = val;
+        try { sessionStorage.setItem('elevSubway.demoAuth.v1', JSON.stringify(sess)); } catch (e) {}
+        var nameEl   = byId('authProfileName');
+        var avatarEl = byId('authProfileAvatar');
+        if (nameEl)   nameEl.textContent = val;
+        if (avatarEl) avatarEl.textContent = val.charAt(0).toUpperCase();
+        cancelNameEdit();
+        toast('이름을 변경했어요');
+      } else if (sess && !sess.isDemoUser) {
+        // 실제 모드 stub: PATCH /api/auth/profile
+        console.warn('[Auth:real] 사용자 이름 변경은 아직 백엔드 API가 연결되지 않았습니다. PATCH /api/auth/profile { displayName } 구현 필요.');
+        toast('백엔드 연결 후 저장됩니다 (현재 데모)');
+        cancelNameEdit();
+      }
+    }
+
+    if (editNameBtn) editNameBtn.addEventListener('click', startNameEdit);
+    if (nameEditConfirm) nameEditConfirm.addEventListener('click', commitNameEdit);
+    if (nameEditCancel) nameEditCancel.addEventListener('click', cancelNameEdit);
+    if (nameEditInput) {
+      nameEditInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); commitNameEdit(); }
+        if (e.key === 'Escape') cancelNameEdit();
+      });
+    }
+
     /* 즐겨찾기 목록 이벤트 위임 */
     var favList = byId('favList');
     if (favList) {
       favList.addEventListener('click', function (e) {
+        // 이름 버튼/삭제 버튼이 아닌 경우 → 장소 이름 클릭 → 상세
         var renameBtn = e.target.closest('[data-fav-rename]');
         if (renameBtn) { startFavRename(renameBtn.getAttribute('data-fav-rename')); return; }
         var deleteBtn = e.target.closest('[data-fav-delete]');
@@ -1285,6 +1376,15 @@
           saveFavs(favs);
           renderFavorites();
           if (removed) toast('"' + (removed.alias || removed.placeName) + '" 즐겨찾기에서 삭제했어요');
+          return;
+        }
+        var nameBtn = e.target.closest('.fav-name-btn[data-fav-id]');
+        if (nameBtn) {
+          var favId = nameBtn.getAttribute('data-fav-id');
+          var allFavs = loadFavs();
+          var target = null;
+          for (var i = 0; i < allFavs.length; i++) { if (allFavs[i].id === favId) { target = allFavs[i]; break; } }
+          if (target) openFavDetail(target);
           return;
         }
       });
@@ -1337,8 +1437,8 @@
         badgeEl.setAttribute('data-provider', session.provider || '');
       }
       if (avatarEl) {
-        var provInitials = { google: 'G', kakao: 'K' };
-        avatarEl.textContent = provInitials[session.provider] || '?';
+        var displayName = session.name || '게스트 사용자';
+        avatarEl.textContent = displayName.charAt(0).toUpperCase() || '?';
         avatarEl.setAttribute('data-provider', session.provider || '');
       }
       renderFavorites();

@@ -63,3 +63,6 @@
 | [REQ-CHAT-003](requirements/chat.md#req-chat-003-챗봇-역-카드에서-멈춘-엘리베이터만-펼치기) | 챗봇 역 카드에서 멈춘 엘리베이터만 펼치기 | P1 | 대기 | 2026-11-11 |
 | [REQ-CHAT-004](requirements/chat.md#req-chat-004-마이크로-말해서-질문하기-받아쓰기-자동-전송) | 마이크로 말해서 질문하기 (받아쓰기, 자동 전송) | P1 | 대기 | 2026-11-11 |
 | [REQ-CHAT-005](requirements/chat.md#req-chat-005-답변을-소리로-읽어-주기-말로-물으면-말로-답한다) | 답변을 소리로 읽어 주기 ("말로 물으면 말로 답한다") | P1 | 대기 | 2026-11-11 |
+| [#49](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/49) | 마이페이지 사용자 이름 변경 기능 | P1 | 완료 | 2026-11-14 |
+| [#50](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/50) | 즐겨찾기 장소 상세 바텀시트 | P1 | 완료 | 2026-11-14 |
+| [#51](https://github.com/woowangthon/WOOWANGTHON_TEAM_07_FE/issues/51) | 지하철 이동 애니메이션 (데모) | P2 | 완료 | 2026-11-14 |

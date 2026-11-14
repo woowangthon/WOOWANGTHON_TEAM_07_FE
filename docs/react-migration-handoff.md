@@ -121,13 +121,47 @@ React 마이그레이션 시 Tailwind CSS 변수 또는 CSS Modules로 옮깁니
 
 ---
 
+## 후속 백엔드 API 연동 (미구현)
+
+| 기능 | 엔드포인트 | 비고 |
+|------|-----------|------|
+| 사용자 프로필 이름 변경 | `PATCH /api/auth/profile` `{ displayName: string }` | 현재 데모: sessionStorage만 업데이트 |
+| 즐겨찾기 장소 목록 | `GET/POST/PATCH/DELETE /api/favorites` | 현재 데모: sessionStorage |
+| 위치 좌표 → 주변 역 | 위치 API (미정) | `renderFavStations()` stub 구현됨 |
+| 열차 도착 시간 | 열차 도착 API (미정) | 현재 데모 애니메이션만 표시 |
+
+---
+
+## 아이콘 인계 (react-icons)
+
+현재 이모지 아이콘을 React 마이그레이션 시 `react-icons`로 대체한다.
+REQ-DS-007 (Material Symbols 계획)보다 react-icons를 우선하기로 결정.
+
+| 현재 이모지 | 역할 | react-icons 제안 |
+|------------|------|-----------------|
+| 🗺️ | 하단 탭 노선도 | `FaMapMarkedAlt` (react-icons/fa) |
+| 🛗 | 하단 탭 엘리베이터 | `MdElevator` (react-icons/md) |
+| ⏱️ | 하단 탭 출발계산 | `FaClock` (react-icons/fa) |
+| 🤖 | 하단 탭 AI 챗봇 | `RiRobot2Line` (react-icons/ri) |
+| 👤 | 하단 탭 로그인/마이페이지 | `FaUserCircle` (react-icons/fa) |
+| ⭐ | 즐겨찾기 | `FaStar` (react-icons/fa) |
+| ⚙️ | 설정 | `MdSettings` (react-icons/md) |
+| 🚇 | 지하철 애니메이션 | `MdTrain` (react-icons/md) |
+
+---
+
 ## 마이그레이션 체크리스트
 
 - [ ] `AuthService` → `useAuth()` 훅
 - [ ] `ElevatorService` → `useElevatorStore()` (Zustand)
 - [ ] `MetroMap` SVG → React 컴포넌트 or Canvas
 - [ ] `AIAgent.processMessage` → `useChatStream()` 훅
-- [ ] 즐겨찾기 sessionStorage → 백엔드 API
+- [ ] 즐겨찾기 sessionStorage → `GET/POST/PATCH/DELETE /api/favorites`
 - [ ] 글자 크기 → `_document.tsx` FOUC 방지 스크립트 + Zustand 상태
 - [ ] `APP_CONFIG` → `.env` 환경 변수
 - [ ] `window.MOCK` 데이터 → React Query + 실제 API
+- [ ] 사용자 이름 변경 → `PATCH /api/auth/profile`
+- [ ] `renderFavStations()` stub → 위치 API 연동 후 구현
+- [ ] 지하철 애니메이션 → 열차 도착 API 연동 후 실제 진행률 계산
+- [ ] 이모지 아이콘 → react-icons (위 매핑 표 참고)
+- [ ] REQ-DS-007 Material Symbols 계획 → react-icons로 대체 결정됨
