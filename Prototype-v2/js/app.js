@@ -197,6 +197,8 @@
     $all('.view[data-view]').forEach(function (v) {
       v.classList.toggle('active', v.getAttribute('data-view') === name);
     });
+    var hdr = document.querySelector('.app-header');
+    if (hdr) hdr.hidden = (name === 'time' || name === 'chat' || name === 'login');
     if (name !== 'map' && sheet.open) closeSheet();
     hideSearch();
     if (name === 'chat') scrollChat();
@@ -607,18 +609,104 @@
   // ---------------------------------------------------------------------------
   var elevFilter = 'all';
   var ELEV_FILTERS = [
-    { id: 'all', label: '전체' },
-    { id: 'problem', label: '이용 불가·점검' },
-    { id: 'line2', label: '2호선' },
-    { id: 'transfer', label: '환승역' }
+    { id: 'all', label: '전체', title: '모든 역 표시' },
+    { id: 'problem', label: '일부 불가', title: '일부 불가·이용 불가 역만 표시' }
   ];
+  var CUSTOM_FILTER_KEY = 'elevSubway.elevFilters.v1';
+  var elevCustomFilters = [];
   var STATUS_RANK = { UNAVAILABLE: 0, PARTIAL: 1, AVAILABLE: 2, UNKNOWN: 3 };
+
+  function loadElevCustomFilters() {
+    try { return JSON.parse(sessionStorage.getItem(CUSTOM_FILTER_KEY) || '[]'); } catch (e) { return []; }
+  }
+
+  function saveElevCustomFilters(filters) {
+    try { sessionStorage.setItem(CUSTOM_FILTER_KEY, JSON.stringify(filters)); } catch (e) {}
+  }
+
+  function renderCustomFilterChips() {
+    var row = byId('customFilterRow');
+    if (!row) return;
+    var auth = AUTH();
+    var session = auth ? auth.getSession() : null;
+    if (!session) { row.hidden = true; return; }
+    elevCustomFilters = loadElevCustomFilters();
+    row.hidden = false;
+    var html = elevCustomFilters.map(function (lineId) {
+      var l = getLine(lineId);
+      return '<span class="custom-filter-chip" data-custom-filter="' + escapeHtml(lineId) + '" ' +
+        'style="--line-color:' + escapeHtml(l.color) + '">' +
+        '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + escapeHtml(l.color) + ';flex:none" aria-hidden="true"></span>' +
+        escapeHtml(l.name) +
+        '<button type="button" class="chip-x" data-remove-filter="' + escapeHtml(lineId) + '" aria-label="' + escapeHtml(l.name) + ' 필터 제거">×</button>' +
+        '</span>';
+    }).join('');
+    html += '<button type="button" class="chip-add-btn" id="addFilterBtn">＋ 노선</button>';
+    row.innerHTML = html;
+    row.addEventListener('click', function (e) {
+      var rmBtn = e.target.closest('[data-remove-filter]');
+      if (rmBtn) {
+        var lineId = rmBtn.getAttribute('data-remove-filter');
+        elevCustomFilters = elevCustomFilters.filter(function (x) { return x !== lineId; });
+        saveElevCustomFilters(elevCustomFilters);
+        renderCustomFilterChips();
+        renderElevatorList();
+        return;
+      }
+      if (e.target.closest('#addFilterBtn')) { openFilterPicker(); }
+    }, { once: true });
+  }
+
+  function openFilterPicker() {
+    var lines = MOCKDATA().lines || {};
+    var lineIds = Object.keys(lines);
+    var html = '<div class="sheet-header">' +
+      '<div class="sheet-title">노선 필터 추가</div>' +
+      '<div class="card-sub">노선을 선택하면 해당 노선 역만 표시됩니다</div>' +
+      '</div>' +
+      '<div class="sheet-section">' +
+      '<div class="filter-picker-grid">' +
+      lineIds.map(function (id) {
+        var l = getLine(id);
+        var sel = elevCustomFilters.indexOf(id) >= 0;
+        return '<button type="button" class="filter-picker-chip' + (sel ? ' selected' : '') + '" ' +
+          'data-pick-line="' + escapeHtml(id) + '" style="--line-color:' + escapeHtml(l.color) + '">' +
+          '<span class="filter-picker-dot"></span>' + escapeHtml(l.name) + '</button>';
+      }).join('') +
+      '</div></div>' +
+      '<div class="sheet-section">' +
+      '<button type="button" class="btn btn-primary btn-block" id="filterPickerDone">적용</button>' +
+      '</div>';
+    setSheetHtml(html, false);
+    openSheetShell();
+    var content = byId('sheetContent');
+    if (content) {
+      content.addEventListener('click', function (e) {
+        var chip = e.target.closest('[data-pick-line]');
+        if (chip) {
+          chip.classList.toggle('selected');
+          return;
+        }
+        if (e.target.closest('#filterPickerDone')) {
+          var selected = $all('.filter-picker-chip.selected', content).map(function (el) {
+            return el.getAttribute('data-pick-line');
+          });
+          elevCustomFilters = selected;
+          saveElevCustomFilters(elevCustomFilters);
+          closeSheet();
+          renderCustomFilterChips();
+          renderElevatorList();
+        }
+      });
+    }
+  }
 
   function initElevatorTab() {
     var f = byId('elevatorFilter');
     if (f) {
       f.innerHTML = ELEV_FILTERS.map(function (x) {
-        return '<button type="button" class="chip' + (x.id === elevFilter ? ' active' : '') + '" data-filter="' + x.id + '">' +
+        return '<button type="button" class="chip' + (x.id === elevFilter ? ' active' : '') + '" data-filter="' + x.id + '"' +
+          (x.title ? ' title="' + escapeHtml(x.title) + '"' : '') + '>' +
           escapeHtml(x.label) + '</button>';
       }).join('');
       f.addEventListener('click', function (e) {
@@ -643,6 +731,7 @@
         if (row) { e.preventDefault(); openStation(row.getAttribute('data-id')); }
       });
     }
+    renderCustomFilterChips();
     renderElevatorTab();
   }
 
@@ -665,15 +754,14 @@
     var counts = { AVAILABLE: 0, PARTIAL: 0, UNAVAILABLE: 0 };
     items.forEach(function (x) { if (counts[x.status] !== undefined) counts[x.status]++; });
     var cards = [
-      { key: 'AVAILABLE', cls: 'ok', label: '정상 역 수', color: 'var(--ok)' },
-      { key: 'PARTIAL', cls: 'warn', label: '일부 불가', color: 'var(--warn)' },
-      { key: 'UNAVAILABLE', cls: 'bad', label: '이용 불가', color: 'var(--bad)' }
+      { key: 'AVAILABLE', cls: 'ok', label: '정상' },
+      { key: 'PARTIAL', cls: 'warn', label: '일부 불가' },
+      { key: 'UNAVAILABLE', cls: 'bad', label: '이용 불가' }
     ];
     el.innerHTML = cards.map(function (c) {
-      return '<div class="card summary-card ' + c.cls + '">' +
-        '<div class="summary-num" style="font-size:28px;font-weight:800;line-height:1.1;color:' + c.color + '">' +
-        counts[c.key] + '</div>' +
-        '<div class="card-sub">' + c.label + '</div></div>';
+      return '<div class="summary-card ' + c.cls + '">' +
+        '<div class="summary-num">' + counts[c.key] + '</div>' +
+        '<div class="summary-label">' + escapeHtml(c.label) + '</div></div>';
     }).join('');
   }
 
@@ -681,12 +769,14 @@
     var el = byId('elevatorList');
     if (!el) return;
     var items = dataStations().filter(function (x) {
-      switch (elevFilter) {
-        case 'problem': return x.status === 'PARTIAL' || x.status === 'UNAVAILABLE';
-        case 'line2': return (x.station.lines || []).indexOf('2') >= 0;
-        case 'transfer': return (x.station.lines || []).length > 1;
-        default: return true;
-      }
+      var baseOk = elevFilter === 'problem'
+        ? (x.status === 'PARTIAL' || x.status === 'UNAVAILABLE')
+        : true;
+      if (!baseOk) return false;
+      if (elevCustomFilters.length === 0) return true;
+      return elevCustomFilters.some(function (lineId) {
+        return (x.station.lines || []).indexOf(lineId) >= 0;
+      });
     });
     items.sort(function (a, b) {
       var r = (STATUS_RANK[a.status] || 0) - (STATUS_RANK[b.status] || 0);

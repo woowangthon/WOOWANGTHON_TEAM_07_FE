@@ -72,6 +72,7 @@
             <h2 class="view-title">엘리베이터 현황</h2>
             <div id="elevatorSummary" class="summary-grid"></div>
             <div id="elevatorFilter" class="chip-row"></div>
+            <div id="customFilterRow" class="custom-filter-row" hidden></div>
             <div id="elevatorList" class="station-list"></div>
           </div>
         </section>
@@ -83,13 +84,15 @@
             <form id="timeForm" class="card time-form">
               <div class="form-row">
                 <div class="form-field">
-                  <label class="form-label" for="originSelect">출발역</label>
-                  <select id="originSelect"></select>
+                  <label class="form-label" for="originComboBtn">출발역</label>
+                  <button type="button" class="combobox-btn" id="originComboBtn" aria-haspopup="dialog">역 선택</button>
+                  <input type="hidden" id="originSelect" />
                 </div>
                 <button id="swapBtn" class="icon-btn swap-btn" type="button" aria-label="출발/도착 바꾸기">⇅</button>
                 <div class="form-field">
-                  <label class="form-label" for="destSelect">도착역</label>
-                  <select id="destSelect"></select>
+                  <label class="form-label" for="destComboBtn">도착역</label>
+                  <button type="button" class="combobox-btn" id="destComboBtn" aria-haspopup="dialog">역 선택</button>
+                  <input type="hidden" id="destSelect" />
                 </div>
               </div>
               <div class="form-row">

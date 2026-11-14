@@ -1594,7 +1594,10 @@ html[data-fontsize="max"] { --fs-scale: 1.5;   --tabbar-h: 90px; }
   transform: translateY(-50%);
   font-size: 22px;
   line-height: 1;
-  animation: trainMove 3s ease-in-out infinite alternate;
+  /* Static by default; .running class triggers one-shot demo */
+}
+.subway-demo-anim.running .subway-train {
+  animation: trainMove 3s ease-in-out forwards;
 }
 @keyframes trainMove {
   from { left: 4px; }
@@ -1615,5 +1618,169 @@ html[data-fontsize="max"] { --fs-scale: 1.5;   --tabbar-h: 90px; }
     transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
-  .subway-train { animation: none; left: 50%; transform: translateX(-50%) translateY(-50%); }
+  .subway-train { animation: none !important; left: 50%; transform: translateX(-50%) translateY(-50%); }
+}
+
+/* --------------------------------------------------------------------------
+   Combobox (역 선택 버튼)
+   -------------------------------------------------------------------------- */
+.combobox-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  gap: 6px;
+  transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
+}
+.combobox-btn::after {
+  content: '▾';
+  flex: none;
+  font-size: 11px;
+  opacity: .5;
+}
+.combobox-btn:focus-visible {
+  border-color: rgba(37,99,235,.5);
+  box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+  outline: none;
+}
+.combobox-btn:active { background: var(--bg); }
+
+/* Station picker bottom-sheet list */
+.station-picker-input {
+  display: block;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  font-size: 15px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.station-picker-input:focus {
+  border-color: rgba(37,99,235,.4);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+.station-picker-list {
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.station-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background .12s var(--ease);
+}
+.station-picker-row:hover, .station-picker-row.active { background: var(--bg); }
+.station-picker-row.active { color: var(--primary); }
+
+/* --------------------------------------------------------------------------
+   Custom elevator filters (login-gated)
+   -------------------------------------------------------------------------- */
+.custom-filter-row {
+  margin: 4px -16px 8px;
+  padding: 2px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.custom-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--line-color, #9CA3AF) 15%, transparent);
+  border: 1.5px solid var(--line-color, #9CA3AF);
+  color: var(--text);
+}
+.custom-filter-chip .chip-x {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  opacity: .6;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: opacity .12s;
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0;
+}
+.custom-filter-chip .chip-x:hover { opacity: 1; }
+.chip-add-btn {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 15px;
+  border: 1.5px dashed var(--border);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.chip-add-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* Filter picker line grid */
+.filter-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 4px 0 8px;
+}
+.filter-picker-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid transparent;
+  background: color-mix(in srgb, var(--line-color, #9CA3AF) 12%, transparent);
+  color: var(--text);
+  transition: border-color .15s, background .15s;
+  cursor: pointer;
+}
+.filter-picker-chip.selected {
+  border-color: var(--line-color, #9CA3AF);
+  background: color-mix(in srgb, var(--line-color, #9CA3AF) 20%, transparent);
+}
+.filter-picker-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--line-color, #9CA3AF);
 }
