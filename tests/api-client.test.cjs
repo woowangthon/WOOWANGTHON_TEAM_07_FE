@@ -31,3 +31,4 @@ test('named bases read APP_CONFIG lazily',async()=>{
  await api.getJSON('be','/a',{fetch:f});await api.getJSON('chat','/b',{fetch:f});
  assert.deepEqual(urls,['http://127.0.0.1:8000/a','http://127.0.0.1:8001/b']);
 });
+test('isApiMode reads APP_CONFIG.dataSource lazily, defaulting to mock',()=>{const A=require('../Prototype-v2/js/api-client.js');const g=globalThis;const prev=g.APP_CONFIG;try{delete g.APP_CONFIG;assert.equal(A.isApiMode(),false);g.APP_CONFIG={dataSource:'api'};assert.equal(A.isApiMode(),true);g.APP_CONFIG={dataSource:'mock'};assert.equal(A.isApiMode(),false);}finally{if(prev===undefined)delete g.APP_CONFIG;else g.APP_CONFIG=prev;}});

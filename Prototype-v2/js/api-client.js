@@ -56,6 +56,8 @@
 
   return {
     DEFAULT_TIMEOUT_MS: DEFAULT_TIMEOUT,
+    // 실데이터 모드 판별. 호출 시점에 읽으므로 테스트가 APP_CONFIG를 바꿔 끼울 수 있다. 값이 없으면 mock.
+    isApiMode: function () { return cfg('dataSource', 'mock') === 'api'; },
     getJSON: function (base, path, opts) { return request(base, path, 'GET', undefined, opts); },
     postJSON: function (base, path, body, opts) { return request(base, path, 'POST', body === undefined ? {} : body, opts); }
   };
