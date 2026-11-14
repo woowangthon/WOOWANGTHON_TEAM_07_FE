@@ -17,11 +17,11 @@ test('conservative matching: shared line required, ambiguity never guessed',()=>
 test('recorded BE fixture vs real MOCK stations',()=>{
  const r=M.build(fixture.stations,w.MOCK.stations);
  assert.equal(fixture.stations.length,240);assert.equal(Object.keys(w.MOCK.stations).length,238);
- assert.equal(Object.keys(r.slugToId).length,221);
- assert.equal(Object.keys(r.idToSlug).length,221);
+ assert.equal(Object.keys(r.slugToId).length,222);
+ assert.equal(Object.keys(r.idToSlug).length,222);
  assert.deepEqual(r.ambiguous,[]);
- assert.deepEqual(r.unmatchedFe,['nokcheon','wolgye','kwangwoon_univ','sinimun','hufs','hoegi','namyeong','yongsan','noryangjin','daebang','yeongdeungpo','guro','doksan','guil','gaebong','oryu_dong','ttukseom_park']);
- assert.deepEqual(r.unmatchedBe.map(b=>b.station_id),[155,112,88,234,191,193,156,111,90,91,192,189,226,205,190,59,159,158,157]);
+ assert.deepEqual(r.unmatchedFe,['nokcheon','wolgye','kwangwoon_univ','sinimun','hufs','hoegi','namyeong','yongsan','noryangjin','daebang','yeongdeungpo','guro','doksan','guil','gaebong','oryu_dong']);
+ assert.deepEqual(r.unmatchedBe.map(b=>b.station_id),[155,112,88,234,191,193,156,111,90,91,192,189,226,190,59,159,158,157]);
  assert.equal(M.toBeId('gangnam'),fixture.stations.find(b=>b.station_name==='강남').station_id);
  assert.equal(M.toBeId('gyodae'),fixture.stations.find(b=>/^교대/.test(b.station_name)).station_id);
 });
@@ -29,6 +29,7 @@ test('load() fetches full list via ApiClient and builds from MOCK',async()=>{
  const api=require('../Prototype-v2/js/api-client.js');
  const root=globalThis;root.ApiClient=api;root.MOCK=w.MOCK;
  let url;const orig=api.getJSON;api.getJSON=(b,p)=>{url=[b,p];return Promise.resolve(fixture);};
- try{const r=await M.load();assert.deepEqual(url,['be','/api/stations']);assert.equal(Object.keys(r.slugToId).length,221);}
+ try{const r=await M.load();assert.deepEqual(url,['be','/api/stations']);assert.equal(Object.keys(r.slugToId).length,222);}
  finally{api.getJSON=orig;delete root.ApiClient;delete root.MOCK;}
 });
+test('renamed station alias: 뚝섬유원지 maps to BE 자양 (7호선)',()=>{const r=M.build(fixture.stations,w.MOCK.stations);assert.equal(r.slugToId.ttukseom_park,205);});

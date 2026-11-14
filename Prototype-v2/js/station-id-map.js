@@ -12,6 +12,9 @@
   function norm(name) {
     return String(name || '').replace(/\(.*?\)/g, '').replace(/\s+/g, '').replace(/역$/, '');
   }
+  // 역명이 바뀌어 FE 지도와 BE가 다른 이름을 쓰는 역 (FE 이름 → BE 이름). 노선 일치 조건은 그대로 적용된다.
+  var NAME_ALIASES = { '뚝섬유원지': '자양' };
+  function feKey(name) { var k = norm(name); return NAME_ALIASES[k] || k; }
   function beLines(s) { return (s.lines || []).map(function (l) { return String(l.line_id); }); }
 
   function build(beStations, mockStations) {
@@ -24,7 +27,7 @@
     var slugs = Object.keys(mockStations), cands = {}, claims = {};
     slugs.forEach(function (slug) {
       var fe = mockStations[slug], feLines = (fe.lines || []).map(String);
-      cands[slug] = (byName[norm(fe.name)] || []).filter(function (b) {
+      cands[slug] = (byName[feKey(fe.name)] || []).filter(function (b) {
         return beLines(b).some(function (l) { return feLines.indexOf(l) >= 0; });
       });
       cands[slug].forEach(function (b) { (claims[b.station_id] = claims[b.station_id] || []).push(slug); });
