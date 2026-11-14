@@ -810,8 +810,8 @@
   }
 
   function dataTimeNote(iso) {
-    var m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/.exec(String(iso || ''));
-    return m ? '데이터 기준 시각 ' + m[1] + ' ' + m[2] : null;
+    var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}:\d{2})/.exec(String(iso || ''));
+    return m ? m[1] + '년 ' + Number(m[2]) + '월 ' + Number(m[3]) + '일 ' + showTime(m[4]) + '에 수집된 정보예요.' : null;
   }
 
   // 응답 모양이 다르면 null(= 오류 안내)

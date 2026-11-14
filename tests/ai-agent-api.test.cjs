@@ -49,11 +49,11 @@ test('response maps to resp shape: plain text, empty html, toolCalls, <=3 sugges
   const t = setup({ reply: fixtureReply('gangnam_elevator') });
   const r = await t.w.AIAgent.processMessage('강남역 엘리베이터 돼?');
   assert.ok(r.text.startsWith(fx.gangnam_elevator.response.text));
-  assert.match(r.text, /\n데이터 기준 시각 \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+  assert.match(r.text, /\n\d{4}년 \d{1,2}월 \d{1,2}일 (오전|오후) \d{1,2}:\d{2}에 수집된 정보예요\.$/);
   assert.equal(r.html, '');
   assert.deepEqual(Array.from(r.toolCalls, x => x.name), fx.gangnam_elevator.response.tool_calls.map(x => x.name));
   assert.ok(r.suggestions.length <= 3);
-  // 도구 인자의 BE 역 ID는 FE 슬러그로 바뀐다(칩에 역 이름이 보이도록)
+  // API의 도구 기록은 유지하고 BE 역 ID는 FE 슬러그로 바뀐다.
   assert.equal(r.toolCalls[1].args.station_id, 'gangnam');
 });
 
@@ -108,7 +108,7 @@ test('map load failure does not break the answer; station actions are just omitt
   t.w.StationIdMap.load = async () => { throw new Error('down'); };
   const r = await t.w.AIAgent.processMessage('x');
   assert.ok(r.text.startsWith(fx.gangnam_elevator.response.text));
-  assert.match(r.text, /\n데이터 기준 시각 \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+  assert.match(r.text, /\n\d{4}년 \d{1,2}월 \d{1,2}일 (오전|오후) \d{1,2}:\d{2}에 수집된 정보예요\.$/);
   assert.equal(r.actions.length, 0);
 });
 
@@ -127,9 +127,22 @@ test('data_updated_at becomes a safe text note', async () => {
   const body = { session_id: 's', text: '상태', metadata: { engine: 'fallback', data_updated_at: '2026-11-15T08:01:02+09:00' } };
   const t = setup({ reply: () => ({ body }) });
   const r = await t.w.AIAgent.processMessage('x');
-  assert.equal(r.text, '상태\n데이터 기준 시각 2026-11-15 08:01');
+  assert.equal(r.text, '상태\n2026년 11월 15일 오전 8:01에 수집된 정보예요.');
   const r2 = await setup({ reply: () => ({ body: { session_id: 's', text: '상태', metadata: { data_updated_at: null } } }) }).w.AIAgent.processMessage('x');
   assert.equal(r2.text, '상태');
+});
+
+test('collection note uses familiar AM/PM and never invents a missing collection time', async () => {
+  for (const [stamp, expected] of [
+    ['2026-11-15T00:00:00+09:00', '2026년 11월 15일 오전 12:00에 수집된 정보예요.'],
+    ['2026-11-15T12:00:00+09:00', '2026년 11월 15일 오후 12:00에 수집된 정보예요.'],
+    ['2026-11-15T18:11:00+09:00', '2026년 11월 15일 오후 6:11에 수집된 정보예요.'],
+    ['invalid', null], [null, null],
+  ]) {
+    const body = { session_id: 's', text: '안내', metadata: { data_updated_at: stamp } };
+    const response = await setup({ reply: () => ({ body }) }).w.AIAgent.processMessage('x');
+    assert.equal(response.text, expected ? '안내\n' + expected : '안내');
+  }
 });
 
 test('recorded fixtures without actions map cleanly (outages_empty, need_station)', async () => {

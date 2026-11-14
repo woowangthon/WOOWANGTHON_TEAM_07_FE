@@ -1,54 +1,40 @@
 # AI 챗봇 화면
 
 - 영역 코드: `CHAT`
-- 범위: `#view-chat` / 관련 파일 `Prototype-v2/js/ai-agent.js`, `Prototype-v2/js/app.js`(챗봇 탭 섹션), `Prototype-v2/css/style.css`
+- 범위: React `web/src/views/chat/ChatView.tsx`와 공용 서비스 `Prototype-v2/js/ai-agent.js`. 이전 화면 기준은 `Prototype-v2/js/app.js`, `Prototype-v2/css/style.css`.
 - 기준 프로토타입: `Prototype-v2/` (v1 `Prototype/`은 수정하지 않음)
 - 스크린샷: [../assets/chat/](../assets/chat/)
 
 ## 요구사항
 
-### REQ-CHAT-001 도구 호출 표시를 사람 말로 바꾸기
+### REQ-CHAT-001 도구 호출 표시를 화면에서 제거
 
-- 상태: 대기
+- 상태: 완료
 - 우선순위: P1 (제안)
 - 등록일: 2026-11-11
-- 대상:
-  - `Prototype-v2/js/app.js` `formatToolCall`, `formatArgVal`, `buildBotMsg` (`.tool-chip`), `appendTyping`
-  - `Prototype-v2/js/ai-agent.js` `toolCalls` (도구 이름: `check_elevator`, `find_alternative`, `find_route`, `calculate_departure`, `list_outages`)
-  - `Prototype-v2/css/style.css` `.tool-chip`, `.tool-chips`
+- 대상: `web/src/views/chat/ChatView.tsx`, `web/src/views/chat/chat.test.tsx`
 
 **현재 문제**
-답변 위에 `🔧 check_elevator(강남)`처럼 개발자용 함수 이름이 고정폭 11px 글씨로 나온다. 일반 사용자에게는 의미 없는 코드처럼 보인다.
+답변 위에 `resolve_station(강남)`, `get_elevator_status(강남)`처럼 도구 이름과 인자가 표시된다. 일반 사용자의 질문·답변 흐름에서 제외한다.
 
 **요구사항**
-1. 도구 호출 표시는 숨기지 않고, 사람이 읽는 말로 바꿔 보여 준다. AI가 실제로 확인하는 과정을 보여 주기 위해서다.
-2. 도구별 문구 (역 이름은 인자에서 가져온다)
-
-   | 도구 | 확인 중 | 끝난 뒤 |
-   |---|---|---|
-   | `check_elevator` | `강남역 엘리베이터 확인 중…` | `강남역 엘리베이터 확인함` |
-   | `find_alternative` | `가까운 대체역 찾는 중…` | `대체역 찾음` |
-   | `find_route` | `경로 찾는 중…` | `경로 찾음` |
-   | `calculate_departure` | `출발 시각 계산 중…` | `출발 시각 계산함` |
-   | `list_outages` | `고장·점검 역 확인 중…` | `고장·점검 역 확인함` |
-
-3. 답변을 기다리는 동안(지금 점 세 개 표시 자리) "확인 중" 문구를 보여 주고, 답변이 나오면 "끝난 뒤" 문구 + 체크 아이콘으로 바꾼다.
-4. 모양: `--fs-caption`(13px), 보조 글자색, 보통 글꼴(고정폭 아님), 배경 없음. 아이콘은 REQ-DS-007의 Material Symbols(`check`)를 쓴다.
-5. 표에 없는 도구가 오면 `확인 중…` / `확인함`을 쓴다.
+1. React 챗봇에서 도구 호출 영역 자체를 렌더링하지 않는다.
+2. API 응답의 도구 기록과 실제 도구 실행은 유지한다.
+3. 답변·제안 질문·동작 버튼과 기존 대기 표시를 유지한다.
 
 **완료 조건**
-- [ ] 챗봇 화면에 함수 이름(`check_elevator` 등)과 괄호, 🔧 이모지가 보이지 않는다.
-- [ ] "강남역 엘리베이터 돼?"라고 물으면 답 위에 `✓ 강남역 엘리베이터 확인함`이 작은 회색 글씨로 보인다.
-- [ ] 답을 기다리는 동안 `강남역 엘리베이터 확인 중…`이 보인다.
-- [ ] 도구를 두 개 쓰는 답(예: 고장 역 대체역 질문)에서는 두 줄이 순서대로 보인다.
-- [ ] 글자가 13px 이상이고 고정폭 글꼴이 아니다.
+- [x] 도구 기록이 포함된 응답에서도 `.tool-chip`과 도구 이름을 렌더링하지 않는다.
+- [x] 역 상세 동작 버튼은 유지하고 올바른 역을 연다.
+- [x] 실제 브라우저 화면과 관련 테스트 통과.
 
 **참고**
-- 2026-11-11 추천안으로 결정. ("1. 좋아.")
-- AI 해커톤 발표에서 "AI가 도구를 써서 확인한다"는 점을 보여 주는 장치로 남긴다.
+- 2026-11-11에는 도구 호출을 사람이 읽는 말로 표시하기로 했으나, 2026-11-15 사용자 요청으로 화면에서 제거하는 요구사항으로 변경했다.
 - 관련: REQ-DS-004, REQ-DS-007
 
 **작업 기록**
+
+- `ChatView.tsx`의 도구 칩 렌더링과 표시용 포맷 함수를 제거했다. API 도구 기록은 보존한다.
+- 실제 AI 응답에 도구 기록 2개가 포함된 상태에서 화면의 도구 칩 0개, 답변 및 역 상세 이동을 확인했다. Chrome 390px에서 글자 크기 4단계에 가로 넘침이 없었고 화면을 직접 확인했다.
 
 ### REQ-CHAT-002 챗봇 역 카드를 역 상세와 같은 모양으로
 
@@ -195,3 +181,28 @@
 - 관련: REQ-CHAT-004, REQ-COM-001, REQ-COM-007, REQ-DS-009
 
 **작업 기록**
+
+### REQ-CHAT-006 챗봇 정보 수집 시각을 자연스러운 문장으로 안내
+
+- 상태: 완료
+- 우선순위: P1
+- 등록일: 2026-11-15
+- 대상: `Prototype-v2/js/ai-agent.js`의 `dataTimeNote`, `tests/ai-agent-api.test.cjs`
+
+**요구사항**
+
+1. `데이터 기준 시각 2026-11-15 06:11` 대신 `2026년 11월 15일 오전 6:11에 수집된 정보예요.`처럼 안내한다.
+2. 수집 시각은 API의 `metadata.data_updated_at`만 사용한다. 현재 시각이나 답변 생성 시각으로 대체하지 않는다.
+3. 연·월·일을 유지하고 시각은 공통 `TimeCalculator.displayTime`을 사용해 오전·오후로 표시한다.
+4. 수집 시각이 없거나 해석할 수 없으면 시각 안내를 추가하지 않는다.
+
+**완료 조건**
+
+- [x] 자정·정오·오후 표기와 누락·잘못된 값 회귀 테스트 통과.
+- [x] 실제 브라우저에서 문장 표시 및 기존 답변·동작 버튼 확인.
+
+**작업 기록**
+
+- 2026-11-15: 공용 FE 어댑터의 수집 시각 문구를 바꿨으며 BE·AI 응답 계약은 유지했다.
+- 실제 AI 응답에서 `2026년 11월 15일 오전 6:11에 수집된 정보예요.`와 역 상세 버튼 동작을 확인했다. 화면은 로컬 `web/artifacts/chat-presentation/chat.png`에 보관했다.
+- React 테스트 36개, 서비스 테스트 85개, 타입 검사·빌드·린트 통과.
