@@ -1497,21 +1497,13 @@ button.summary-card:active { transform: scale(.97); }
   min-width: 0;
   font-size: calc(14px * var(--fs-scale));
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fav-original {
-  font-size: calc(12px * var(--fs-scale));
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .fav-rename-input {
   flex: 1;
+  min-width: 0;
   height: 36px;
   padding: 0 10px;
   font-size: calc(14px * var(--fs-scale));
@@ -1897,8 +1889,6 @@ html[data-fontsize="max"] { --fs-scale: 1.5;   --tabbar-h: 90px; }
   font-size: calc(14px * var(--fs-scale));
   font-weight: 600;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-.fav-item.editing .fav-original { opacity: .6; }

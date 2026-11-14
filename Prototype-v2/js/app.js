@@ -1460,9 +1460,6 @@
 
     list.innerHTML = favs.map(function (fav) {
       var primary   = escapeHtml(fav.alias || fav.placeName);
-      var hasAlias  = fav.alias && fav.alias !== fav.placeName;
-      var secondary = hasAlias
-        ? '<span class="fav-original">' + escapeHtml(fav.placeName) + '</span>' : '';
 
       var editButtons = favEditMode
         ? '<div class="fav-edit-actions">' +
@@ -1480,7 +1477,6 @@
       return '<li class="fav-item' + (favEditMode ? ' editing' : '') + '" data-fav-id="' + escapeHtml(fav.id) + '">' +
         '<div class="fav-info fav-name">' +
           '<span class="fav-primary">' + primary + '</span>' +
-          secondary +
         '</div>' +
         editButtons +
         detailBtn +
@@ -1714,7 +1710,7 @@
           if (removed) toast('"' + (removed.alias || removed.placeName) + '" 즐겨찾기에서 삭제했어요');
           return;
         }
-        /* 일반 모드: 이름 클릭 → 상세 */
+        /* 일반 모드: 화살표 클릭 → 상세 */
         var openBtn = e.target.closest('[data-fav-open]');
         if (openBtn && !favEditMode) {
           var favId = openBtn.getAttribute('data-fav-open');
