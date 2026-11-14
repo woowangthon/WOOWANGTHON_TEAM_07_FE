@@ -1,0 +1,15 @@
+.chat-voice-origin {
+  display: block;
+  font-size: var(--fs-caption);
+  margin-bottom: var(--sp-1);
+  font-weight: var(--fw-strong);
+}
+
+#chatForm { flex-wrap: wrap; }
+#chatInput { flex-basis: 0; }
+#chatForm > label.sr-only { flex: none; }
+#view-chat .chat-messages { min-height: 0; }
+.chat-voice-settings { padding: 0 var(--sp-4); }
+.chat-voice-settings > summary { min-height: var(--tap-min); display: flex; align-items: center; cursor: pointer; font-size: var(--fs-label); text-decoration: underline; }
+.chat-voice-settings[open] { max-height: 35vh; overflow-y: auto; }
+.chat-voice-settings > summary:focus-visible { outline: var(--sp-1) solid var(--focus); }
