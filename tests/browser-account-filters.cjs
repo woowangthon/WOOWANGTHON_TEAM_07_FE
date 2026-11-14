@@ -14,7 +14,7 @@ const puppeteer=require(process.env.PUPPETEER_MODULE||'puppeteer');
  for(const size of ['normal','lg','xl','max']){await p.click('.fontsize-chip[data-fontsize="'+size+'"]');check(await p.evaluate(size=>(localStorage.getItem('elevSubway.fontSize.v1')===size)&&document.documentElement.scrollWidth<=375,size),'font '+size);}
  check(await p.$eval('[data-auth="signout"]',e=>getComputedStyle(e).backgroundColor==='rgb(37, 99, 235)'),'dedicated logout blue');
  await p.evaluate(()=>App.switchTab('elevator'));await pause();check(await p.$eval('#addFilterBtn',e=>!e.hidden),'signed-in add filter');
- const open=async()=>{await p.click('#addFilterBtn');await p.waitForSelector('#filterPicker');};
+ const open=async()=>{await p.click('#addFilterBtn');await p.waitForSelector('#filterPicker');await p.waitForFunction(()=>{const el=document.getElementById('filterPicker');return !!el&&document.getAnimations().every(a=>a.playState!=='running');});};
  const apply=async()=>{await p.click('#filterPickerDone');await pause();};
  await open();await p.click('[data-pick-line="2"]');await apply();
  check(await p.evaluate(()=>JSON.stringify(JSON.parse(sessionStorage.getItem('elevSubway.elevFilters.v1')))==='["2"]'),'selected line stored');

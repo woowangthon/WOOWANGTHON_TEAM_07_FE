@@ -1,0 +1,172 @@
+{
+ "gangnam_elevator": {
+  "request": {
+   "session_id": "rec-gangnam_elevator",
+   "message": "강남역 엘리베이터 돼?",
+   "current_time": "08:00"
+  },
+  "response": {
+   "session_id": "rec-gangnam_elevator",
+   "text": "강남역의 엘리베이터 상태를 확인할 수 없습니다. 이용 가능하다고 판단하지 마시고, 역에 문의해 주세요.\n※ 확인 가능한 엘리베이터 상태가 없어 역 상태를 판정할 수 없음",
+   "card_type": "elevator_status",
+   "actions": [
+    {
+     "type": "openStation",
+     "label": "강남역 상세 보기",
+     "payload": {
+      "station_id": "31"
+     }
+    }
+   ],
+   "tool_calls": [
+    {
+     "name": "resolve_station",
+     "args": {
+      "query": "강남"
+     }
+    },
+    {
+     "name": "get_elevator_status",
+     "args": {
+      "station_id": "31"
+     }
+    }
+   ],
+   "suggestions": [
+    "강남역까지 가려면 언제 출발해?",
+    "지금 고장난 역 알려줘"
+   ],
+   "metadata": {
+    "engine": "fallback",
+    "latency_ms": 762,
+    "fallback_used": true,
+    "fallback_reason": "not_configured",
+    "guard_triggered": false,
+    "data_updated_at": "2026-11-15T00:24:38+09:00"
+   }
+  }
+ },
+ "departure": {
+  "request": {
+   "session_id": "rec-departure",
+   "message": "교대역에서 강남역까지 9시까지 가려면 언제 나가?",
+   "current_time": "08:00"
+  },
+  "response": {
+   "session_id": "rec-departure",
+   "text": "교대역에서 강남역까지 09:00까지 도착하시려면 **08:39**에 출발하세요. (08:54 열차 탑승, 09:00 도착 예정)\n※ 열차 시간표의 계획 시각으로 탑승 열차를 골랐으며 지연과 실제 운행 여부는 반영되지 않음\n※ 열차 방향은 시간표의 정차 순서로 추정한 것이며 공식 방향 정보로 검증되지 않음\n※ 열차 시간표로 이동 시간을 정해 입력한 예상 이동 시간은 계산에 쓰지 않음\n※ 도보·역 진입·출구 이동 시간은 추정값이며 개인과 상황에 따라 다를 수 있음\n※ 공휴일 정보가 없어 요일만으로 평일·토요일·일요일 시간표를 골랐음\n※ 경로 위 일부 역의 엘리베이터 상태를 확인하지 못해 경로 전체를 단정할 수 없음\n※ 소요 시간은 역 간 이동과 환승에 고정 시간을 가정한 추정값이며 실제 열차 시간표와 다를 수 있음\n※ 역 간 연결은 열차 시간표에서 추출한 것이며 공식 인접역 자료로 검증되지 않음\n※ 엘리베이터만으로 이동할 수 있는 환승·출입 동선인지는 검증되지 않음\n※ 출발역인 교대역 엘리베이터 상태를 확인하지 못함\n※ 강남역 엘리베이터 상태를 확인하지 못함",
+   "card_type": "trip_plan",
+   "actions": [
+    {
+     "type": "openTime",
+     "label": "출발 계산 탭에서 열기",
+     "payload": {
+      "originId": "32",
+      "destId": "31",
+      "arriveBy": "09:00"
+     }
+    }
+   ],
+   "tool_calls": [
+    {
+     "name": "resolve_station",
+     "args": {
+      "query": "교대"
+     }
+    },
+    {
+     "name": "resolve_station",
+     "args": {
+      "query": "강남"
+     }
+    },
+    {
+     "name": "plan_trip",
+     "args": {
+      "start_id": "32",
+      "end_id": "31",
+      "arrive_by": "09:00"
+     }
+    }
+   ],
+   "suggestions": [
+    "강남역 엘리베이터 상태는?",
+    "지금 고장난 역 알려줘"
+   ],
+   "metadata": {
+    "engine": "fallback",
+    "latency_ms": 34,
+    "fallback_used": true,
+    "fallback_reason": "not_configured",
+    "guard_triggered": false,
+    "data_updated_at": null
+   }
+  }
+ },
+ "outages": {
+  "request": {
+   "session_id": "rec-outages",
+   "message": "고장난 역 알려줘",
+   "current_time": "08:00"
+  },
+  "response": {
+   "session_id": "rec-outages",
+   "text": "현재 수도권 지하철 1~8호선에서 엘리베이터 이용 불가가 확인된 역은 없습니다.\n※ 일부 설비의 상태 정보가 없거나 오래되어 현재 상태를 확인하지 못함",
+   "card_type": "outages_empty",
+   "actions": [],
+   "tool_calls": [
+    {
+     "name": "get_broken_elevators",
+     "args": {}
+    }
+   ],
+   "suggestions": [
+    "강남역 엘리베이터 돼?",
+    "사용법 알려줘"
+   ],
+   "metadata": {
+    "engine": "fallback",
+    "latency_ms": 35,
+    "fallback_used": true,
+    "fallback_reason": "not_configured",
+    "guard_triggered": false,
+    "data_updated_at": "2026-11-15T00:24:38+09:00"
+   }
+  }
+ },
+ "unknown_station": {
+  "request": {
+   "session_id": "rec-unknown_station",
+   "message": "가나다라역 엘리베이터 돼?",
+   "current_time": "08:00"
+  },
+  "response": {
+   "session_id": "rec-unknown_station",
+   "text": "'가나다라역'은 찾을 수 없는 역이에요. 역 이름을 다시 확인해 주세요.",
+   "card_type": "need_station",
+   "actions": [],
+   "tool_calls": [],
+   "suggestions": [
+    "강남역 엘리베이터 돼?",
+    "신도림에서 잠실까지 3시까지 가려면?",
+    "지금 고장난 역 알려줘"
+   ],
+   "metadata": {
+    "engine": "fallback",
+    "latency_ms": 1,
+    "fallback_used": true,
+    "fallback_reason": "not_configured",
+    "guard_triggered": false,
+    "data_updated_at": null
+   }
+  }
+ },
+ "_source": {
+  "date": "2026-11-15",
+  "ai_commit": "b3fb906",
+  "be_commit": "882745c",
+  "engine": "fallback (FACTCHAT_API_KEY/NVIDIA_API_KEY empty, no LLM calls)",
+  "ai_data_source": "be",
+  "db": "copy of BE data/dev.db (temp copy; timetable present, elevator status absent)"
+ }
+}

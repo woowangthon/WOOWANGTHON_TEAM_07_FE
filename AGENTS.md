@@ -15,7 +15,20 @@
 
 ## 2. 지금 BE·AI와 연결되어 있는가 (중요)
 
-**아직 아니다.** `Prototype-v2`의 데이터는 `mock-data.js`(`window.MOCK`)와 `elevator-service.js`가 만든다. `fetch`를 쓰는 곳은 `auth.js`의 `/api/auth/*`(가상 인증)뿐이다. 역·엘리베이터·경로·출발 시각·챗봇은 BE/AI API를 호출하지 않는다.
+**연결되어 있다(2026-11-15).** 데이터 모드는 `index.html`의 `window.APP_CONFIG.dataSource`가 정한다. `file://`로 열면 `mock`(`window.MOCK`, 화면에 "목업 데이터" 배지), http로 열면 `api`(BE/AI 실데이터)다. `file://`에서는 BE CORS가 Origin `null`을 막으므로 실데이터를 쓰려면 정적 서버로 연다. 지도 형태(역 `x/y`, 노선 `paths/segments`)만 FE 상수이고, 나머지는 API 모드에서 아래처럼 서버에서 받는다.
+
+| 화면 | 서버 호출 | 코드 |
+|---|---|---|
+| 지도 색·역 상태 | BE `GET /api/stations`(역 ID 매핑) → `GET /api/stations/status`(5분마다) | `js/station-id-map.js`, `js/elevator-service.js` `startLive` |
+| 역 시트 설비 목록 | BE `GET /api/stations/{id}/elevators`(역을 열 때) | `elevator-service.js` `fetchStationElevators` |
+| 출발 계산 | BE `GET /api/routes` → `POST /api/departure-time`(이동 시간 = 경로 `total_minutes`, 도보 7·진입 3·대기 5·출구 3 명시) | `js/time-calculator.js` `calculateDepartureLive` |
+| 챗봇 | AI `POST /api/chat` | `js/ai-agent.js` (API 모드 경로) |
+
+- **역 ID**: FE slug ↔ BE 정수 ID를 이름(괄호 부제·'역' 제거)과 노선 일치로 맞춘다. 238개 중 222개가 매핑된다. 안 맞는 16개는 BE에 없는 1호선 역이고, BE에만 있는 18개는 FE 지도에 없는 연장 구간 역이다. 이름이 바뀐 역은 `NAME_ALIASES`(뚝섬유원지 → 자양)에 둔다. 매핑 안 된 역은 "정보 없음"이며, 챗봇 버튼이 그런 역을 가리키면 버튼을 만들지 않는다.
+- **실패 처리**: BE가 실패하면 이전 값을 쓰지 않고 "연결 실패"와 "정보 없음"을 보인다. AI 서버가 실패하면 "지금은 답변할 수 없습니다"만 보이고 로컬 규칙 엔진(Mock)으로 넘어가지 않는다. BE `null` 상태는 "정보 없음"이며 정상으로 그리지 않는다.
+- **표시 규칙**: `limitations`는 그대로 보인다. 단, 출발 계산에서 BE의 "예상 이동 시간은 외부에서 입력한 값이며 경로 탐색으로 검증되지 않음"은 이동 시간이 BE 경로 값이라 사실이 아니므로 뺀다(AI와 같은 처리). 시간표 열차면 "시간표 열차 기준(열차 번호·계획 시각, 지연 미반영)", 아니면 "추정"이다. `CLEAR`는 "확인된 설비 기준"이며 이용 가능을 보장하지 않는다. 서버 문자열은 이스케이프하며 HTML로 넣지 않는다.
+- **시연 패널**: API 모드에서는 고장 조작(`toggleElevator`·`setStationBroken`·`reset`)을 숨기고 동작하지 않게 한다. 그 자리에 넣을 요소는 미정이다.
+- **아직 안 된 것**: 출발 계산 결과의 대체역 표시(`ALTERNATIVES_HOOK` 표시, `ElevatorService.findAlternativeStationAsync`는 준비됨), 엘리베이터 탭 갱신 시각은 역을 하나 열어야 BE 시각이 보인다.
 
 실제 연동 전에 읽을 문서(다른 레포):
 - `../BE/docs/api-contract.md` — API 응답 계약 (엔드포인트별 요청·응답·상태 판정·`limitations`)
@@ -24,7 +37,18 @@
 - BE 계약 리뷰(BE #14)와 FE 호출 확인(BE #43)은 FE 쪽 확인을 기다리는 중이다.
 - 연동 설계(`docs/accessible-route-api-proposal.md`)는 협의 초안이며 미연동이다.
 
-BE·AI 서버를 띄워 붙이는 방법은 `../BE/docs/demo-handoff.md`와 `../BE/README.md`를 따른다. **BE `data/dev.db`에는 쓰지 않고, 외부 API를 호출하지 않는다.**
+로컬에서 세 서버를 띄우는 순서(PowerShell 기준, 각각 별도 터미널):
+
+```powershell
+# 1) BE (:8000). FE Origin을 CORS에 넣는다. 확인용이면 data/dev.db 복사본을 DATABASE_URL로 지정한다.
+cd BE; $env:CORS_ALLOWED_ORIGINS="http://127.0.0.1:5500,http://localhost:5500"; uv run uvicorn app.main:app --port 8000
+# 2) AI (:8001). 상위 폴더에서 실행한다(레포 폴더 이름이 AI여야 함). LLM 키를 비우면 폴백 엔진으로만 답한다.
+$env:AI_DATA_SOURCE="be"; $env:CORS_ALLOW_ORIGINS="http://127.0.0.1:5500,http://localhost:5500"; uv run --no-project --with-requirements AI/requirements.txt uvicorn AI.src.api.app:app --port 8001
+# 3) FE (:5500)
+cd FE/Prototype-v2; python -m http.server 5500 --bind 127.0.0.1   # 브라우저: http://127.0.0.1:5500/index.html
+```
+
+**BE `data/dev.db`에는 쓰지 않고, 외부 API를 호출하지 않는다.** AI 서버를 LLM 키가 있는 `.env`로 띄우면 실제 LLM(외부 API)을 호출한다.
 
 ## 3. 읽는 순서
 
@@ -38,7 +62,7 @@ BE·AI 서버를 띄워 붙이는 방법은 `../BE/docs/demo-handoff.md`와 `../
 ## 4. 명령어
 
 ```sh
-node --test tests/*.test.cjs        # 외부 의존성 없는 순수 모듈 테스트. 작업 전후로 실행 (2026-11-15 기준 37건 통과)
+node --test tests/*.test.cjs        # 외부 의존성 없는 순수 모듈 테스트. 작업 전후로 실행 (2026-11-15 기준 84건 통과)
 ```
 
 실제 브라우저 검증(`tests/browser-*.cjs`)은 Puppeteer와 Chromium이 별도로 설치돼 있어야 한다. 절차는 [tests/README.md](tests/README.md)를 따른다(`PUPPETEER_MODULE=<절대경로> node tests/browser-departure.cjs` 등). 계정 검증은 가상 인증 응답만 쓰며 실제 백엔드/OAuth에 요청하지 않는다. `tests/accessible-route-fixtures.cjs`는 가상 증거이므로 제품 데이터나 실제 안전 경로로 쓰지 않는다.
@@ -101,6 +125,6 @@ UI를 바꿨으면 `Prototype-v2/index.html`을 브라우저로 열어 직접 �
 
 ## 9. 아직 결정되지 않은 것 (임의로 정하지 말고 사용자에게 묻는다)
 
-- FE가 BE/AI API에 붙는 시점과 방식(API 주소 설정, 오류·`UNCONFIRMED`·`limitations` 표시 방식). BE #14, #43이 FE 확인을 기다린다.
+- API 모드 시연 패널 자리에 넣을 요소, 출발 계산의 대체역 표시 방식. BE 계약 리뷰(#14)·FE 호출 확인(#43)은 이 연결로 확인할 수 있게 됐다.
 - 접근성 우회 경로 API(`docs/accessible-route-api-proposal.md`)의 계약.
 - 시연에서 합성·Mock 데이터를 어디까지 보여 줄지(대회 규칙: 시연·서비스에서 Mock 금지).

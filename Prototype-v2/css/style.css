@@ -1969,3 +1969,19 @@ html:not(.ms-ready) .ms {
 .combo-status.bad { color: var(--bad-text); }
 .combo-status.unknown { color: var(--muted); }
 .sheet-accessibility { margin-top: var(--sp-3); }
+
+/* 출발 계산 결과: 서버가 준 한계 안내 목록 */
+.limit-list { margin: var(--sp-2) 0 0; padding-left: var(--sp-5); font-size: var(--fs-label); color: var(--muted); }
+.limit-list li + li { margin-top: var(--sp-1); }
+/* 목업 모드 표시: 가상 데이터를 실제 상태로 오해하지 않게 (AGENTS.md 원칙 3) */
+.data-badge {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  margin-bottom: var(--sp-2); padding: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-caption); font-weight: var(--fw-strong);
+  color: var(--warn-text); background: var(--warn-tint);
+  border: 1px solid var(--warn-edge); border-radius: var(--radius-sm);
+}
+.data-badge[hidden] { display: none; }
+.data-badge .ms { font-size: 1em; }
+.sheet-live-note { margin-top: var(--sp-2); font-size: var(--fs-caption); line-height: var(--lh-body); }
+.summary-unknown-note { grid-column: 1 / -1; font-size: var(--fs-caption); }

@@ -1,0 +1,109 @@
+{
+  "_source": {
+    "date": "2026-11-15",
+    "be_commit": "882745c",
+    "db": "copy of BE data/dev.db (scratchpad bedb/copy.db), BE on port 8012"
+  },
+  "request": {
+    "method": "GET",
+    "path": "/api/routes?from=31&to=32"
+  },
+  "status": 200,
+  "response": {
+    "from_station": {
+      "station_id": 31,
+      "station_name": "강남"
+    },
+    "to_station": {
+      "station_id": 32,
+      "station_name": "교대(법원, 검찰청)"
+    },
+    "stations": [
+      {
+        "station_id": 31,
+        "station_name": "강남",
+        "lines": [
+          {
+            "line_id": "2",
+            "line_name": "2호선"
+          }
+        ],
+        "is_transfer": false,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 4,
+          "unknown_elevator_count": 4
+        }
+      },
+      {
+        "station_id": 32,
+        "station_name": "교대(법원, 검찰청)",
+        "lines": [
+          {
+            "line_id": "2",
+            "line_name": "2호선"
+          },
+          {
+            "line_id": "3",
+            "line_name": "3호선"
+          }
+        ],
+        "is_transfer": false,
+        "station_status": {
+          "status": null,
+          "data_fresh": false,
+          "total_elevator_count": 5,
+          "unknown_elevator_count": 5
+        }
+      }
+    ],
+    "transfer_count": 0,
+    "total_minutes": 2,
+    "estimated": true,
+    "timeline": [
+      {
+        "kind": "RIDE",
+        "label": "2호선 강남 → 교대(법원, 검찰청)",
+        "minutes": 2,
+        "line_id": "2",
+        "line_name": "2호선",
+        "from_station": {
+          "station_id": 31,
+          "station_name": "강남"
+        },
+        "to_station": {
+          "station_id": 32,
+          "station_name": "교대(법원, 검찰청)"
+        },
+        "stops": 1,
+        "station": null,
+        "from_line_id": null,
+        "to_line_id": null
+      }
+    ],
+    "elevator_warning": {
+      "status": "UNCONFIRMED",
+      "items": [
+        {
+          "station_id": 31,
+          "station_name": "강남",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        },
+        {
+          "station_id": 32,
+          "station_name": "교대(법원, 검찰청)",
+          "kind": "UNCONFIRMED",
+          "message": "엘리베이터 상태를 확인하지 못했거나 일부만 확인됨"
+        }
+      ],
+      "message": "경로 위 일부 역의 엘리베이터 상태를 확인하지 못해 경로 전체를 단정할 수 없음"
+    },
+    "limitations": [
+      "소요 시간은 역 간 이동과 환승에 고정 시간을 가정한 추정값이며 실제 열차 시간표와 다를 수 있음",
+      "역 간 연결은 열차 시간표에서 추출한 것이며 공식 인접역 자료로 검증되지 않음",
+      "엘리베이터만으로 이동할 수 있는 환승·출입 동선인지는 검증되지 않음"
+    ]
+  }
+}
