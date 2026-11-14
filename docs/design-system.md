@@ -483,3 +483,16 @@ UI 아이콘이 이모지 20여 종이다. 기기(iOS, 안드로이드, 윈도�
 - 관련: REQ-ELV-003, REQ-TIME-001~004, REQ-DS-006
 
 **작업 기록**
+
+
+## 출발 결과 그래픽 토큰 (REQ-TIME-006)
+
+`css/departure-graphic.css`의 `.departure-graphic`에만 적용한다. 색상은 기존 surface/text/border 토큰을 쓴다.
+
+| 토큰 (`--departure-` 접두사) | 값 |
+|---|---|
+| inset / gap / small-gap | 12px / 8px / 4px |
+| point-size / train-width / train-height / track-size | 28px / 40px / 28px / 2px |
+| label-size / time-size / note-size | 15px / 17px / 13px (fs-scale 적용) |
+| line-height / strong-weight | 1.5 / 600 |
+| motion-duration / motion-distance | 650ms / 8px (1회, reduced-motion에서 없음) |
