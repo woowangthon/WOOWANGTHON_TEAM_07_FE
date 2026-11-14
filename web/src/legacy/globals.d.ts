@@ -77,7 +77,8 @@ export interface ElevatorServiceApi {
 
 export interface TimeCalculatorApi {
   findRoute(from: string, to: string): unknown
-  calculateDeparture(opts: { originId: string; destId: string; arriveBy?: string | null; now?: Date }): Record<string, unknown> | null
+  calculateDeparture(opts: { originId: string; destId: string; arriveBy?: string | null; now?: Date; walkToStationMinutes?: number; stationEntryMinutes?: number; exitWalkMinutes?: number; bufferMinutes?: number }): Record<string, unknown> | null
+  normalizeDepartureMinutes(opts?: Record<string, unknown>): { walk: number; entry: number; exit: number; buffer: number }
   calculateDepartureLive(opts: Record<string, unknown>): Promise<Record<string, unknown>>
   buildArrivalIso(...args: unknown[]): string
   parseKoreanTime(text: string): string | null

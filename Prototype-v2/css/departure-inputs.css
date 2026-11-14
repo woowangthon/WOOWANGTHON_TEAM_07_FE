@@ -1,0 +1,13 @@
+/* REQ-TIME-008: 선택 입력은 기존 디자인 토큰을 사용한다. */
+.legacy-departure-inputs { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--sp-3); min-width: 0; }
+.legacy-departure-inputs summary { cursor: pointer; min-height: var(--tap-min); font-weight: var(--fw-strong); font-size: var(--fs-body); overflow-wrap: anywhere; }
+.legacy-departure-inputs summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.legacy-departure-optional { color: var(--text-2); font-size: var(--fs-label); }
+.legacy-departure-help { font-size: var(--fs-label); color: var(--text-2); line-height: var(--lh-body); margin: var(--sp-2) 0; overflow-wrap: anywhere; }
+.legacy-departure-fields { display: grid; gap: var(--sp-4); margin: var(--sp-4) 0; }
+.legacy-departure-fields label { display: grid; gap: var(--sp-2); font-size: var(--fs-body); min-width: 0; }
+.legacy-departure-fields input { width: 100%; min-width: 0; box-sizing: border-box; min-height: var(--tap-min); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: var(--sp-2) var(--sp-3); font: inherit; color: var(--text); background: var(--surface); }
+.legacy-departure-fields input[aria-invalid="true"] { border-color: var(--bad-text); }
+.legacy-departure-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0; }
+.legacy-departure-actions button, #departureMinutesReset { min-height: var(--tap-min); white-space: normal; }
+.legacy-departure-error { color: var(--bad-text); font-size: var(--fs-label); line-height: var(--lh-body); margin: var(--sp-2) 0; }

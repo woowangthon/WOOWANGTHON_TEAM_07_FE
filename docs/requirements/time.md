@@ -7,6 +7,35 @@
 
 ## 요구사항
 
+### REQ-TIME-008 개인별 이동 시간 입력
+
+- 상태: 완료
+- 우선순위: P1
+- 등록일: 2026-11-15
+- 대상: `web/src/views/time/`, `Prototype-v2/index.html`, `Prototype-v2/js/app.js`, `Prototype-v2/js/time-calculator.js`
+
+**문제와 결정**
+
+모두에게 동일한 이동 시간을 적용하면 개인의 이동 속도와 승강기 대기, 목적지까지의 이동을 반영하지 못한다. 장애 정도의 등급이나 보조기기를 기준으로 시간을 추정하지 않고, 사용자가 아는 구간별 시간을 선택적으로 받는다. 상세 설계와 한계는 [개인별 출발 계산 설계](../personal-departure-time.md)를 따른다.
+
+**완료 조건**
+
+- [x] 추가 입력을 건너뛰고 기본 추정값으로 계산할 수 있다.
+- [x] 네 구간의 분 단위 입력과 여유 시간 선택, 기본값 복원을 제공한다.
+- [x] 빈칸·소수·범위 밖 입력을 차단하고 수정할 위치를 안내한다.
+- [x] React·기존 화면의 실데이터/목업 계산에 동일하게 반영한다.
+- [x] 입력 변경 시 이전 결과와 진행 중 응답을 무효화한다.
+- [x] 결과에 적용값을 명시하고 장애 정보와 개인 시간을 저장하지 않는다.
+- [x] 단위·통합 테스트와 브라우저 확인 결과를 기록한다.
+
+**작업 기록**
+
+- 2026-11-15 완료: 계산 모듈, React 입력, 기존 화면을 병렬 구현. BE 계약·코드와 기존 사용자 변경을 보존했다.
+  - `time-calculator.js`: 네 옵션 검증·API 전달·목업 반영·날짜 넘김·적용값 반환.
+  - React `DepartureMinutes.tsx`, `departureMinuteValues.ts`, `departure-minutes.css`, `TimeView.tsx`, `TimeResult.tsx`, `legacy/globals.d.ts`: 선택 입력, 오류 포커스, 요청 무효화, 적용값 표시.
+  - `Prototype-v2/index.html`, `js/app.js`, `css/departure-inputs.css`: 기존 화면 동등 구현.
+  - React 전체 77개·legacy 89개, build·lint 통과. Chrome 양쪽 화면 각각 16개 폭/글자 조합, 실제 입력·계산·오류 포커스 확인. 재현과 한계는 상세 설계 문서에 기록.
+
 ### REQ-TIME-001 출발역·도착역을 검색해서 고르기
 
 - 상태: 완료

@@ -16,6 +16,7 @@ AI와 개발자가 이 문서를 보고 수정 작업을 진행합니다.
 | [requirements/map.md](requirements/map.md) | 노선도 화면 (`#view-map`) |
 | [requirements/elevator.md](requirements/elevator.md) | 엘리베이터 화면 (`#view-elevator`) |
 | [requirements/time.md](requirements/time.md) | 출발계산 화면 (`#view-time`) |
+| [personal-departure-time.md](personal-departure-time.md) | 개인별 이동 시간 입력 기준·계산 계약·검증 |
 | [requirements/chat.md](requirements/chat.md) | AI 챗봇 화면 (`#view-chat`) |
 | [chat-voice-integration.md](chat-voice-integration.md) | 챗봇 음성 통합·방면 분석 범위·안드로이드 실기기 확인 |
 | [chat-speech-recognition.md](chat-speech-recognition.md) | 한국어 음성 인식 동작·개인정보·브라우저 제약 |

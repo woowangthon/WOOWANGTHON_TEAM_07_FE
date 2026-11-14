@@ -1,0 +1,69 @@
+.departure-minutes {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3);
+  margin-block: var(--sp-3);
+  background: var(--surface-2);
+  color: var(--text);
+}
+.departure-minutes summary {
+  cursor: pointer;
+  min-height: var(--tap-min);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-strong);
+}
+.departure-minutes summary:focus-visible,
+.departure-minutes input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.departure-minutes-optional,
+.departure-minutes-summary,
+.departure-minutes-note {
+  font-size: var(--fs-label);
+  color: var(--text-2);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-body);
+  overflow-wrap: anywhere;
+}
+.departure-minutes-summary { display: block; margin-top: var(--sp-2); }
+.departure-minutes > .btn {
+  max-width: 100%;
+  height: auto;
+  min-height: var(--tap-min);
+  padding-block: var(--sp-2);
+  white-space: normal;
+  line-height: var(--lh-title);
+  overflow-wrap: anywhere;
+}
+.departure-minutes-note { margin-block: var(--sp-3); }
+.departure-buffer-options {
+  padding: 0;
+  margin: var(--sp-4) 0;
+  border: 0;
+  min-width: 0;
+}
+.departure-buffer-options legend { margin-bottom: var(--sp-2); font-size: var(--fs-label); }
+.departure-buffer-options > div { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.departure-buffer-options .btn { min-height: var(--tap-min); white-space: normal; }
+.departure-buffer-options [aria-pressed="true"] {
+  background: var(--primary-tint);
+  color: var(--primary-text);
+  border-color: var(--primary-text);
+}
+.departure-minutes-fields { display: grid; gap: var(--sp-4); margin-bottom: var(--sp-4); }
+.departure-minutes-field { display: grid; gap: var(--sp-2); min-width: 0; }
+.departure-minutes-field label { font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.departure-minutes-field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--tap-main);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-body);
+}
+.departure-minutes-field .departure-minutes-note { margin: 0; }
+.departure-minutes-field [aria-invalid="true"] { border-color: var(--bad-text); }
+.departure-minutes-error { color: var(--bad-text); font-size: var(--fs-label); }

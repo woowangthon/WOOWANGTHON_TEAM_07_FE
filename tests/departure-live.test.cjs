@@ -142,3 +142,55 @@ test('mock path stays synchronous and unchanged',()=>{
  assert.match(r.leaveAt,/^\d{2}:\d{2}$/);assert.equal(r.live,undefined);assert.equal(r.selectedTrain,undefined);
  assert(Array.isArray(r.route.path)&&r.route.path[0]==='sindorim');
 });
+
+test('personal minutes: defaults, zero, maximum and strict validation',()=>{
+ const tc=load().TimeCalculator;
+ const plain=o=>JSON.parse(JSON.stringify(o));
+ assert.deepEqual(plain(tc.normalizeDepartureMinutes()),{walk:7,entry:3,exit:3,buffer:5});
+ const fields=['walkToStationMinutes','stationEntryMinutes','exitWalkMinutes','bufferMinutes'];
+ const maximum={walkToStationMinutes:120,stationEntryMinutes:120,exitWalkMinutes:120,bufferMinutes:240};
+ assert.deepEqual(plain(tc.normalizeDepartureMinutes(maximum)),{walk:120,entry:120,exit:120,buffer:240});
+ assert.deepEqual(plain(tc.normalizeDepartureMinutes(Object.fromEntries(fields.map(f=>[f,0])))),{walk:0,entry:0,exit:0,buffer:0});
+ for(const field of fields){
+  for(const value of [null,'', '5',true,false,NaN,Infinity,-1,0.5,maximum[field]+1]){
+   assert.throws(()=>tc.normalizeDepartureMinutes({[field]:value}),e=>e.code==='BAD_MINUTES'&&e.field===field);
+  }
+ }
+});
+
+test('personal live minutes are sent exactly, including zero, and now-mode crosses KST midnight',async()=>{
+ const {f,tc,slug}=await setup();
+ const opts={walkToStationMinutes:20,stationEntryMinutes:0,exitWalkMinutes:12,bufferMinutes:15};
+ const r=await tc.calculateDepartureLive({originId:slug(31),destId:slug(32),now:new Date('2026-12-01T23:50:00+09:00'),fetch:f,...opts});
+ const body=f.calls.find(c=>c.key==='POST /api/departure-time').body;
+ assert.deepEqual({walk:body.walk_to_station_minutes,entry:body.station_entry_minutes,exit:body.exit_walk_minutes,buffer:body.buffer_minutes},{walk:20,entry:0,exit:12,buffer:15});
+ assert.equal(body.arrival_at,tc.buildArrivalIso(null,F.r32.response.total_minutes,new Date('2026-12-01T23:50:00+09:00'),opts));
+ assert.match(body.arrival_at,/^2026-12-02T/);
+ assert.deepEqual(JSON.parse(JSON.stringify(r.inputMinutes)),{walk:20,entry:0,exit:12,buffer:15});
+ assert.equal(body.travel_minutes,F.r32.response.total_minutes,'personal minutes must not change train travel time');
+});
+
+test('invalid personal minutes fail before any live request or mock calculation',async()=>{
+ const {f,tc,slug}=await setup();
+ await assert.rejects(tc.calculateDepartureLive({originId:slug(31),destId:slug(32),walkToStationMinutes:'20',fetch:f}),e=>e.code==='BAD_MINUTES');
+ assert.equal(f.calls.length,0);
+ assert.throws(()=>tc.calculateDeparture({originId:'sindorim',destId:'gangnam',bufferMinutes:null}),e=>e.code==='BAD_MINUTES');
+});
+
+test('mock personal minutes move departure without changing the chosen train or adding buffer twice',()=>{
+ const tc=load().TimeCalculator;
+ const opts={originId:'sindorim',destId:'gangnam',arriveBy:'12:00',now:new Date('2026-12-01T06:00:00'),bufferMinutes:0};
+ const base=tc.calculateDeparture(opts);
+ const personal=tc.calculateDeparture({...opts,walkToStationMinutes:17,stationEntryMinutes:8,bufferMinutes:15});
+ assert.equal(personal.boardAt,base.boardAt);
+ assert.equal(personal.leaveAt,tc.addMinutes(base.leaveAt,-30));
+ assert.equal(personal.arriveAt,base.arriveAt);
+ assert.equal(personal.breakdown.walk,17);
+ assert.equal(personal.breakdown.entry,8);
+ assert.equal(personal.breakdown.wait,15);
+ const min=hhmm=>Number(hhmm.slice(0,2))*60+Number(hhmm.slice(3));
+ assert.equal(min(personal.boardAt)-min(personal.leaveAt),17+8+15);
+ const longerExit=tc.calculateDeparture({...opts,exitWalkMinutes:20});
+ assert.equal(longerExit.breakdown.exitWalk,20);
+ assert.equal(min(longerExit.arriveAt)-min(longerExit.timeline[longerExit.timeline.length-2].time),20);
+});

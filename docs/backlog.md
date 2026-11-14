@@ -27,6 +27,7 @@
 
 | ID | 제목 | 우선순위 | 상태 | 등록일 |
 |---|---|---|---|---|
+| [REQ-TIME-008](requirements/time.md#req-time-008-개인별-이동-시간-입력) | 개인별 이동 시간 입력 | P1 | 완료 | 2026-11-15 |
 | [REQ-CHAT-007](requirements/chat.md) | 승차 여부·방면 맥락과 대체역 안내의 검증 한계 문서화 | P1 | 완료 | 2026-11-15 |
 | [REQ-CHAT-006](requirements/chat.md) | 챗봇 정보 수집 시각을 자연스러운 문장으로 안내 | P1 | 완료 | 2026-11-15 |
 | [REQ-ELV-011](requirements/elevator.md) | 상태 미확인과 설비 수 0의 구분 및 상세 조회 전 집계 보존 | P0 | 완료 | 2026-11-15 |

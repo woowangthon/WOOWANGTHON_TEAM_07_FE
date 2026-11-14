@@ -1,4 +1,4 @@
-import { act, cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from '../../App'
 
@@ -47,4 +47,66 @@ it('API 실패는 오류로 표시하고 mock 계산으로 넘어가지 않는�
   await waitFor(() => expect(document.querySelector('#timeResult [role="alert"]')).not.toBeNull())
   expect(mock).not.toHaveBeenCalled()
   expect(document.querySelector('#timeResult')!.textContent).toContain('연결')
+})
+
+const editMinute = (id: string, value: string) => fireEvent.change(document.getElementById(id)!, { target: { value } })
+const submitForm = () => fireEvent.submit(document.getElementById('timeForm')!)
+
+it('개인 이동 시간을 API 계산에 전달하고 openTime에서도 유지한다', async () => {
+  vi.spyOn(window.ApiClient, 'isApiMode').mockReturnValue(true)
+  const calculate = vi.spyOn(window.TimeCalculator, 'calculateDepartureLive').mockResolvedValue(result('09:20'))
+  render(<App />)
+  open()
+  await waitFor(() => expect(calculate).toHaveBeenCalledOnce())
+  editMinute('walkToStationMinutes', '18')
+  editMinute('stationEntryMinutes', '9')
+  editMinute('exitWalkMinutes', '12')
+  editMinute('bufferMinutes', '15')
+  expect(document.querySelector('#timeResult .big-time')).toBeNull()
+  open('gyodae')
+  await waitFor(() => expect(calculate).toHaveBeenCalledTimes(2))
+  expect(calculate.mock.calls[1][0]).toMatchObject({ walkToStationMinutes: 18, stationEntryMinutes: 9, exitWalkMinutes: 12, bufferMinutes: 15 })
+})
+
+it.each(['', '-1', '1.5', '121'])('잘못된 이동 시간 %s는 계산하지 않고 해당 입력에 안내한다', async (value) => {
+  vi.spyOn(window.ApiClient, 'isApiMode').mockReturnValue(true)
+  const calculate = vi.spyOn(window.TimeCalculator, 'calculateDepartureLive').mockResolvedValue(result('09:20'))
+  render(<App />)
+  open()
+  await waitFor(() => expect(calculate).toHaveBeenCalledOnce())
+  editMinute('walkToStationMinutes', value)
+  submitForm()
+  expect(calculate).toHaveBeenCalledOnce()
+  expect(document.activeElement?.id).toBe('walkToStationMinutes')
+  expect(document.getElementById('walkToStationMinutes')?.getAttribute('aria-invalid')).toBe('true')
+  expect((document.getElementById('departureMinutes') as HTMLDetailsElement).open).toBe(true)
+  expect(document.getElementById('walkToStationMinutesError')?.textContent).toBeTruthy()
+})
+
+it('입력 수정 중 도착한 이전 API 응답을 버린다', async () => {
+  const pending = deferred()
+  vi.spyOn(window.ApiClient, 'isApiMode').mockReturnValue(true)
+  const calculate = vi.spyOn(window.TimeCalculator, 'calculateDepartureLive').mockReturnValue(pending.promise)
+  render(<App />)
+  open()
+  await waitFor(() => expect(calculate).toHaveBeenCalledOnce())
+  editMinute('bufferMinutes', '10')
+  await act(async () => pending.resolve(result('08:10')))
+  expect(document.querySelector('#timeResult .big-time')).toBeNull()
+  expect(document.getElementById('timeResult')?.textContent).toContain('다시 계산')
+  expect((document.querySelector('#timeForm button[type="submit"]') as HTMLButtonElement).disabled).toBe(false)
+})
+
+it('0분 입력과 여유 시간 선택, 기본값 복원을 지원한다', async () => {
+  vi.spyOn(window.ApiClient, 'isApiMode').mockReturnValue(false)
+  const calculate = vi.spyOn(window.TimeCalculator, 'calculateDeparture').mockReturnValue({ ...result('09:20'), live: false })
+  render(<App />)
+  open()
+  editMinute('walkToStationMinutes', '0')
+  fireEvent.click(Array.from(document.querySelectorAll('#departureMinutes button')).find((button) => button.textContent === '넉넉히 10분')!)
+  submitForm()
+  expect(calculate.mock.lastCall?.[0]).toMatchObject({ walkToStationMinutes: 0, bufferMinutes: 10 })
+  fireEvent.click(Array.from(document.querySelectorAll('#departureMinutes button')).find((button) => button.textContent === '기본 시간으로 되돌리기')!)
+  submitForm()
+  expect(calculate.mock.lastCall?.[0]).toMatchObject({ walkToStationMinutes: 7, stationEntryMinutes: 3, exitWalkMinutes: 3, bufferMinutes: 5 })
 })
