@@ -32,7 +32,7 @@
 | ID | 제목 | 우선순위 | 상태 | 등록일 |
 |---|---|---|---|---|
 | [REQ-TIME-009](requirements/time.md#req-time-009-쉬운-선택으로-예상-시간-자동-채우기) | 쉬운 선택으로 예상 시간 자동 채우기 | P1 | 완료 | 2026-11-15 |
-| [REQ-COM-012](requirements/common.md#req-com-012-로그인사용자별-정보-영구-저장) | 실제 로그인·사용자별 DB 저장 및 Google 인증 화면 진입 검증 | P1 | 완료 | 2026-11-15 |
+| [REQ-COM-012](requirements/common.md#req-com-012-로그인사용자별-정보-영구-저장) | 실제 로그인·사용자별 DB 저장 및 Google·카카오 인증 연결 | P1 | 완료 | 2026-11-15 |
 | [REQ-CHAT-008](requirements/chat.md#req-chat-008-즐겨찾기-역을-추천-문구에-반영) | 즐겨찾기 역을 챗봇 추천 문구에 반영 | P1 | 완료 | 2026-11-15 |
 | [REQ-CHAT-007](requirements/chat.md) | 승차 여부·방면 맥락과 대체역 안내의 검증 한계 문서화 | P1 | 완료 | 2026-11-15 |
 | [REQ-TIME-008](requirements/time.md#req-time-008-개인별-이동-시간-입력) | 개인별 이동 시간 입력 | P1 | 완료 | 2026-11-15 |
