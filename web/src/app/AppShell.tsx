@@ -14,6 +14,7 @@ import { ElevatorView } from '../views/elevator/ElevatorView'
 import { TimeView } from '../views/time/TimeView'
 import { ChatView } from '../views/chat/ChatView'
 import { AccountView } from '../views/account/AccountView'
+import './app-header-layout.css'
 
 // 아이콘 글꼴이 오면 아이콘을 보인다. 오기 전이나 못 받으면 이름 글자("search")를 숨겨 둔다 (REQ-DS-007)
 function useIconFontReady() {
@@ -39,7 +40,7 @@ function useLockPhoneScroll(ref: RefObject<HTMLDivElement | null>) {
 }
 
 export function AppShell({ welcomeControl }: { welcomeControl?: ReactNode }) {
-  const { currentTab, sheet, openSheet, closeSheet, toastMessage, toastVisible } = useApp()
+  const { currentTab, toastMessage, toastVisible } = useApp()
   const phoneRef = useRef<HTMLDivElement>(null)
   // 목업 모드 표시(가상 데이터를 실제로 오해하지 않게). 실데이터 모드에서는 숨긴다. 시작 때 한 번 정한다.
   const [mockBadge] = useState(() => !apiMode())
@@ -57,15 +58,7 @@ export function AppShell({ welcomeControl }: { welcomeControl?: ReactNode }) {
 
         <header className="app-header" hidden={currentTab === 'time' || currentTab === 'chat' || currentTab === 'login'}>
           <div id="dataSourceBadge" className="data-badge" role="status" hidden={!mockBadge}><Icon name="science" />목업 데이터 · 실제 상태가 아니에요</div>
-          <HeaderSearch>
-            <button
-              id="demoBtn"
-              className="icon-btn"
-              type="button"
-              aria-label="시연 제어판"
-              onClick={() => { if (sheet.open && sheet.mode === 'demo') closeSheet(); else openSheet('demo', {}, 'auto') }}
-            ><Icon name="settings" size="lg" /></button>
-          </HeaderSearch>
+          <HeaderSearch />
         </header>
 
         <main className="views">

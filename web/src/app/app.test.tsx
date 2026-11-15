@@ -141,14 +141,10 @@ describe('바텀 시트', () => {
     expect($('#toast')?.textContent).toBe('역 정보를 찾을 수 없어요')
   })
 
-  it('auto 시트는 막이 보이고 막을 누르면 닫힌다', () => {
+  it('헤더에 시연 제어판 버튼(#demoBtn)이 없다, 검색창만 남는다', () => {
     mount()
-    fireEvent.click($('#demoBtn') as HTMLElement)
-    expect($('#bottomSheet')?.classList.contains('open')).toBe(true)
-    expect($('#sheetBackdrop')?.classList.contains('show')).toBe(true)
-    expect(($('#sheetHandle') as HTMLElement).hidden).toBe(true)
-    fireEvent.click($('#sheetBackdrop') as HTMLElement)
-    expect($('#bottomSheet')?.classList.contains('open')).toBe(false)
+    expect($('#demoBtn')).toBeNull()
+    expect($('#searchInput')).not.toBeNull()
   })
 })
 

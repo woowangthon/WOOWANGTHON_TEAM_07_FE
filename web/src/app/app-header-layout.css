@@ -1,0 +1,7 @@
+/* 헤더 레이아웃 (#96): 시연 제어판 버튼을 뺀 뒤 역 검색창이 헤더 너비를 채운다.
+   chat-form(챗 탭 입력줄)은 입력칸을 넓힌다. 지도/엘리베이터/시간 탭에는 하단 채팅 입력줄이 없다. */
+.app-header .search-box { width: 100%; }
+.app-header .search-box input { flex: 1 1 auto; width: 100%; }
+
+#chatForm { flex-wrap: nowrap; }
+.chat-form input { flex: 1 1 0; width: 100%; }
