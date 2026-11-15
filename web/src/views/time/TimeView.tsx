@@ -10,8 +10,8 @@ import { pad2 } from '../../lib/time'
 import { StationCombo } from './StationCombo'
 import { TimeResultView } from './TimeResult'
 import { buildResultModel, liveErrorMessage, type ResultModel } from './timeResultModel'
-import { DepartureMinutes } from './DepartureMinutes'
-import { defaultMinuteDraft, minuteError, minuteFields, type MinuteDraft, type MinuteValues } from './departureMinuteValues'
+import { minuteError, minuteFields, type MinuteValues } from './departureMinuteValues'
+import { usePersonalMinutes } from './personalMinutes'
 
 type Result =
   | { kind: 'empty'; text: string }
@@ -55,7 +55,10 @@ function stationOptions(stations: ReturnType<typeof allStations>) {
 }
 
 export function TimeView() {
-  const { currentTab, pendingTime, clearPendingTime, openStation } = useApp()
+  const { currentTab, pendingTime, clearPendingTime, openStation, switchTab } = useApp()
+  // 예상 이동 시간은 마이페이지에서 정한다 (#87). 로그인 + 저장값이면 저장값, 아니면 기본값.
+  const personal = usePersonalMinutes()
+  const minutes = personal.draft
   const version = useElevatorVersion()
   const stations = useMemo(
     () => allStations().sort((a, b) => koCompare(a.name, b.name)),
@@ -70,8 +73,6 @@ export function TimeView() {
   const [picker, setPicker] = useState<Picker>(() => toPicker(defaultArriveBy()) || { ampm: '오후', hour: '3', min: '00' })
   const [result, setResult] = useState<Result>(INITIAL)
   const [busy, setBusy] = useState(false)
-  const [minutes, setMinutes] = useState(defaultMinuteDraft)
-  const [showMinuteErrors, setShowMinuteErrors] = useState(false)
 
   const latest = useRef({ originId, destId, modeNow, picker })
   latest.current = { originId, destId, modeNow, picker }
@@ -97,10 +98,13 @@ export function TimeView() {
     setResult({ kind: 'empty', text: '입력이 바뀌었어요. 출발 시각을 다시 계산해 주세요.' })
   }
 
-  function changeMinutes(next: MinuteDraft) {
-    setMinutes(next)
+  // 마이페이지에서 예상 이동 시간이 바뀌면 이전 결과를 무효화한다 (다시 계산해야 반영)
+  const prevMinutesKey = useRef(personal.key)
+  useEffect(() => {
+    if (prevMinutesKey.current === personal.key) return
+    prevMinutesKey.current = personal.key
     invalidateResult()
-  }
+  }, [personal.key])
 
   function submit(o: string, d: string, arriveBy: string | null) {
     const seq = ++liveSeq.current
@@ -108,12 +112,8 @@ export function TimeView() {
     if (!o || !d) { setResult({ kind: 'empty', text: '출발역과 도착역을 선택해 주세요.' }); return }
     if (o === d) { setResult({ kind: 'empty', text: '출발역과 도착역이 같아요. 다른 역을 골라 주세요.' }); return }
     const invalid = minuteFields.find((field) => minuteError(minutes[field.key], field.max))
-    setShowMinuteErrors(true)
     if (invalid) {
-      const details = document.getElementById('departureMinutes') as HTMLDetailsElement | null
-      if (details) details.open = true
-      document.getElementById(invalid.key)?.focus()
-      setResult({ kind: 'error', text: '이동 시간을 확인해 주세요. 각 항목에 분 단위 정수를 입력해요.' })
+      setResult({ kind: 'error', text: '예상 이동 시간을 확인해 주세요. 마이페이지에서 다시 저장해 주세요.' })
       return
     }
     const inputMinutes = Object.fromEntries(minuteFields.map((field) => [field.key, Number(minutes[field.key])])) as MinuteValues
@@ -202,7 +202,15 @@ export function TimeView() {
               <input id="arriveBy" type="hidden" value={arriveByValue} readOnly />
             </div>
           </div>
-          <DepartureMinutes value={minutes} onChange={changeMinutes} showErrors={showMinuteErrors} />
+          <div id="departureSummary" className="departure-summary">
+            <p className="departure-minutes-note">
+              {personal.signedIn && personal.saved ? '마이페이지에 저장한 예상 이동 시간으로 계산해요.' : '기본 예상 이동 시간으로 계산해요.'}
+            </p>
+            <p className="departure-minutes-summary">{`역까지 ${minutes.walkToStationMinutes}분 · 역 안 ${minutes.stationEntryMinutes}분 · 하차 후 ${minutes.exitWalkMinutes}분 · 여유 ${minutes.bufferMinutes}분`}</p>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => switchTab('login')}>
+              {personal.signedIn ? '마이페이지에서 바꾸기' : '로그인하고 바꾸기'}
+            </button>
+          </div>
           <button className="btn btn-primary btn-block btn-main" type="submit" disabled={busy}>출발 시각 계산하기</button>
         </form>
         <div id="timeResult" aria-busy={busy ? 'true' : undefined}

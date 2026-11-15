@@ -1,17 +1,18 @@
 import { ExpiringHtml } from '../../components/ExpiringHtml'
-// AI 챗봇 탭(#view-chat). 말풍선·액션 버튼·제안·전송 상태를 표시한다.
+// AI 챗봇 탭(#view-chat). 말풍선·액션 버튼·전송 상태를 표시한다.
+// 질문 선택지(추천·즐겨찾기 바로 질문)는 화면에서 뺐다. 질문을 보내는 함수(send)는 그대로 둔다 (#86).
+// 음성 세부 설정은 마이페이지로 옮겼다 (#85). 챗봇은 저장된 설정을 읽어 답변을 자동 재생한다.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useApp } from '../../app/context'
-import { Icon } from '../../components/Icon'
 import type { ChatAction, ChatResponse } from '../../legacy/globals'
-import { allStations, apiMode, mapCall, safe } from '../../lib/stations'
+import { apiMode, mapCall, safe } from '../../lib/stations'
 import { useElevatorVersion } from '../../hooks/useElevatorService'
 import { useSession } from '../account/authStore'
-import { useFavorites } from '../account/favorites'
-import { favoriteSuggestions } from './favoriteSuggestions'
+import { Icon } from '../../components/Icon'
 import { VoiceInput } from './voice/recognition/VoiceInput'
-import { SpeechControls, SpeechSettings, useChatSpeech } from './voice/tts'
+import { SpeechControls, useChatSpeech } from './voice/tts'
 import { responseSpeechText } from './responseSpeechText'
+import { AnswerText } from './AnswerText'
 import './chat-accessibility.css'
 
 type Msg =
@@ -35,15 +36,11 @@ function initialWelcome(): Msg[] {
 
 export function ChatView() {
   const session = useSession()
-  const favorites = useFavorites()
+  const sessionRef = useRef(session)
+  sessionRef.current = session
   useElevatorVersion()
-  const personalSuggestions = session ? favoriteSuggestions(favorites, allStations()) : []
   const { currentTab, subscribeTabChange, openStation, openTime, toast, pendingChat, clearPendingChat } = useApp()
   const [msgs, setMsgs] = useState<Msg[]>(initialWelcome)
-  const [suggestions, setSuggestions] = useState<string[]>(() => {
-    const m = msgs[0]
-    return m && m.kind === 'bot' && m.resp.suggestions ? m.resp.suggestions : []
-  })
   const [busy, setBusy] = useState(false)
   const [text, setText] = useState('')
   const [listening, setListening] = useState(false)
@@ -80,7 +77,6 @@ export function ChatView() {
       return replaceKey !== undefined && cur.some((x) => x.key === replaceKey)
         ? cur.map((x) => (x.key === replaceKey ? m : x)) : [...cur, m]
     })
-    if (resp && resp.suggestions && resp.suggestions.length) setSuggestions(resp.suggestions)
   }, [])
 
   const send = useCallback((raw: string, refocus?: boolean, voice = false) => {
@@ -105,8 +101,10 @@ export function ChatView() {
       setBusy(false)
       addBot(resp, typingKey)
       const s = speechRef.current
+      // 마이크로 물은 답변만 기본으로 소리 재생. 비로그인은 저장값 없이 기본 동작을 쓴다.
+      const effectiveMode = s.signedIn ? s.mode : 'voice'
       const autoRead = activeRef.current && document.visibilityState !== 'hidden'
-        && s.ready && (s.mode === 'always' || (voice && s.mode === 'voice'))
+        && s.ready && (effectiveMode === 'always' || (voice && effectiveMode === 'voice'))
       if (autoRead) {
         setAnnouncement('답변이 도착했어요. 소리로 읽어 드릴게요.')
         s.speak(typingKey, responseSpeechText(resp))
@@ -169,7 +167,7 @@ export function ChatView() {
           const actions = (r.actions || []).filter((a) => a.type !== 'showAlternative')
           return (
             <div key={m.key} className="msg bot">
-              {r.text ? <div className="bubble"><Text text={r.text} /></div> : null}
+              {r.text ? <div className="bubble bubble-answer"><AnswerText text={r.text} /></div> : null}
               {/* mock 모드 AIAgent가 만든 신뢰된 카드 HTML. 서버 문자열은 절대 여기에 넣지 않는다. */}
               {r.html && !apiMode() ? <ExpiringHtml html={r.html} /> : null}
               {!listening && <SpeechControls messageKey={m.key} text={responseSpeechText(r)} speech={speech} />}
@@ -185,29 +183,18 @@ export function ChatView() {
         })}
       </div>
       <div className="chat-composer">
-        <details className="chat-voice-settings"><summary>음성 설정</summary><SpeechSettings speech={speech} /></details>
         <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
-        <div id="chatSuggestions" className="chip-row chat-suggestions">
-          {personalSuggestions.map((suggestion) => (
-            <button key={suggestion.id} type="button" className="chip" data-favorite-station={suggestion.id}
-              data-suggest={suggestion.prompt} disabled={busy || listening}
-              onClick={() => { if (!busyRef.current) send(suggestion.prompt) }}>
-              <Icon name="star" />{suggestion.label}
-            </button>
-          ))}
-          {suggestions.filter((t) => !personalSuggestions.some((s) => s.prompt === t)).map((t, i) => (
-            <button key={t + i} type="button" className="chip" data-suggest={t} disabled={busy || listening} onClick={() => { if (!busyRef.current) send(t) }}>{t}</button>
-          ))}
-        </div>
         <form id="chatForm" className="chat-form" onSubmit={onSubmit}>
           <label className="sr-only" htmlFor="chatInput">AI에게 질문하기</label>
-          <input id="chatInput" type="text" placeholder={listening ? '듣고 있어요…' : '예) 강남역 엘리베이터 돼?'} autoComplete="off" ref={inputRef}
+          <input id="chatInput" type="text" placeholder={listening ? '듣고 있어요…' : '지금 고장난 역 알려줘'} autoComplete="off" ref={inputRef}
             value={listening ? interim : text} readOnly={listening} disabled={busy} onChange={(e) => setText(e.target.value)} />
           <div onClickCapture={() => speechRef.current.stop()}><VoiceInput disabled={busy || currentTab !== 'chat'}
             onTranscript={(value) => { setInterim(''); send(value, false, true) }}
             onListeningChange={(value) => { setListening(value); if (value) { speechRef.current.stop(); setInterim('') } }}
             onInterimText={setInterim} /></div>
-          <button className="btn btn-primary" type="submit" aria-label="보내기" disabled={busy || listening}><Icon name="arrow_upward" size="lg" /></button>
+          <button className="btn btn-primary" type="submit" aria-label="보내기" disabled={busy || listening}>
+            <Icon name="arrow_upward" size="lg" />
+          </button>
         </form>
       </div>
     </section>

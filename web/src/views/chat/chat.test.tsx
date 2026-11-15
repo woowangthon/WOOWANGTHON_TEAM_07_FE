@@ -8,23 +8,13 @@ const $ = (sel: string) => document.querySelector(sel) as HTMLElement | null
 afterEach(() => { cleanup(); vi.restoreAllMocks(); document.body.removeAttribute('data-active-tab') })
 
 describe('챗 탭', () => {
-  it('즐겨찾기 추가·변경·삭제와 로그아웃을 반영하고 실제 역명으로 전송한다', async () => {
-    const process = vi.spyOn(window.AIAgent, 'processMessage').mockResolvedValue({ text: '역 정보를 확인했어요.' })
+  it('즐겨찾기는 챗 탭 질문 선택지로 나오지 않는다 (#86)', () => {
     act(() => { window.AuthService.login('google') })
     render(<App />)
     act(() => { saveFavs([{ id: '1', placeName: '강남역', alias: '회사' }]) })
-    expect($('#chatSuggestions [data-favorite-station="gangnam"]')?.textContent).toContain('회사 · 강남역')
-    fireEvent.click($('#chatSuggestions [data-favorite-station="gangnam"]')!)
-    await waitFor(() => expect(process).toHaveBeenCalledWith('강남역 엘리베이터 알려줘'))
-    await waitFor(() => expect($('#chatMessages .typing')).toBeNull())
-    act(() => { saveFavs([{ id: '1', placeName: '강남역', alias: '직장' }]) })
-    expect($('#chatSuggestions [data-favorite-station="gangnam"]')?.textContent).toContain('직장')
-    act(() => { saveFavs([]) })
+    expect($('#chatSuggestions')).toBeNull()
     expect($('#chatSuggestions [data-favorite-station]')).toBeNull()
-    act(() => { saveFavs([{ id: '1', placeName: '강남역' }]) })
     act(() => { void window.AuthService.logout() })
-    expect($('#chatSuggestions [data-favorite-station]')).toBeNull()
-    expect($('#chatSuggestions .chip')).not.toBeNull()
   })
 
   it('도구 호출 영역을 렌더링하지 않고 답변과 역 상세 버튼을 유지한다', async () => {
@@ -43,10 +33,11 @@ describe('챗 탭', () => {
     expect($('#sheetContent .sheet-title')?.textContent).toContain('강남역')
   })
 
-  it('환영 메시지와 제안 칩', () => {
+  it('환영 메시지만 보이고 질문 선택지는 없다 (#86)', () => {
     render(<App />)
     expect(document.querySelectorAll('#chatMessages .msg.bot').length).toBe(1)
-    expect(document.querySelectorAll('#chatSuggestions .chip').length).toBeGreaterThan(0)
+    expect($('#chatSuggestions')).toBeNull()
+    expect($('#chatInput')?.getAttribute('placeholder')).toBe('지금 고장난 역 알려줘')
   })
 
   it('전송: 사용자 말풍선, 봇 답변, 입력 비움, 서버 문자열은 이스케이프', async () => {

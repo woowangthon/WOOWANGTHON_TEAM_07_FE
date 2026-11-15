@@ -5,6 +5,9 @@ import { useApp } from '../../app/context'
 import { Icon } from '../../components/Icon'
 import { Auth } from '../../legacy/services'
 import { useSession, touchAuth } from './authStore'
+import './mypage-edit.css'
+import { SpeechSettings, useChatSpeech } from '../chat/voice/tts'
+import { DepartureSettingsCard } from './DepartureSettingsCard'
 import {
   applyFontSize, loadFavs, readFontSize, useFavorites, realAuth,
   addFavorite, renameFavorite, deleteFavorite, fetchFavorites, clearFavorites,
@@ -43,6 +46,10 @@ function FavRenameRow({ fav, onDone, onToast }: { fav: Favorite; onDone: () => v
   )
 }
 
+function FavRenameRowWrap(props: { fav: Favorite; onDone: () => void; onToast: (m: string) => void }) {
+  return <div className="fav-inline-row fav-rename-wrap"><FavRenameRow {...props} /></div>
+}
+
 export function AccountView() {
   const { currentTab, toast, setLoginTabLabel, openSheet, closeSheet, getSheet } = useApp()
   const session = useSession()
@@ -50,6 +57,7 @@ export function AccountView() {
   const signedIn = !!(session && typeof session === 'object')
 
   const favs = useFavorites()
+  const speech = useChatSpeech()
   const [favError, setFavError] = useState('')
   const [favLoading, setFavLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -101,6 +109,16 @@ export function AccountView() {
   }, [session, getSheet, closeSheet])
 
   useLayoutEffect(() => { setLoginTabLabel(signedIn ? '마이페이지' : '로그인') }, [signedIn, setLoginTabLabel])
+
+  // 다른 탭으로 가면 편집 상태를 닫는다. 저장하지 않은 임시 입력은 버리고, 저장된 이름·즐겨찾기는 그대로 둔다.
+  useEffect(() => {
+    if (currentTab === 'login') return
+    setNameEditing(false)
+    setAddOpen(false)
+    setAddValue('')
+    setFavEditMode(false)
+    setRenamingId(null)
+  }, [currentTab])
 
   const refreshFavs = () => {
     if (!realAuth()) return
@@ -236,7 +254,7 @@ export function AccountView() {
                 <div className="auth-profile-info">
                   <div className="auth-profile-name-row">
                     <p id="authProfileName" className="auth-profile-name" hidden={nameEditing}>{profileName}</p>
-                    <div id="nameEditRow" className="name-edit-row" hidden={!nameEditing}>
+                    <div id="nameEditRow" className="name-edit-row fav-inline-row" hidden={!nameEditing}>
                       <input
                         id="nameEditInput" ref={nameInputRef} type="text" className="name-edit-input" autoComplete="off" maxLength={30}
                         aria-label="사용자 이름" value={nameValue} onChange={(e) => setNameValue(e.target.value)}
@@ -266,7 +284,7 @@ export function AccountView() {
                 </div>
               </div>
               {/* 추가 입력 행 (기본 숨김) */}
-              <div id="favAddRow" className="fav-add-row" hidden={!addOpen}>
+              <div id="favAddRow" className="fav-add-row fav-inline-row" hidden={!addOpen}>
                 <input
                   id="favAddInput" ref={addInputRef} type="text" className="fav-rename-input" placeholder="장소 이름 입력" autoComplete="off" maxLength={20}
                   value={addValue} onChange={(e) => setAddValue(e.target.value)}
@@ -295,7 +313,7 @@ export function AccountView() {
                         </button>
                       )}
                       {renaming && (
-                        <FavRenameRow fav={fav} onToast={toast} onDone={() => { setRenamingId(null) }} />
+                        <FavRenameRowWrap fav={fav} onToast={toast} onDone={() => { setRenamingId(null) }} />
                       )}
                     </li>
                   )
@@ -305,6 +323,9 @@ export function AccountView() {
               {favError && <p role="alert">{favError} <button type="button" className="btn btn-sm btn-ghost" onClick={refreshFavs}>다시 불러오기</button></p>}
               <p id="favEmptyMsg" className="mypage-empty-hint" hidden={favs.length > 0 || favLoading || !!favError}>즐겨찾기한 장소가 없습니다.</p>
             </div>
+
+            {/* 예상 이동 시간 (#87). 출발계산 화면에서 옮겨 왔다. */}
+            {signedIn && <DepartureSettingsCard active={currentTab === 'login'} onToast={toast} />}
 
             {/* 글자 크기 설정 */}
             <div className="card mypage-section">
@@ -322,6 +343,15 @@ export function AccountView() {
                 ))}
               </div>
             </div>
+
+            {/* 답변 음성 설정 (#85). 챗봇 화면에서 옮겨 왔다. */}
+            {signedIn && <div className="card mypage-section" id="voiceSettingsSection">
+              <div className="mypage-section-header">
+                <Icon name="volume_up" className="mypage-section-icon" />
+                <span className="mypage-section-title">답변 음성</span>
+              </div>
+              <SpeechSettings speech={speech} />
+            </div>}
 
             {/* 로그아웃 */}
             <button className="btn btn-ghost btn-block auth-signout-btn" type="button" data-auth="signout">로그아웃</button>

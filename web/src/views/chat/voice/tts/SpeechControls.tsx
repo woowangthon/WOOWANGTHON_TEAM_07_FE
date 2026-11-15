@@ -15,12 +15,18 @@ export function SpeechControls({ messageKey, text, speech }: { messageKey: numbe
   </button>
 }
 
+/** 마이페이지(로그인 사용자)에서 쓰는 음성 설정 (#85). 챗봇 화면에는 두지 않는다. */
 export function SpeechSettings({ speech }: { speech: Speech }) {
   const id = useId()
+  const rateId = useId()
   return <div className="chat-speech-settings">
     <label htmlFor={id}>답변 소리로 듣기</label>
     <select id={id} value={speech.mode} disabled={!speech.supported} onChange={event => speech.setMode(event.target.value as Speech['mode'])}>
       <option value="voice">말로 물었을 때만</option><option value="always">항상</option><option value="off">끄기</option>
+    </select>
+    <label htmlFor={rateId}>읽는 속도</label>
+    <select id={rateId} value={String(speech.rate)} disabled={!speech.supported} onChange={event => speech.setRate(Number(event.target.value) as Speech['rate'])}>
+      <option value="0.8">느리게</option><option value="1">보통</option><option value="1.2">빠르게</option>
     </select>
     <p className="chat-speech-notice">기기의 시스템 TTS를 사용해요. 음성 처리 방식은 브라우저와 선택된 목소리에 따라 달라지며, 답변 글이 외부 음성 서비스로 전송될 수 있어요. 화면 읽기와 겹치면 끄기를 선택해 주세요.</p>
     {(!speech.supported || !speech.ready || speech.error) && <p className="chat-speech-notice" role="status">{!speech.supported ? '이 브라우저에서는 답변 소리로 듣기를 지원하지 않아요.' : !speech.ready ? '한국어 목소리를 기다리고 있어요. 계속 보이지 않으면 기기의 한국어 음성 설정을 확인해 주세요.' : speech.error}</p>}
