@@ -186,7 +186,7 @@ export function ChatView() {
         <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
         <form id="chatForm" className="chat-form" onSubmit={onSubmit}>
           <label className="sr-only" htmlFor="chatInput">AI에게 질문하기</label>
-          <input id="chatInput" type="text" placeholder={listening ? '듣고 있어요…' : '지금 고장난 역 알려줘'} autoComplete="off" ref={inputRef}
+          <input id="chatInput" type="text" placeholder={listening ? '듣고 있어요…' : '지금 엘리베이터가 고장난 역 알려줘'} autoComplete="off" ref={inputRef}
             value={listening ? interim : text} readOnly={listening} disabled={busy} onChange={(e) => setText(e.target.value)} />
           <div onClickCapture={() => speechRef.current.stop()}><VoiceInput disabled={busy || currentTab !== 'chat'}
             onTranscript={(value) => { setInterim(''); send(value, false, true) }}

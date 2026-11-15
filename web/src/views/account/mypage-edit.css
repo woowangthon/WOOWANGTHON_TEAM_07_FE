@@ -42,3 +42,17 @@
 /* 예상 이동 시간 카드의 저장·기본값 버튼 (#87) */
 .departure-settings-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
 .departure-summary { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-1); margin-bottom: var(--sp-3); }
+
+/* 마이페이지 네 항목 제목(즐겨찾기 장소·예상 이동시간·글자 크기·답변 음성)은 같은 규칙을 쓴다 (#95) */
+.mypage-section-header { padding-bottom: var(--sp-2); border-bottom: 1px solid var(--border); }
+.mypage-section-header .mypage-section-title { font-size: var(--fs-title); font-weight: var(--fw-bold); line-height: var(--lh-title); color: var(--text); }
+.mypage-section-header .mypage-section-icon { color: var(--primary-text); }
+.mypage-section { margin-top: var(--sp-4); }
+/* 예상 이동시간 직접 수정 영역: 카드 안에서 바깥 여백을 쌓지 않는다 (#95) */
+#departureSettings .departure-minutes { margin-block: 0; padding: 0; border: 0; }
+#departureSettings .departure-minutes > p:last-child,
+#departureSettings .departure-minutes-note:last-child { margin-bottom: 0; }
+#departureSettings .departure-settings-actions { margin-top: var(--sp-3); }
+#departureSettings .departure-minutes-fields { margin-bottom: 0; }
+#departureSettings .departure-minutes > .btn { margin-top: var(--sp-3); }
+.departure-login-hint { margin: var(--sp-2) 0 0; font-size: var(--fs-label); color: var(--text-2); }

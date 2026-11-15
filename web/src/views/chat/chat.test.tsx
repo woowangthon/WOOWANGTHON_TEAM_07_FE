@@ -37,7 +37,7 @@ describe('챗 탭', () => {
     render(<App />)
     expect(document.querySelectorAll('#chatMessages .msg.bot').length).toBe(1)
     expect($('#chatSuggestions')).toBeNull()
-    expect($('#chatInput')?.getAttribute('placeholder')).toBe('지금 고장난 역 알려줘')
+    expect($('#chatInput')?.getAttribute('placeholder')).toBe('지금 엘리베이터가 고장난 역 알려줘')
   })
 
   it('전송: 사용자 말풍선, 봇 답변, 입력 비움, 서버 문자열은 이스케이프', async () => {

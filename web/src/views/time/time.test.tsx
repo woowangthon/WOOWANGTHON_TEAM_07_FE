@@ -134,13 +134,15 @@ it('저장값을 지우면 자동 예상 시간(기본값)으로 계산한다', 
   expect(calculate.mock.lastCall?.[0]).toMatchObject({ walkToStationMinutes: 10, stationEntryMinutes: 5, exitWalkMinutes: 5, bufferMinutes: 10 })
 })
 
-it('출발계산 화면은 개인 설정 UI 없이 현재 예상 시간을 보여 주고 마이페이지로 안내한다', () => {
+it('출발계산 화면은 개인 설정 UI 없이 현재 예상 시간과 로그인 안내 문구만 보여 준다', () => {
   vi.spyOn(window.ApiClient, 'isApiMode').mockReturnValue(false)
   render(<App />)
   open()
   expect(document.getElementById('departureMinutes')).toBeNull()
   expect(document.querySelector('[data-departure-preset]')).toBeNull()
   expect(document.getElementById('departureSummary')?.textContent).toContain('역까지 10분')
+  expect(document.querySelector('#departureSummary button')).toBeNull()
+  expect(document.getElementById('departureSummary')?.textContent).toContain('로그인하면 마이페이지에서 예상 이동시간을 설정할 수 있어요.')
 })
 
 it.each(['standard', 'resting'])('마이페이지에서 간단 선택 %s를 저장하면 네 구간이 채워져 계산과 openTime에 전달된다', async (presetId) => {
